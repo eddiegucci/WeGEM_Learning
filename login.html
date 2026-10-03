@@ -15,14 +15,15 @@
     <a href="exams.html">Exams</a>
     <a href="quiz.html">Practice</a>
     <a href="progress.html">Progress</a>
+    <a id="auth-link" href="login.html">Sign In</a>
   </div>
 </nav>
 
 <main class="container">
   <div class="auth-card">
     <div class="section-label">Welcome</div>
-    <h1 class="section-title" id="authTitle">Sign in to WeGEM</h1>
-    <p class="section-sub" id="authSub">Sync your progress across devices.</p>
+    <h1 class="section-title">Sign in to WeGEM</h1>
+    <p class="section-sub">Sync your progress across devices.</p>
 
     <div id="authError" class="auth-error hidden"></div>
 
@@ -39,7 +40,7 @@
     <button class="btn btn-primary" id="signInBtn">Sign In</button>
     <button class="btn btn-ghost" id="signUpBtn">Create Account</button>
 
-    <p class="auth-hint" id="authHint">
+    <p class="auth-hint">
       New here? Click <strong>Create Account</strong> to register.
     </p>
   </div>
@@ -50,9 +51,11 @@
 <script type="module">
   import { signIn, signUp, watchAuth } from './js/firebase.js';
 
-  // If already signed in, redirect to home
+  // If already signed in, redirect home
   watchAuth((user) => {
-    if (user) window.location.href = 'index.html';
+    if (user) {
+      window.location.href = 'index.html';
+    }
   });
 
   const emailEl = document.getElementById('email');
@@ -74,13 +77,14 @@
     if (code.includes('invalid-email')) return 'Please enter a valid email address.';
     if (code.includes('weak-password')) return 'Password must be at least 6 characters.';
     if (code.includes('email-already-in-use')) return 'That email is already registered. Try signing in.';
-    if (code.includes('invalid-credential') || code.includes('wrong-password')) return 'Incorrect email or password.';
+    if (code.includes('invalid-credential')) return 'Incorrect email or password.';
+    if (code.includes('wrong-password')) return 'Incorrect email or password.';
     if (code.includes('user-not-found')) return 'No account with that email. Try creating one.';
     if (code.includes('too-many-requests')) return 'Too many attempts. Wait a minute and try again.';
     return e.message || 'Something went wrong. Try again.';
   }
 
-  document.getElementById('signInBtn').onclick = async () => {
+  async function doSignIn() {
     clearError();
     if (!emailEl.value || !passwordEl.value) {
       showError('Please enter both email and password.');
@@ -92,9 +96,9 @@
     } catch (e) {
       showError(friendlyError(e));
     }
-  };
+  }
 
-  document.getElementById('signUpBtn').onclick = async () => {
+  async function doSignUp() {
     clearError();
     if (!emailEl.value || !passwordEl.value) {
       showError('Please enter both email and password.');
@@ -110,11 +114,13 @@
     } catch (e) {
       showError(friendlyError(e));
     }
-  };
+  }
 
-  // Allow Enter key to submit
+  document.getElementById('signInBtn').onclick = doSignIn;
+  document.getElementById('signUpBtn').onclick = doSignUp;
+
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('signInBtn').click();
+    if (e.key === 'Enter') doSignIn();
   });
 </script>
 </body>

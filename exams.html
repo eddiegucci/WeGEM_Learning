@@ -31,7 +31,28 @@
 
 <script type="module">
   import { EXAMS } from './js/data.js';
+  import { watchAuth, logOut } from './js/firebase.js';
 
+  // Nav auth state
+  watchAuth((user) => {
+    const authLink = document.getElementById('auth-link');
+    if (!authLink) return;
+    if (user) {
+      authLink.textContent = 'Sign Out';
+      authLink.href = '#';
+      authLink.onclick = async (e) => {
+        e.preventDefault();
+        await logOut();
+        window.location.reload();
+      };
+    } else {
+      authLink.textContent = 'Sign In';
+      authLink.href = 'login.html';
+      authLink.onclick = null;
+    }
+  });
+
+  // Render exams
   const container = document.getElementById('examList');
 
   Object.entries(EXAMS).forEach(([key, exam]) => {
@@ -40,7 +61,10 @@
     card.style.setProperty('--accent', exam.color);
 
     const subjectsHtml = exam.subjects
-      .map(s => `<a class="chip" href="quiz.html?exam=${key}&subject=${encodeURIComponent(s.name)}">${s.name}</a>`)
+      .map(s => {
+        const count = s.questions.length;
+        return `<a class="chip" href="quiz.html?exam=${key}&subject=${encodeURIComponent(s.name)}">${s.name} <span class="chip-count">${count}</span></a>`;
+      })
       .join('');
 
     card.innerHTML = `
