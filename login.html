@@ -3,32 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In — WeGEM Learning</title>
+  <title>Welcome — WeGEM Learning</title>
+  <meta name="description" content="Interactive exam prep for Kenyan students. KCSE, KJSEA, and KPSEA practice with instant feedback.">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <nav class="nav">
-  <a href="index.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
+  <a href="login.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
   <div class="nav-links">
-    <a href="index.html">Home</a>
+    <a href="login.html" class="active">Home</a>
     <a href="exams.html">Exams</a>
     <a href="quiz.html">Practice</a>
     <a href="progress.html">Progress</a>
   </div>
 </nav>
 
-<main class="container">
+<main class="auth-wrap">
   <div class="auth-card">
-    <div class="section-label">Welcome</div>
-    <h1 class="section-title">Identify yourself</h1>
-    <p class="section-sub">Enter your name and email so we can save your quiz progress to the cloud.</p>
+    <div class="auth-logo"><span class="logo-dot"></span> WeGEM Learning</div>
+
+    <h1 class="auth-title">Karibu! Let's get you started.</h1>
+    <p class="auth-sub">Enter your name and email to save your progress to the cloud and start practicing.</p>
 
     <div id="authError" class="auth-error hidden"></div>
 
     <label>
       <span>Your name</span>
-      <input type="text" id="name" placeholder="e.g. Edwin" autocomplete="name">
+      <input type="text" id="name" placeholder="e.g. Edwin" autocomplete="name" autofocus>
     </label>
 
     <label>
@@ -39,16 +41,15 @@
     <button class="btn btn-primary" id="continueBtn">Continue →</button>
 
     <p class="auth-hint">
-      We use this to sync your quiz progress across devices. No password needed.
+      No password needed. We'll use this to sync your quiz progress across devices.
     </p>
   </div>
 </main>
 
-<footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
-
 <script type="module">
   import { saveUser, setCurrentUser, makeUserId, getCurrentUser } from './js/firebase.js';
 
+  // If already identified, go home
   if (getCurrentUser()) {
     window.location.href = 'index.html';
   }
@@ -56,6 +57,7 @@
   const nameEl = document.getElementById('name');
   const emailEl = document.getElementById('email');
   const errorEl = document.getElementById('authError');
+  const btn = document.getElementById('continueBtn');
 
   function showError(msg) {
     errorEl.textContent = msg;
@@ -66,14 +68,21 @@
     errorEl.textContent = '';
   }
 
-  document.getElementById('continueBtn').onclick = async () => {
+  btn.addEventListener('click', async () => {
     clearError();
 
     const name = nameEl.value.trim();
     const email = emailEl.value.trim().toLowerCase();
 
-    if (!name) { showError('Please enter your name.'); return; }
-    if (!email || !email.includes('@')) { showError('Please enter a valid email.'); return; }
+    if (!name) { showError('Please enter your name.'); nameEl.focus(); return; }
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      showError('Please enter a valid email.');
+      emailEl.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
 
     const userId = makeUserId(email);
 
@@ -82,13 +91,16 @@
       setCurrentUser({ userId, email, name });
       window.location.href = 'index.html';
     } catch (e) {
-      console.error(e);
-      showError('Could not save your details. Check your connection and try again.');
+      console.error('Save failed:', e);
+      showError('Could not save. Check your connection and try again.');
+      btn.disabled = false;
+      btn.textContent = 'Continue →';
     }
-  };
+  });
 
+  // Enter key submits
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('continueBtn').click();
+    if (e.key === 'Enter') btn.click();
   });
 </script>
 </body>

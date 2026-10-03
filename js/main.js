@@ -8,35 +8,36 @@ import {
 import { loadLocalProgress, computeStatsFromAttempts } from "./storage.js";
 
 /* =========================================================
-   NAV — show user state
+   GUARD — redirect to login if not identified
+   ========================================================= */
+
+const user = getCurrentUser();
+if (!user) {
+  window.location.href = "login.html";
+}
+
+/* =========================================================
+   NAV
    ========================================================= */
 
 function renderNav() {
   const authLink = document.getElementById("auth-link");
   const userNameEl = document.getElementById("userName");
-  const user = getCurrentUser();
+  const u = getCurrentUser();
 
-  if (user) {
+  if (u) {
     if (authLink) {
       authLink.textContent = "Sign Out";
       authLink.href = "#";
       authLink.onclick = (e) => {
         e.preventDefault();
         clearCurrentUser();
-        window.location.reload();
+        window.location.href = "login.html";
       };
     }
     if (userNameEl) {
-      userNameEl.textContent =
-        user.name.charAt(0).toUpperCase() + user.name.slice(1);
+      userNameEl.textContent = u.name.charAt(0).toUpperCase() + u.name.slice(1);
     }
-  } else {
-    if (authLink) {
-      authLink.textContent = "Sign In";
-      authLink.href = "login.html";
-      authLink.onclick = null;
-    }
-    if (userNameEl) userNameEl.textContent = "Student";
   }
 }
 
@@ -45,17 +46,16 @@ function renderNav() {
    ========================================================= */
 
 async function loadStats() {
-  const user = getCurrentUser();
+  const u = getCurrentUser();
+  if (!u) return;
 
-  if (user) {
-    try {
-      const attempts = await getUserAttempts(user.userId, 50);
-      const stats = computeStatsFromAttempts(attempts);
-      renderStats(stats);
-      return;
-    } catch (e) {
-      console.error("Firestore fetch failed, using local:", e);
-    }
+  try {
+    const attempts = await getUserAttempts(u.userId, 50);
+    const stats = computeStatsFromAttempts(attempts);
+    renderStats(stats);
+    return;
+  } catch (e) {
+    console.error("Firebase fetch failed, using local:", e);
   }
 
   const p = loadLocalProgress();
