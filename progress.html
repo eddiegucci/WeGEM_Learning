@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
 <nav class="nav">
   <a href="index.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
   <div class="nav-links">
@@ -14,12 +15,35 @@
     <a href="exams.html">Exams</a>
     <a href="quiz.html">Practice</a>
     <a href="progress.html" class="active">Progress</a>
+    <a id="auth-link" href="login.html">Sign In</a>
   </div>
 </nav>
+
 <main class="container">
-  <h1>Progress</h1>
-  <p class="section-sub">Coming in Step 4.</p>
+  <div class="section-label">Your dashboard</div>
+  <h1 class="section-title">Progress</h1>
+  <p class="section-sub">Coming soon — will show stats from your account.</p>
 </main>
-<footer class="footer">WeGEM Learning</footer>
+
+<footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
+
+<script type="module">
+  import { getCurrentUser, clearCurrentUser } from './js/firebase.js';
+
+  const authLink = document.getElementById('auth-link');
+  const user = getCurrentUser();
+  if (user) {
+    authLink.textContent = 'Sign Out';
+    authLink.href = '#';
+    authLink.onclick = (e) => {
+      e.preventDefault();
+      clearCurrentUser();
+      window.location.reload();
+    };
+  } else {
+    authLink.textContent = 'Sign In';
+    authLink.href = 'login.html';
+  }
+</script>
 </body>
 </html>

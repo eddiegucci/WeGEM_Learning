@@ -15,33 +15,31 @@
     <a href="exams.html">Exams</a>
     <a href="quiz.html">Practice</a>
     <a href="progress.html">Progress</a>
-    <a id="auth-link" href="login.html">Sign In</a>
   </div>
 </nav>
 
 <main class="container">
   <div class="auth-card">
     <div class="section-label">Welcome</div>
-    <h1 class="section-title">Sign in to WeGEM</h1>
-    <p class="section-sub">Sync your progress across devices.</p>
+    <h1 class="section-title">Identify yourself</h1>
+    <p class="section-sub">Enter your name and email so we can save your quiz progress to the cloud.</p>
 
     <div id="authError" class="auth-error hidden"></div>
+
+    <label>
+      <span>Your name</span>
+      <input type="text" id="name" placeholder="e.g. Edwin" autocomplete="name">
+    </label>
 
     <label>
       <span>Email</span>
       <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
     </label>
 
-    <label>
-      <span>Password</span>
-      <input type="password" id="password" placeholder="At least 6 characters" autocomplete="current-password">
-    </label>
-
-    <button class="btn btn-primary" id="signInBtn">Sign In</button>
-    <button class="btn btn-ghost" id="signUpBtn">Create Account</button>
+    <button class="btn btn-primary" id="continueBtn">Continue →</button>
 
     <p class="auth-hint">
-      New here? Click <strong>Create Account</strong> to register.
+      We use this to sync your quiz progress across devices. No password needed.
     </p>
   </div>
 </main>
@@ -49,78 +47,48 @@
 <footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
 
 <script type="module">
-  import { signIn, signUp, watchAuth } from './js/firebase.js';
+  import { saveUser, setCurrentUser, makeUserId, getCurrentUser } from './js/firebase.js';
 
-  // If already signed in, redirect home
-  watchAuth((user) => {
-    if (user) {
-      window.location.href = 'index.html';
-    }
-  });
+  if (getCurrentUser()) {
+    window.location.href = 'index.html';
+  }
 
+  const nameEl = document.getElementById('name');
   const emailEl = document.getElementById('email');
-  const passwordEl = document.getElementById('password');
   const errorEl = document.getElementById('authError');
 
   function showError(msg) {
     errorEl.textContent = msg;
     errorEl.classList.remove('hidden');
   }
-
   function clearError() {
     errorEl.classList.add('hidden');
     errorEl.textContent = '';
   }
 
-  function friendlyError(e) {
-    const code = e.code || '';
-    if (code.includes('invalid-email')) return 'Please enter a valid email address.';
-    if (code.includes('weak-password')) return 'Password must be at least 6 characters.';
-    if (code.includes('email-already-in-use')) return 'That email is already registered. Try signing in.';
-    if (code.includes('invalid-credential')) return 'Incorrect email or password.';
-    if (code.includes('wrong-password')) return 'Incorrect email or password.';
-    if (code.includes('user-not-found')) return 'No account with that email. Try creating one.';
-    if (code.includes('too-many-requests')) return 'Too many attempts. Wait a minute and try again.';
-    return e.message || 'Something went wrong. Try again.';
-  }
-
-  async function doSignIn() {
+  document.getElementById('continueBtn').onclick = async () => {
     clearError();
-    if (!emailEl.value || !passwordEl.value) {
-      showError('Please enter both email and password.');
-      return;
-    }
+
+    const name = nameEl.value.trim();
+    const email = emailEl.value.trim().toLowerCase();
+
+    if (!name) { showError('Please enter your name.'); return; }
+    if (!email || !email.includes('@')) { showError('Please enter a valid email.'); return; }
+
+    const userId = makeUserId(email);
+
     try {
-      await signIn(emailEl.value.trim(), passwordEl.value);
+      await saveUser(userId, { email, name });
+      setCurrentUser({ userId, email, name });
       window.location.href = 'index.html';
     } catch (e) {
-      showError(friendlyError(e));
+      console.error(e);
+      showError('Could not save your details. Check your connection and try again.');
     }
-  }
-
-  async function doSignUp() {
-    clearError();
-    if (!emailEl.value || !passwordEl.value) {
-      showError('Please enter both email and password.');
-      return;
-    }
-    if (passwordEl.value.length < 6) {
-      showError('Password must be at least 6 characters.');
-      return;
-    }
-    try {
-      await signUp(emailEl.value.trim(), passwordEl.value);
-      window.location.href = 'index.html';
-    } catch (e) {
-      showError(friendlyError(e));
-    }
-  }
-
-  document.getElementById('signInBtn').onclick = doSignIn;
-  document.getElementById('signUpBtn').onclick = doSignUp;
+  };
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') doSignIn();
+    if (e.key === 'Enter') document.getElementById('continueBtn').click();
   });
 </script>
 </body>

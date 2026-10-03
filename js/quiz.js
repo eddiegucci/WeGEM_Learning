@@ -1,22 +1,23 @@
 // js/quiz.js — WeGEM Learning quiz engine
 
 import { EXAMS, shuffle } from "./data.js";
-import { auth, watchAuth, logOut, saveAttempt } from "./firebase.js";
+import { saveAttempt, getCurrentUser, clearCurrentUser } from "./firebase.js";
 import { recordLocalAttempt } from "./storage.js";
 
 /* =========================================================
    NAV AUTH STATE
    ========================================================= */
 
-watchAuth((user) => {
+(function renderNav() {
   const authLink = document.getElementById("auth-link");
+  const user = getCurrentUser();
   if (!authLink) return;
   if (user) {
     authLink.textContent = "Sign Out";
     authLink.href = "#";
-    authLink.onclick = async (e) => {
+    authLink.onclick = (e) => {
       e.preventDefault();
-      await logOut();
+      clearCurrentUser();
       window.location.reload();
     };
   } else {
@@ -24,7 +25,7 @@ watchAuth((user) => {
     authLink.href = "login.html";
     authLink.onclick = null;
   }
-});
+})();
 
 /* =========================================================
    ELEMENT REFS
@@ -51,7 +52,7 @@ Object.keys(EXAMS).forEach((key) => {
 });
 
 /* =========================================================
-   URL PARAMS — ?exam=KCSE&subject=Mathematics
+   URL PARAMS
    ========================================================= */
 
 const params = new URLSearchParams(window.location.search);
@@ -212,7 +213,7 @@ function advance() {
 }
 
 /* =========================================================
-   FINISH — save attempt, show results
+   FINISH
    ========================================================= */
 
 async function finishQuiz() {
@@ -231,16 +232,14 @@ async function finishQuiz() {
     date: new Date().toISOString(),
   };
 
-  // Always save locally (offline-capable)
   recordLocalAttempt(attempt);
 
-  // Save to Firebase if signed in
-  const user = auth.currentUser;
+  const user = getCurrentUser();
   let syncMessage = "";
 
   if (user) {
     try {
-      await saveAttempt(user.uid, attempt);
+      await saveAttempt(user.userId, attempt);
       syncMessage = '<span class="sync-ok">✓ Saved to your account</span>';
     } catch (e) {
       console.error("Firebase save failed:", e);
@@ -252,7 +251,6 @@ async function finishQuiz() {
       '<span class="sync-info">Saved locally · <a href="login.html">Sign in</a> to sync</span>';
   }
 
-  // Show results
   quizScreen.classList.add("hidden");
   resultsScreen.classList.remove("hidden");
 
@@ -268,7 +266,6 @@ async function finishQuiz() {
   else title = "Let's review this together.";
   document.getElementById("resultsTitle").textContent = title;
 
-  // Weak topic list
   const weakList = document.getElementById("weakList");
   weakList.innerHTML = "";
   const weak = Object.entries(topicResults)
@@ -296,6 +293,5 @@ document.getElementById("retryBtn").addEventListener("click", () => {
   resultsScreen.classList.add("hidden");
   setupScreen.classList.remove("hidden");
   quiz = null;
-  // Clear URL params so we start fresh
   window.history.replaceState({}, "", "quiz.html");
 });

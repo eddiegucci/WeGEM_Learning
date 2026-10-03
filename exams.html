@@ -31,26 +31,23 @@
 
 <script type="module">
   import { EXAMS } from './js/data.js';
-  import { watchAuth, logOut } from './js/firebase.js';
+  import { getCurrentUser, clearCurrentUser } from './js/firebase.js';
 
   // Nav auth state
-  watchAuth((user) => {
-    const authLink = document.getElementById('auth-link');
-    if (!authLink) return;
-    if (user) {
-      authLink.textContent = 'Sign Out';
-      authLink.href = '#';
-      authLink.onclick = async (e) => {
-        e.preventDefault();
-        await logOut();
-        window.location.reload();
-      };
-    } else {
-      authLink.textContent = 'Sign In';
-      authLink.href = 'login.html';
-      authLink.onclick = null;
-    }
-  });
+  const authLink = document.getElementById('auth-link');
+  const user = getCurrentUser();
+  if (user) {
+    authLink.textContent = 'Sign Out';
+    authLink.href = '#';
+    authLink.onclick = (e) => {
+      e.preventDefault();
+      clearCurrentUser();
+      window.location.reload();
+    };
+  } else {
+    authLink.textContent = 'Sign In';
+    authLink.href = 'login.html';
+  }
 
   // Render exams
   const container = document.getElementById('examList');

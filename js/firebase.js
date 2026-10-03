@@ -1,24 +1,20 @@
-// js/firebase.js — WeGEM Learning Firebase configuration
+// js/firebase.js — WeGEM Learning Firebase (Firestore only, no Auth)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import {
   getFirestore,
+  doc,
+  setDoc,
+  getDoc,
   collection,
   addDoc,
   getDocs,
   query,
   orderBy,
   limit,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// Firebase configuration — from Firebase Console → Project Settings → Your apps
 const firebaseConfig = {
   apiKey: "AIzaSyA3tmQ7WhAdIVnng2pjGI3shElIUG3e6B4",
   authDomain: "wegem-learning.firebaseapp.com",
@@ -29,44 +25,86 @@ const firebaseConfig = {
   measurementId: "G-0W46VK9PGJ",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// ---- AUTH HELPERS ----
+/* =========================================================
+   LOCAL USER — stored in localStorage as an identifier
+   ========================================================= */
 
-export async function signUp(email, password) {
-  return createUserWithEmailAndPassword(auth, email, password);
+const USER_KEY = "wegem_user";
+
+export function getCurrentUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
-export async function signIn(email, password) {
-  return signInWithEmailAndPassword(auth, email, password);
+export function setCurrentUser(user) {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
-export async function logOut() {
-  return signOut(auth);
+export function clearCurrentUser() {
+  localStorage.removeItem(USER_KEY);
 }
 
-export function watchAuth(callback) {
-  return onAuthStateChanged(auth, callback);
+/* =========================================================
+   USERS — Firestore
+   ========================================================= */
+
+export async function saveUser(userId, { email, name }) {
+  const userRef = doc(db, "users", userId);
+  await setDoc(
+    userRef,
+    {
+      email,
+      name,
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
 }
 
-// ---- PROGRESS DATA ----
+export async function getUser(userId) {
+  const userRef = doc(db, "users", userId);
+  const snap = await getDoc(userRef);
+  return snap.exists() ? snap.data() : null;
+}
 
-// Save a quiz attempt: users/{uid}/attempts/{auto-id}
+export function makeUserId(email) {
+  return email
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, "_");
+}
+
+/* =========================================================
+   ATTEMPTS — Firestore subcollection
+   ========================================================= */
+
 export async function saveAttempt(userId, attempt) {
-  const attemptsRef = collection(db, "users", userId, "attempts");
-  return addDoc(attemptsRef, {
+  const ref = collection(db, "users", userId, "attempts");
+  return addDoc(ref, {
     ...attempt,
-    createdAt: new Date().toISOString(),
+    createdAt: serverTimestamp(),
   });
 }
 
-// Get last 50 attempts for a user
-export async function getUserAttempts(userId) {
-  const attemptsRef = collection(db, "users", userId, "attempts");
-  const q = query(attemptsRef, orderBy("createdAt", "desc"), limit(50));
+export async function getUserAttempts(userId, max = 50) {
+  const ref = collection(db, "users", userId, "attempts");
+  const q = query(ref, orderBy("createdAt", "desc"), limit(max));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      createdAt:
+        data.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
+    };
+  });
 }
