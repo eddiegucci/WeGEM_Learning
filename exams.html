@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exams — WeGEM Learning</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="exams.html" class="active">Exams</a>
+    <a href="quiz.html">Practice</a>
+    <a href="progress.html">Progress</a>
+    <a id="auth-link" href="login.html">Sign In</a>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="section-label">Coverage</div>
+  <h1 class="section-title">Choose your exam</h1>
+  <p class="section-sub">Each exam has its own subject list, topics, and question bank. Tap a subject to jump straight into practice.</p>
+
+  <div id="examList" class="exam-list"></div>
+</main>
+
+<footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
+
+<script type="module">
+  import { EXAMS } from './js/data.js';
+
+  const container = document.getElementById('examList');
+
+  Object.entries(EXAMS).forEach(([key, exam]) => {
+    const card = document.createElement('div');
+    card.className = 'exam-detail-card';
+    card.style.setProperty('--accent', exam.color);
+
+    const subjectsHtml = exam.subjects
+      .map(s => `<a class="chip" href="quiz.html?exam=${key}&subject=${encodeURIComponent(s.name)}">${s.name}</a>`)
+      .join('');
+
+    card.innerHTML = `
+      <div class="exam-detail-head">
+        <div>
+          <div class="exam-grade">${exam.gradeLabel}</div>
+          <div class="exam-name">${key}</div>
+        </div>
+        <div class="exam-count">${exam.subjects.length} subjects</div>
+      </div>
+      <p class="exam-desc">${exam.description}</p>
+      <div class="subject-chips">${subjectsHtml}</div>
+    `;
+
+    container.appendChild(card);
+  });
+</script>
+</body>
+</html>
