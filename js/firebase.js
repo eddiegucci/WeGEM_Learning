@@ -1,23 +1,21 @@
-// js/firebase.js — WeGEM Learning Firebase (Firestore only, no Auth)
+// js/firebase.js — WeGEM Learning Firebase (Realtime Database)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  addDoc,
-  getDocs,
+  getDatabase,
+  ref,
+  set,
+  get,
+  push,
   query,
-  orderBy,
-  limit,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  orderByChild,
+  limitToLast,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA3tmQ7WhAdIVnng2pjGI3shElIUG3e6B4",
   authDomain: "wegem-learning.firebaseapp.com",
+  databaseURL: "https://wegem-learning-default-rtdb.firebaseio.com",
   projectId: "wegem-learning",
   storageBucket: "wegem-learning.firebasestorage.app",
   messagingSenderId: "871985386463",
@@ -26,10 +24,10 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = getDatabase(app);
 
 /* =========================================================
-   LOCAL USER — stored in localStorage as an identifier
+   LOCAL USER
    ========================================================= */
 
 const USER_KEY = "wegem_user";
@@ -52,28 +50,24 @@ export function clearCurrentUser() {
 }
 
 /* =========================================================
-   USERS — Firestore
+   TIMEOUT WRAPPER — never hangs
    ========================================================= */
 
-export async function saveUser(userId, { email, name }) {
-  const userRef = doc(db, "users", userId);
-  await setDoc(
-    userRef,
-    {
-      email,
-      name,
-      updatedAt: serverTimestamp(),
-      createdAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+function withTimeout(promise, ms = 8000, label = "Operation") {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`${label} timed out after ${ms}ms`)),
+        ms,
+      ),
+    ),
+  ]);
 }
 
-export async function getUser(userId) {
-  const userRef = doc(db, "users", userId);
-  const snap = await getDoc(userRef);
-  return snap.exists() ? snap.data() : null;
-}
+/* =========================================================
+   USERS
+   ========================================================= */
 
 export function makeUserId(email) {
   return email
@@ -82,29 +76,54 @@ export function makeUserId(email) {
     .replace(/[^a-z0-9]/g, "_");
 }
 
+export async function saveUser(userId, { email, name }) {
+  const userRef = ref(db, `users/${userId}`);
+  await withTimeout(
+    set(userRef, {
+      email,
+      name,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    }),
+    8000,
+    "Save user",
+  );
+}
+
+export async function getUser(userId) {
+  const snap = await withTimeout(
+    get(ref(db, `users/${userId}`)),
+    8000,
+    "Get user",
+  );
+  return snap.exists() ? snap.val() : null;
+}
+
 /* =========================================================
-   ATTEMPTS — Firestore subcollection
+   ATTEMPTS
    ========================================================= */
 
 export async function saveAttempt(userId, attempt) {
-  const ref = collection(db, "users", userId, "attempts");
-  return addDoc(ref, {
-    ...attempt,
-    createdAt: serverTimestamp(),
-  });
+  const attemptsRef = ref(db, `users/${userId}/attempts`);
+  const newRef = push(attemptsRef);
+  await withTimeout(
+    set(newRef, {
+      ...attempt,
+      createdAt: new Date().toISOString(),
+    }),
+    8000,
+    "Save attempt",
+  );
 }
 
 export async function getUserAttempts(userId, max = 50) {
-  const ref = collection(db, "users", userId, "attempts");
-  const q = query(ref, orderBy("createdAt", "desc"), limit(max));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => {
-    const data = d.data();
-    return {
-      id: d.id,
-      ...data,
-      createdAt:
-        data.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
-    };
-  });
+  const attemptsRef = ref(db, `users/${userId}/attempts`);
+  const q = query(attemptsRef, orderByChild("createdAt"), limitToLast(max));
+  const snap = await withTimeout(get(q), 8000, "Get attempts");
+  if (!snap.exists()) return [];
+
+  const data = snap.val();
+  const list = Object.keys(data).map((key) => ({ id: key, ...data[key] }));
+  list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return list;
 }

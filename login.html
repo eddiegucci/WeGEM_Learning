@@ -1,107 +1,119 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome — WeGEM Learning</title>
-  <meta name="description" content="Interactive exam prep for Kenyan students. KCSE, KJSEA, and KPSEA practice with instant feedback.">
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
+// js/firebase.js — WeGEM Learning Firebase (Realtime Database)
 
-<nav class="nav">
-  <a href="login.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
-  <div class="nav-links">
-    <a href="login.html" class="active">Home</a>
-    <a href="exams.html">Exams</a>
-    <a href="quiz.html">Practice</a>
-    <a href="progress.html">Progress</a>
-  </div>
-</nav>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+  push,
+  query,
+  orderByChild,
+  limitToLast
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-<main class="auth-wrap">
-  <div class="auth-card">
-    <div class="auth-logo"><span class="logo-dot"></span> WeGEM Learning</div>
+const firebaseConfig = {
+  apiKey: "AIzaSyA3tmQ7WhAdIVnng2pjGI3shElIUG3e6B4",
+  authDomain: "wegem-learning.firebaseapp.com",
+  databaseURL: "https://wegem-learning-default-rtdb.firebaseio.com",
+  projectId: "wegem-learning",
+  storageBucket: "wegem-learning.firebasestorage.app",
+  messagingSenderId: "871985386463",
+  appId: "1:871985386463:web:3ea9435d9db8a51bfaea6a",
+  measurementId: "G-0W46VK9PGJ"
+};
 
-    <h1 class="auth-title">Karibu! Let's get you started.</h1>
-    <p class="auth-sub">Enter your name and email to save your progress to the cloud and start practicing.</p>
+const app = initializeApp(firebaseConfig);
+export const db = getDatabase(app);
 
-    <div id="authError" class="auth-error hidden"></div>
+/* =========================================================
+   LOCAL USER
+   ========================================================= */
 
-    <label>
-      <span>Your name</span>
-      <input type="text" id="name" placeholder="e.g. Edwin" autocomplete="name" autofocus>
-    </label>
+const USER_KEY = 'wegem_user';
 
-    <label>
-      <span>Email</span>
-      <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
-    </label>
-
-    <button class="btn btn-primary" id="continueBtn">Continue →</button>
-
-    <p class="auth-hint">
-      No password needed. We'll use this to sync your quiz progress across devices.
-    </p>
-  </div>
-</main>
-
-<script type="module">
-  import { saveUser, setCurrentUser, makeUserId, getCurrentUser } from './js/firebase.js';
-
-  // If already identified, go home
-  if (getCurrentUser()) {
-    window.location.href = 'index.html';
+export function getCurrentUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
   }
+}
 
-  const nameEl = document.getElementById('name');
-  const emailEl = document.getElementById('email');
-  const errorEl = document.getElementById('authError');
-  const btn = document.getElementById('continueBtn');
+export function setCurrentUser(user) {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
 
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.classList.remove('hidden');
-  }
-  function clearError() {
-    errorEl.classList.add('hidden');
-    errorEl.textContent = '';
-  }
+export function clearCurrentUser() {
+  localStorage.removeItem(USER_KEY);
+}
 
-  btn.addEventListener('click', async () => {
-    clearError();
+/* =========================================================
+   TIMEOUT WRAPPER — never hangs
+   ========================================================= */
 
-    const name = nameEl.value.trim();
-    const email = emailEl.value.trim().toLowerCase();
+function withTimeout(promise, ms = 8000, label = 'Operation') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    )
+  ]);
+}
 
-    if (!name) { showError('Please enter your name.'); nameEl.focus(); return; }
-    if (!email || !email.includes('@') || !email.includes('.')) {
-      showError('Please enter a valid email.');
-      emailEl.focus();
-      return;
-    }
+/* =========================================================
+   USERS
+   ========================================================= */
 
-    btn.disabled = true;
-    btn.textContent = 'Saving…';
+export function makeUserId(email) {
+  return email.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+}
 
-    const userId = makeUserId(email);
+export async function saveUser(userId, { email, name }) {
+  const userRef = ref(db, `users/${userId}`);
+  await withTimeout(
+    set(userRef, {
+      email,
+      name,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    }),
+    8000,
+    'Save user'
+  );
+}
 
-    try {
-      await saveUser(userId, { email, name });
-      setCurrentUser({ userId, email, name });
-      window.location.href = 'index.html';
-    } catch (e) {
-      console.error('Save failed:', e);
-      showError('Could not save. Check your connection and try again.');
-      btn.disabled = false;
-      btn.textContent = 'Continue →';
-    }
-  });
+export async function getUser(userId) {
+  const snap = await withTimeout(get(ref(db, `users/${userId}`)), 8000, 'Get user');
+  return snap.exists() ? snap.val() : null;
+}
 
-  // Enter key submits
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') btn.click();
-  });
-</script>
-</body>
-</html>
+/* =========================================================
+   ATTEMPTS
+   ========================================================= */
+
+export async function saveAttempt(userId, attempt) {
+  const attemptsRef = ref(db, `users/${userId}/attempts`);
+  const newRef = push(attemptsRef);
+  await withTimeout(
+    set(newRef, {
+      ...attempt,
+      createdAt: new Date().toISOString()
+    }),
+    8000,
+    'Save attempt'
+  );
+}
+
+export async function getUserAttempts(userId, max = 50) {
+  const attemptsRef = ref(db, `users/${userId}/attempts`);
+  const q = query(attemptsRef, orderByChild('createdAt'), limitToLast(max));
+  const snap = await withTimeout(get(q), 8000, 'Get attempts');
+  if (!snap.exists()) return [];
+
+  const data = snap.val();
+  const list = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+  list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return list;
+}
