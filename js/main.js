@@ -11,7 +11,7 @@ import { loadLocalProgress, computeStatsFromAttempts } from "./storage.js";
 import { SUBJECTS_BY_CURRICULUM } from "./data.js";
 
 /* =========================================================
-   GUARD — redirect to login if not signed in
+   GUARD
    ========================================================= */
 
 const user = getCurrentUser();
@@ -45,47 +45,7 @@ function setGreeting() {
 }
 
 /* =========================================================
-   CURRICULUM + LEVEL CHIPS
-   ========================================================= */
-
-function renderChips() {
-  const curriculumLabel = document.getElementById("curriculumLabel");
-  const levelLabel = document.getElementById("levelLabel");
-
-  if (curriculumLabel) {
-    curriculumLabel.textContent = user.curriculum === "CBE" ? "CBE" : "8-4-4";
-  }
-
-  if (levelLabel) {
-    if (user.curriculum === "CBE") {
-      levelLabel.textContent = user.grade || "Grade 9";
-    } else {
-      levelLabel.textContent = user.form || "Form 4";
-    }
-  }
-
-  const curriculumChip = document.getElementById("curriculumChip");
-  if (curriculumChip) {
-    curriculumChip.onclick = () => {
-      const next = user.curriculum === "CBE" ? "844" : "CBE";
-      const label = next === "CBE" ? "CBE" : "8-4-4";
-      if (
-        confirm(
-          `Switch to ${label} curriculum? This will update your dashboard.`,
-        )
-      ) {
-        user.curriculum = next;
-        if (next === "CBE" && !user.grade) user.grade = "Grade 9";
-        if (next === "844" && !user.form) user.form = "Form 4";
-        localStorage.setItem("wegem_user", JSON.stringify(user));
-        window.location.reload();
-      }
-    };
-  }
-}
-
-/* =========================================================
-   HERO STATS — from attempts
+   HERO STATS
    ========================================================= */
 
 async function loadHeroStats() {
@@ -94,27 +54,22 @@ async function loadHeroStats() {
   try {
     attempts = await getUserAttempts(user.userId, 200);
   } catch (e) {
-    console.warn("Firebase failed, falling back to local:", e);
+    console.warn("Firebase failed, using local:", e);
     attempts = loadLocalProgress().attempts;
   }
 
   const stats = computeStatsFromAttempts(attempts);
 
-  // Streak
   const streakEl = document.getElementById("heroStreak");
   if (streakEl) streakEl.textContent = stats.streak || 0;
 
-  // Average
   const avgEl = document.getElementById("heroAvg");
-  if (avgEl) {
+  if (avgEl)
     avgEl.innerHTML = `${stats.averageScore || 0}<span class="hs-unit">%</span>`;
-  }
 
-  // Quizzes
   const quizzesEl = document.getElementById("heroQuizzes");
   if (quizzesEl) quizzesEl.textContent = stats.totalQuizzes || 0;
 
-  // Study time — estimate 2 minutes per quiz
   const hoursEl = document.getElementById("heroHours");
   if (hoursEl) {
     const hours = Math.max(
@@ -128,7 +83,7 @@ async function loadHeroStats() {
 }
 
 /* =========================================================
-   REVISE NEXT — weakest topics
+   REVISE NEXT
    ========================================================= */
 
 function renderReviseNext(stats) {
@@ -146,14 +101,14 @@ function renderReviseNext(stats) {
     .slice(0, 3);
 
   if (!topics.length) {
-    // Show subject suggestions based on curriculum
-    const curriculum = user.curriculum === "CBE" ? "CBE" : "8-4-4";
+    const curriculum = user.curriculum === "CBE" ? "CBE" : "844";
     const subjectList = SUBJECTS_BY_CURRICULUM[curriculum] || {};
-    const gradeKey = user.grade || user.form || Object.keys(subjectList)[0];
+    const gradeKey =
+      user.level || user.form || user.grade || Object.keys(subjectList)[0];
     const subjects = subjectList[gradeKey] || [];
 
     container.innerHTML = `
-      <div class="empty-state" style="padding:8px 0;text-align:left;">
+      <div class="empty-state" style="padding:8px 0;text-align:left;color:var(--text-mute);font-size:13px;">
         Take a quiz to see your weak topics here.
       </div>
       ${subjects
@@ -252,7 +207,6 @@ function renderSubjectPerformance(stats) {
   const container = document.getElementById("subjectList");
   if (!container) return;
 
-  // Aggregate topic scores by subject — we use the exam field from attempts
   const bySubject = {};
   (stats.attempts || []).forEach((a) => {
     if (!bySubject[a.subject]) bySubject[a.subject] = { correct: 0, total: 0 };
@@ -268,7 +222,6 @@ function renderSubjectPerformance(stats) {
     .sort((a, b) => b.pct - a.pct);
 
   if (!rows.length) {
-    // Show default set for the curriculum
     const defaults = [
       { name: "English", pct: 80 },
       { name: "Mathematics", pct: 46 },
@@ -326,7 +279,7 @@ function renderActivity(stats) {
 
   if (!attempts.length) {
     container.innerHTML = `
-      <div class="empty-state" style="padding:12px 0;text-align:left;">
+      <div style="padding:12px 0;text-align:left;color:var(--text-mute);font-size:13px;">
         No recent activity yet. Take a quiz to see your history.
       </div>
     `;
@@ -364,87 +317,6 @@ function getTimeAgo(date) {
 }
 
 /* =========================================================
-   SEARCH
-   ========================================================= */
-
-function setupSearch() {
-  const input = document.getElementById("globalSearch");
-  const overlay = document.getElementById("searchOverlay");
-  const resultsEl = document.getElementById("searchResults");
-
-  if (!input || !overlay || !resultsEl) return;
-
-  let searchIndex = [];
-
-  // Build a simple search index from subjects + topics
-  const curriculum = user.curriculum === "CBE" ? "CBE" : "8-4-4";
-  const subjectList = SUBJECTS_BY_CURRICULUM[curriculum] || {};
-  Object.values(subjectList).forEach((subjects) => {
-    subjects.forEach((s) => {
-      if (!searchIndex.find((x) => x.name === s)) {
-        searchIndex.push({
-          name: s,
-          type: "subject",
-          url: `notes.html?subject=${encodeURIComponent(s)}`,
-        });
-      }
-    });
-  });
-
-  function renderResults(query) {
-    if (!query || query.length < 2) {
-      overlay.classList.add("hidden");
-      return;
-    }
-
-    const q = query.toLowerCase();
-    const matches = searchIndex
-      .filter((item) => item.name.toLowerCase().includes(q))
-      .slice(0, 8);
-
-    if (!matches.length) {
-      overlay.classList.add("hidden");
-      return;
-    }
-
-    resultsEl.innerHTML = matches
-      .map(
-        (m) => `
-      <a href="${m.url}" class="search-result">
-        <strong>${m.type}</strong> · ${m.name}
-      </a>
-    `,
-      )
-      .join("");
-
-    overlay.classList.remove("hidden");
-  }
-
-  input.addEventListener("input", (e) => renderResults(e.target.value.trim()));
-
-  input.addEventListener("focus", () => {
-    if (input.value.trim().length >= 2) renderResults(input.value.trim());
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!input.contains(e.target) && !overlay.contains(e.target)) {
-      overlay.classList.add("hidden");
-    }
-  });
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      overlay.classList.add("hidden");
-      input.blur();
-    }
-    if (e.key === "Enter") {
-      const first = resultsEl.querySelector(".search-result");
-      if (first) first.click();
-    }
-  });
-}
-
-/* =========================================================
    USER MENU
    ========================================================= */
 
@@ -464,21 +336,31 @@ function setupUserMenu() {
 }
 
 /* =========================================================
+   CONTINUE BUTTON
+   ========================================================= */
+
+function setupContinue() {
+  const btn = document.getElementById("continueBtn");
+  if (!btn) return;
+  btn.onclick = () => {
+    window.location.href = "notes.html";
+  };
+}
+
+/* =========================================================
    INIT
    ========================================================= */
 
 async function init() {
   setGreeting();
-  renderChips();
-  setupSearch();
   setupUserMenu();
+  setupContinue();
 
   const { stats } = await loadHeroStats();
   renderReviseNext(stats);
   renderSubjectPerformance(stats);
   renderActivity(stats);
 
-  // Extra: try to enrich with Firestore user record if missing
   if (!user.name && user.userId) {
     try {
       const fresh = await getUser(user.userId);
@@ -487,9 +369,7 @@ async function init() {
         localStorage.setItem("wegem_user", JSON.stringify(user));
         setGreeting();
       }
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   }
 }
 
