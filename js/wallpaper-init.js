@@ -2,7 +2,7 @@
 
 const STORAGE_KEY = "wegem_wallpaper";
 const DEFAULT_URL =
-  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1400&q=60&auto=format";
+  "https://images.unsplash.com/photo-1531266752426-aad472b7bbf4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
 try {
   const raw = localStorage.getItem(STORAGE_KEY);
