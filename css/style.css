@@ -59,7 +59,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  padding-top: 76px; /* room for floating top bar */
+  padding-top: 76px;
 }
 
 a {
@@ -321,7 +321,7 @@ body::before {
 }
 
 /* =========================================================
-   CARDS / PANELS — semi-transparent for wallpaper visibility
+   CARDS — semi-transparent for wallpaper visibility
    ========================================================= */
 
 .card,
@@ -339,8 +339,7 @@ body::before {
 .topic-row-v2,
 .action-card,
 .revise-panel,
-.hero-stat,
-.sidebar-quote {
+.hero-stat {
   background: rgba(14, 20, 37, 0.78);
   backdrop-filter: saturate(140%) blur(14px);
   -webkit-backdrop-filter: saturate(140%) blur(14px);
@@ -2681,6 +2680,7 @@ body::before {
   margin: 0;
   min-height: 100vh;
   background: transparent;
+  padding-top: 0;
 }
 .signup-body::before {
   background-image:
