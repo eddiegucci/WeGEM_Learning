@@ -50,17 +50,14 @@ export function clearCurrentUser() {
 }
 
 /* =========================================================
-   TIMEOUT WRAPPER — never hangs
+   TIMEOUT WRAPPER
    ========================================================= */
 
 function withTimeout(promise, ms = 8000, label = "Operation") {
   return Promise.race([
     promise,
     new Promise((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`${label} timed out after ${ms}ms`)),
-        ms,
-      ),
+      setTimeout(() => reject(new Error(`${label} timed out`)), ms),
     ),
   ]);
 }
@@ -70,20 +67,20 @@ function withTimeout(promise, ms = 8000, label = "Operation") {
    ========================================================= */
 
 export function makeUserId(email) {
+  if (!email) return "guest_" + Date.now();
   return email
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]/g, "_");
 }
 
-export async function saveUser(userId, { email, name }) {
+export async function saveUser(userId, data) {
   const userRef = ref(db, `users/${userId}`);
   await withTimeout(
     set(userRef, {
-      email,
-      name,
+      ...data,
       updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
+      createdAt: data.createdAt || new Date().toISOString(),
     }),
     8000,
     "Save user",

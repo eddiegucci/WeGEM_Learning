@@ -9,22 +9,24 @@
 <body>
 
 <nav class="nav">
-  <a href="index.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
+  <a href="home.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
   <div class="nav-links">
-    <a href="index.html">Home</a>
+    <a href="home.html">Home</a>
+    <a href="notes.html">Notes</a>
     <a href="exams.html">Exams</a>
     <a href="quiz.html" class="active">Practice</a>
     <a href="progress.html">Progress</a>
-    <a id="auth-link" href="login.html">Sign In</a>
+    <a id="auth-link" href="signup.html">Sign Out</a>
   </div>
 </nav>
 
 <main class="container">
 
+  <!-- SETUP -->
   <section id="setupScreen" class="quiz-setup">
     <div class="section-label">Practice</div>
     <h1 class="section-title">Set up your quiz</h1>
-    <p class="section-sub">Pick an exam, subject, and how many questions you want. Then tap Start.</p>
+    <p class="section-sub">Pick an exam, subject, and how many questions. Then tap Start.</p>
 
     <div class="setup-grid">
       <label>
@@ -38,17 +40,18 @@
       <label>
         <span>Questions</span>
         <select id="countSelect">
-          <option value="3">3 — Quick practice</option>
+          <option value="3">3 — Quick</option>
           <option value="5" selected>5 — Standard</option>
-          <option value="10">10 — Full set</option>
+          <option value="10">10 — Full</option>
           <option value="999">All available</option>
         </select>
       </label>
     </div>
 
-    <button class="btn btn-primary" id="startBtn" style="width:100%;justify-content:center;">Start Quiz →</button>
+    <button class="btn btn-primary" id="startBtn" style="width:100%;">Start Quiz →</button>
   </section>
 
+  <!-- QUIZ -->
   <section id="quizScreen" class="quiz-screen hidden">
     <div class="quiz-topbar">
       <div>
@@ -65,7 +68,7 @@
 
     <div class="question-card">
       <div class="quiz-topic" id="questionTopic">TOPIC</div>
-      <div class="question-text" id="questionText">Question loads here…</div>
+      <div class="question-text" id="questionText">Question…</div>
       <div class="options" id="optionsList"></div>
       <div class="feedback hidden" id="feedbackBox"></div>
     </div>
@@ -75,6 +78,7 @@
     </div>
   </section>
 
+  <!-- RESULTS -->
   <section id="resultsScreen" class="results-screen hidden">
     <div class="results-card">
       <div class="section-label">Quiz complete</div>
@@ -92,7 +96,7 @@
       <div class="cta-row" style="justify-content:center;">
         <button class="btn btn-primary" id="retryBtn">Try Again</button>
         <a href="progress.html" class="btn btn-ghost">View Progress</a>
-        <a href="index.html" class="btn btn-ghost">Home</a>
+        <a href="home.html" class="btn btn-ghost">Home</a>
       </div>
     </div>
   </section>

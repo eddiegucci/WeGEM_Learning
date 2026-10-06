@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — WeGEM Learning</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="signup-wrap">
+
+  <!-- ===== STEP A: Curriculum Choice ===== -->
+  <section id="stepA" class="signup-step">
+    <div class="signup-brand">
+      <span class="logo-dot"></span> WeGEM Learning
+    </div>
+    <h1 class="signup-title">Choose your curriculum</h1>
+    <p class="signup-sub">Select the curriculum you are currently studying.</p>
+
+    <div class="curriculum-grid">
+      <button class="curriculum-btn" data-curriculum="844" type="button">
+        <div class="curr-code">8-4-4</div>
+        <div class="curr-desc">Form 1 to Form 4</div>
+      </button>
+
+      <button class="curriculum-btn" data-curriculum="CBE" type="button">
+        <div class="curr-code">CBE</div>
+        <div class="curr-desc">Grade 7 to Grade 9</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== STEP B: Details ===== -->
+  <section id="stepB" class="signup-step hidden">
+    <div class="signup-brand">
+      <span class="logo-dot"></span> WeGEM Learning
+    </div>
+    <h1 class="signup-title" id="detailsTitle">Your details</h1>
+    <p class="signup-sub" id="detailsSub">Tell us about yourself.</p>
+
+    <div id="signupError" class="auth-error hidden"></div>
+
+    <!-- 8-4-4 fields -->
+    <div id="form844" class="hidden">
+      <label class="field">
+        <span>Full name</span>
+        <input type="text" id="name844" placeholder="e.g. Edwin Mwangi" autocomplete="name">
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>Form</span>
+          <select id="form844Select">
+            <option value="">Select form</option>
+            <option value="Form 1">Form 1</option>
+            <option value="Form 2">Form 2</option>
+            <option value="Form 3">Form 3</option>
+            <option value="Form 4">Form 4</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Class</span>
+          <input type="text" id="class844" placeholder="e.g. 3 East">
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field">
+          <span>Stream</span>
+          <input type="text" id="stream844" placeholder="e.g. Sciences">
+        </label>
+        <label class="field">
+          <span>ADM Number</span>
+          <input type="text" id="adm844" placeholder="e.g. 12345">
+        </label>
+      </div>
+      <label class="field">
+        <span>School</span>
+        <input type="text" id="school844" placeholder="e.g. Alliance High School">
+      </label>
+    </div>
+
+    <!-- CBE fields -->
+    <div id="formCBE" class="hidden">
+      <label class="field">
+        <span>Full name</span>
+        <input type="text" id="nameCBE" placeholder="e.g. Edwin Mwangi" autocomplete="name">
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>Grade</span>
+          <select id="gradeCBE">
+            <option value="">Select grade</option>
+            <option value="Grade 7">Grade 7</option>
+            <option value="Grade 8">Grade 8</option>
+            <option value="Grade 9">Grade 9</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Stream</span>
+          <input type="text" id="streamCBE" placeholder="e.g. North">
+        </label>
+      </div>
+      <label class="field">
+        <span>ADM Number</span>
+        <input type="text" id="admCBE" placeholder="e.g. 12345">
+      </label>
+      <label class="field">
+        <span>School</span>
+        <input type="text" id="schoolCBE" placeholder="e.g. Moi Avenue Primary">
+      </label>
+    </div>
+
+    <!-- Email (always) -->
+    <label class="field">
+      <span>Email (optional, for syncing)</span>
+      <input type="email" id="emailField" placeholder="you@example.com" autocomplete="email">
+    </label>
+
+    <div class="signup-actions">
+      <button class="btn btn-ghost" id="backBtn" type="button">← Back</button>
+      <button class="btn btn-primary" id="finishBtn" type="button">Finish →</button>
+    </div>
+  </section>
+
+</div>
+
+<script type="module" src="js/signup.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home — WeGEM Learning</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a href="home.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
+  <div class="nav-links">
+    <a href="home.html" class="active">Home</a>
+    <a href="notes.html">Notes</a>
+    <a href="exams.html">Exams</a>
+    <a href="quiz.html">Practice</a>
+    <a href="progress.html">Progress</a>
+    <a id="auth-link" href="signup.html">Sign Out</a>
+  </div>
+</nav>
+
+<main class="container">
+
+  <section class="hero-home">
+    <div>
+      <span class="badge">● CBC · 8-4-4 · OFFLINE-FIRST</span>
+      <h1>Karibu, <span id="userName">Student</span>.</h1>
+      <p id="userContext">Pick an exam, take an interactive quiz, and watch your weak topics shrink.</p>
+      <div class="cta-row">
+        <a href="quiz.html" class="btn btn-primary">Start Practicing →</a>
+        <a href="notes.html" class="btn btn-ghost">Study Notes</a>
+      </div>
+    </div>
+    <div class="stat-stack">
+      <div class="stat-box">
+        <div class="stat-label">Streak</div>
+        <div class="stat-value" id="homeStreak">0 days</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Quizzes taken</div>
+        <div class="stat-value" id="homeQuizzes">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Average score</div>
+        <div class="stat-value" id="homeAvg">0%</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="quick-links">
+    <h2 class="section-title">Jump in</h2>
+    <div class="feature-grid">
+      <a href="notes.html" class="feature-card" style="--accent:#a855f7;">
+        <div class="feature-emoji">📚</div>
+        <div class="feature-title">Notes</div>
+        <p class="feature-desc">Study notes by subject and topic.</p>
+      </a>
+      <a href="exams.html" class="feature-card" style="--accent:#3b82f6;">
+        <div class="feature-emoji">📝</div>
+        <div class="feature-title">Exams</div>
+        <p class="feature-desc">Past papers with KCSE layout.</p>
+      </a>
+      <a href="quiz.html" class="feature-card" style="--accent:#22c55e;">
+        <div class="feature-emoji">⚡</div>
+        <div class="feature-title">Quick Quiz</div>
+        <p class="feature-desc">30 questions, 60 seconds each.</p>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

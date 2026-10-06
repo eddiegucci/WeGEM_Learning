@@ -1,48 +1,27 @@
-// js/quiz.js — WeGEM Learning quiz engine
-
+// js/quiz.js
 import { EXAMS, shuffle } from "./data.js";
 import { saveAttempt, getCurrentUser, clearCurrentUser } from "./firebase.js";
 import { recordLocalAttempt } from "./storage.js";
 
-/* =========================================================
-   NAV AUTH STATE
-   ========================================================= */
+const user = getCurrentUser();
+if (!user) window.location.href = "signup.html";
 
-(function renderNav() {
-  const authLink = document.getElementById("auth-link");
-  const user = getCurrentUser();
-  if (!authLink) return;
-  if (user) {
-    authLink.textContent = "Sign Out";
-    authLink.href = "#";
-    authLink.onclick = (e) => {
-      e.preventDefault();
-      clearCurrentUser();
-      window.location.reload();
-    };
-  } else {
-    authLink.textContent = "Sign In";
-    authLink.href = "login.html";
-    authLink.onclick = null;
-  }
-})();
-
-/* =========================================================
-   ELEMENT REFS
-   ========================================================= */
+const authLink = document.getElementById("auth-link");
+if (authLink) {
+  authLink.onclick = (e) => {
+    e.preventDefault();
+    clearCurrentUser();
+    window.location.href = "signup.html";
+  };
+}
 
 const setupScreen = document.getElementById("setupScreen");
 const quizScreen = document.getElementById("quizScreen");
 const resultsScreen = document.getElementById("resultsScreen");
-
 const examSelect = document.getElementById("examSelect");
 const subjectSelect = document.getElementById("subjectSelect");
 const countSelect = document.getElementById("countSelect");
 const startBtn = document.getElementById("startBtn");
-
-/* =========================================================
-   POPULATE EXAM DROPDOWN
-   ========================================================= */
 
 Object.keys(EXAMS).forEach((key) => {
   const opt = document.createElement("option");
@@ -51,21 +30,13 @@ Object.keys(EXAMS).forEach((key) => {
   examSelect.appendChild(opt);
 });
 
-/* =========================================================
-   URL PARAMS
-   ========================================================= */
-
 const params = new URLSearchParams(window.location.search);
-const urlExam = params.get("exam");
-const urlSubject = params.get("subject");
-
-if (urlExam && EXAMS[urlExam]) {
-  examSelect.value = urlExam;
+if (params.get("exam") && EXAMS[params.get("exam")]) {
+  examSelect.value = params.get("exam");
 }
 
-function refreshSubjects(preserveSelection = true) {
+function refreshSubjects() {
   const exam = EXAMS[examSelect.value];
-  const previous = subjectSelect.value;
   subjectSelect.innerHTML = "";
   exam.subjects.forEach((s) => {
     const opt = document.createElement("option");
@@ -73,24 +44,13 @@ function refreshSubjects(preserveSelection = true) {
     opt.textContent = `${s.name} (${s.questions.length})`;
     subjectSelect.appendChild(opt);
   });
-
+  const urlSubject = params.get("subject");
   if (urlSubject && exam.subjects.some((s) => s.name === urlSubject)) {
     subjectSelect.value = urlSubject;
-  } else if (
-    preserveSelection &&
-    previous &&
-    exam.subjects.some((s) => s.name === previous)
-  ) {
-    subjectSelect.value = previous;
   }
 }
-
-examSelect.addEventListener("change", () => refreshSubjects(false));
-refreshSubjects(false);
-
-/* =========================================================
-   QUIZ STATE
-   ========================================================= */
+examSelect.addEventListener("change", refreshSubjects);
+refreshSubjects();
 
 let quiz = null;
 
@@ -98,16 +58,10 @@ startBtn.addEventListener("click", () => {
   const examKey = examSelect.value;
   const subjectName = subjectSelect.value;
   const count = parseInt(countSelect.value, 10);
-
   const exam = EXAMS[examKey];
   const subject = exam.subjects.find((s) => s.name === subjectName);
   const pool = shuffle(subject.questions);
   const questions = pool.slice(0, Math.min(count, pool.length));
-
-  if (questions.length === 0) {
-    alert("No questions available for this subject yet.");
-    return;
-  }
 
   quiz = {
     examKey,
@@ -116,19 +70,12 @@ startBtn.addEventListener("click", () => {
     index: 0,
     correct: 0,
     topicResults: {},
-    finished: false,
   };
-
   setupScreen.classList.add("hidden");
   resultsScreen.classList.add("hidden");
   quizScreen.classList.remove("hidden");
-
   renderQuestion();
 });
-
-/* =========================================================
-   RENDER QUESTION
-   ========================================================= */
 
 function renderQuestion() {
   const { questions, index, examKey, subjectName, correct } = quiz;
@@ -141,7 +88,6 @@ function renderQuestion() {
   document.getElementById("liveScore").textContent = correct;
   document.getElementById("quizProgress").style.width =
     `${(index / questions.length) * 100}%`;
-
   document.getElementById("questionTopic").textContent = q.topic.toUpperCase();
   document.getElementById("questionText").textContent = q.q;
 
@@ -159,10 +105,6 @@ function renderQuestion() {
   document.getElementById("nextBtn").classList.add("hidden");
 }
 
-/* =========================================================
-   HANDLE ANSWER
-   ========================================================= */
-
 function handleAnswer(selectedIndex, btn) {
   const q = quiz.questions[quiz.index];
   const isCorrect = selectedIndex === q.answer;
@@ -170,7 +112,6 @@ function handleAnswer(selectedIndex, btn) {
   document
     .querySelectorAll(".option")
     .forEach((o) => o.classList.add("disabled"));
-
   const allOptions = document.querySelectorAll(".option");
   allOptions[q.answer].classList.add("correct");
   if (!isCorrect) btn.classList.add("wrong");
@@ -189,7 +130,7 @@ function handleAnswer(selectedIndex, btn) {
   fb.className = "feedback " + (isCorrect ? "correct" : "wrong");
   fb.innerHTML = isCorrect
     ? `<strong>✓ Correct</strong>${q.explain}`
-    : `<strong>✗ Not quite</strong>Correct answer: <b>${q.options[q.answer]}</b><br>${q.explain}`;
+    : `<strong>✗ Not quite</strong>Correct: <b>${q.options[q.answer]}</b><br>${q.explain}`;
   fb.classList.remove("hidden");
 
   const nextBtn = document.getElementById("nextBtn");
@@ -199,26 +140,13 @@ function handleAnswer(selectedIndex, btn) {
   nextBtn.onclick = advance;
 }
 
-/* =========================================================
-   ADVANCE
-   ========================================================= */
-
 function advance() {
   quiz.index += 1;
-  if (quiz.index >= quiz.questions.length) {
-    finishQuiz();
-  } else {
-    renderQuestion();
-  }
+  if (quiz.index >= quiz.questions.length) finishQuiz();
+  else renderQuestion();
 }
 
-/* =========================================================
-   FINISH
-   ========================================================= */
-
 async function finishQuiz() {
-  quiz.finished = true;
-
   const { examKey, subjectName, correct, questions, topicResults } = quiz;
   const total = questions.length;
   const pct = Math.round((correct / total) * 100);
@@ -231,24 +159,15 @@ async function finishQuiz() {
     topicResults,
     date: new Date().toISOString(),
   };
-
   recordLocalAttempt(attempt);
 
-  const user = getCurrentUser();
   let syncMessage = "";
-
-  if (user) {
-    try {
-      await saveAttempt(user.userId, attempt);
-      syncMessage = '<span class="sync-ok">✓ Saved to your account</span>';
-    } catch (e) {
-      console.error("Firebase save failed:", e);
-      syncMessage =
-        '<span class="sync-warn">Saved locally (sync failed)</span>';
-    }
-  } else {
-    syncMessage =
-      '<span class="sync-info">Saved locally · <a href="login.html">Sign in</a> to sync</span>';
+  try {
+    await saveAttempt(user.userId, attempt);
+    syncMessage = '<span class="sync-ok">✓ Saved to your account</span>';
+  } catch (e) {
+    console.error(e);
+    syncMessage = '<span class="sync-warn">Saved locally</span>';
   }
 
   quizScreen.classList.add("hidden");
@@ -263,7 +182,7 @@ async function finishQuiz() {
   if (pct >= 80) title = "Outstanding! 🎉";
   else if (pct >= 60) title = "Good job!";
   else if (pct >= 40) title = "Keep practicing.";
-  else title = "Let's review this together.";
+  else title = "Let's review together.";
   document.getElementById("resultsTitle").textContent = title;
 
   const weakList = document.getElementById("weakList");
@@ -281,13 +200,9 @@ async function finishQuiz() {
     });
   } else {
     weakList.innerHTML =
-      '<div class="empty-state">No weak topics in this session — great work!</div>';
+      '<div class="empty-state">No weak topics — great work!</div>';
   }
 }
-
-/* =========================================================
-   RETRY
-   ========================================================= */
 
 document.getElementById("retryBtn").addEventListener("click", () => {
   resultsScreen.classList.add("hidden");

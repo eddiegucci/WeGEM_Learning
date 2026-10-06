@@ -1,4 +1,4 @@
-// js/storage.js — Local fallback for when users are not signed in
+// js/storage.js — localStorage fallback
 
 const STORAGE_KEY = "wegem_progress";
 
@@ -7,7 +7,7 @@ export function loadLocalProgress() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { attempts: [], topics: {}, streak: 0, lastDay: null };
     return JSON.parse(raw);
-  } catch (e) {
+  } catch {
     return { attempts: [], topics: {}, streak: 0, lastDay: null };
   }
 }
@@ -60,10 +60,8 @@ export function computeStatsFromAttempts(attempts) {
             totalQuizzes,
         );
 
-  // Streak from local state
   const p = loadLocalProgress();
 
-  // Topics aggregate
   const topics = {};
   attempts.forEach((a) => {
     if (a.topicResults) {
@@ -75,13 +73,7 @@ export function computeStatsFromAttempts(attempts) {
     }
   });
 
-  return {
-    streak: p.streak,
-    totalQuizzes,
-    averageScore,
-    topics,
-    attempts,
-  };
+  return { streak: p.streak, totalQuizzes, averageScore, topics, attempts };
 }
 
 export function clearLocalProgress() {

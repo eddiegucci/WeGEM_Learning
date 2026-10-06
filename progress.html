@@ -9,41 +9,54 @@
 <body>
 
 <nav class="nav">
-  <a href="index.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
+  <a href="home.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
   <div class="nav-links">
-    <a href="index.html">Home</a>
+    <a href="home.html">Home</a>
+    <a href="notes.html">Notes</a>
     <a href="exams.html">Exams</a>
     <a href="quiz.html">Practice</a>
     <a href="progress.html" class="active">Progress</a>
-    <a id="auth-link" href="login.html">Sign In</a>
+    <a id="auth-link" href="signup.html">Sign Out</a>
   </div>
 </nav>
 
 <main class="container">
   <div class="section-label">Your dashboard</div>
   <h1 class="section-title">Progress</h1>
-  <p class="section-sub">Coming soon — will show stats from your account.</p>
+  <p class="section-sub">All your stats in one place.</p>
+
+  <div class="stats-bar">
+    <div>
+      <div class="stat-value" id="pStreak">0</div>
+      <div class="stat-label">Day streak</div>
+    </div>
+    <div>
+      <div class="stat-value" id="pQuizzes">0</div>
+      <div class="stat-label">Quizzes taken</div>
+    </div>
+    <div>
+      <div class="stat-value" id="pAvg">0%</div>
+      <div class="stat-label">Average score</div>
+    </div>
+    <div>
+      <div class="stat-value" id="pTopics">0</div>
+      <div class="stat-label">Topics attempted</div>
+    </div>
+  </div>
+
+  <h2 class="section-title" style="margin-top:60px;">Topic performance</h2>
+  <div id="topicList" class="topic-list"></div>
+
+  <h2 class="section-title" style="margin-top:60px;">Recent attempts</h2>
+  <div id="historyList" class="history-list"></div>
+
+  <div style="margin-top:40px;">
+    <button class="btn btn-ghost" id="resetBtn">Reset all data</button>
+  </div>
 </main>
 
 <footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
 
-<script type="module">
-  import { getCurrentUser, clearCurrentUser } from './js/firebase.js';
-
-  const authLink = document.getElementById('auth-link');
-  const user = getCurrentUser();
-  if (user) {
-    authLink.textContent = 'Sign Out';
-    authLink.href = '#';
-    authLink.onclick = (e) => {
-      e.preventDefault();
-      clearCurrentUser();
-      window.location.reload();
-    };
-  } else {
-    authLink.textContent = 'Sign In';
-    authLink.href = 'login.html';
-  }
-</script>
+<script type="module" src="js/progress.js"></script>
 </body>
 </html>
