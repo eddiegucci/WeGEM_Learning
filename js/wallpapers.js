@@ -15,51 +15,63 @@ if (authLink) {
   };
 }
 
-/* =========================================================
-   WALLPAPERS
-   ========================================================= */
-
 const WALLPAPERS = [
   {
     id: "default",
     name: "World Map & Globe",
-    url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80",
     tag: "Default",
+    url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=70&auto=format",
+    preview:
+      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500&q=60&auto=format",
   },
   {
     id: "africa",
     name: "African Pattern",
-    url: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=1920&q=80",
+    url: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=1920&q=70&auto=format",
+    preview:
+      "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=500&q=60&auto=format",
   },
   {
     id: "nairobi",
     name: "Nairobi Skyline",
-    url: "https://images.unsplash.com/photo-1611348586804-61bf6c080437?w=1920&q=80",
+    url: "https://images.unsplash.com/photo-1611348586804-61bf6c080437?w=1920&q=70&auto=format",
+    preview:
+      "https://images.unsplash.com/photo-1611348586804-61bf6c080437?w=500&q=60&auto=format",
   },
   {
     id: "books",
     name: "Library Books",
-    url: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1920&q=80",
+    url: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1920&q=70&auto=format",
+    preview:
+      "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=500&q=60&auto=format",
   },
   {
     id: "mountains",
     name: "Mount Kenya",
-    url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80",
+    url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=70&auto=format",
+    preview:
+      "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=500&q=60&auto=format",
   },
   {
     id: "stars",
     name: "Starry Night",
-    url: "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1920&q=80",
+    url: "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1920&q=70&auto=format",
+    preview:
+      "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=500&q=60&auto=format",
   },
   {
     id: "abstract",
     name: "Abstract Gradient",
-    url: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1920&q=80",
+    url: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1920&q=70&auto=format",
+    preview:
+      "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=500&q=60&auto=format",
   },
   {
     id: "forest",
     name: "Forest Path",
-    url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80",
+    url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=70&auto=format",
+    preview:
+      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=500&q=60&auto=format",
   },
 ];
 
@@ -68,11 +80,9 @@ const STORAGE_KEY = "wegem_wallpaper";
 function applyWallpaper(url) {
   document.documentElement.style.setProperty("--wallpaper", `url('${url}')`);
 }
-
 function saveWallpaper(w) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(w));
 }
-
 function loadSaved() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -90,8 +100,7 @@ WALLPAPERS.forEach((w) => {
   const card = document.createElement("button");
   card.type = "button";
   card.className = "wallpaper-card" + (w.id === activeId ? " active" : "");
-  card.style.backgroundImage = `url('${w.url}')`;
-  card.dataset.id = w.id;
+  card.style.backgroundImage = `url('${w.preview}')`;
 
   card.innerHTML = `
     <div class="wallpaper-overlay"></div>
@@ -105,20 +114,17 @@ WALLPAPERS.forEach((w) => {
   card.addEventListener("click", () => {
     applyWallpaper(w.url);
     saveWallpaper(w);
-
     document.querySelectorAll(".wallpaper-card").forEach((c) => {
       c.classList.remove("active");
-      const oldCheck = c.querySelector(".wallpaper-check");
-      if (oldCheck) oldCheck.remove();
+      const oc = c.querySelector(".wallpaper-check");
+      if (oc) oc.remove();
     });
-
     card.classList.add("active");
     card.insertAdjacentHTML(
       "beforeend",
       '<div class="wallpaper-check">✓</div>',
     );
   });
-
   grid.appendChild(card);
 });
 
