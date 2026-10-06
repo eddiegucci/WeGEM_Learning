@@ -1,13 +1,9 @@
-// js/slideshow.js — WeGEM Learning intro slideshow (robust version)
+// js/slideshow.js — WeGEM Learning intro slideshow (robust)
 
 const SLIDE_DURATION = 1800;
 const REDIRECT_URL = "signup.html";
 const REDIRECT_AFTER_LAST = 900;
-const MAX_PRELOAD_WAIT = 2000; // never wait more than 2s for images
-
-/* =========================================================
-   SLIDES
-   ========================================================= */
+const MAX_PRELOAD_WAIT = 2000;
 
 const SLIDES = [
   {
@@ -108,10 +104,6 @@ const SLIDES = [
   },
 ];
 
-/* =========================================================
-   ELEMENTS
-   ========================================================= */
-
 const slideshowEl = document.getElementById("slideshow");
 const subjectLabel = document.getElementById("subjectLabel");
 const dotsEl = document.getElementById("dots");
@@ -121,10 +113,6 @@ let currentIndex = 0;
 let timerId = null;
 let isDone = false;
 let slideEls = [];
-
-/* =========================================================
-   PRELOAD with timeout — never blocks
-   ========================================================= */
 
 function preloadWithTimeout(url, timeoutMs = MAX_PRELOAD_WAIT) {
   return new Promise((resolve) => {
@@ -142,10 +130,6 @@ function preloadWithTimeout(url, timeoutMs = MAX_PRELOAD_WAIT) {
   });
 }
 
-/* =========================================================
-   BUILD DOM
-   ========================================================= */
-
 function buildDOM() {
   SLIDES.forEach((slide, i) => {
     const div = document.createElement("div");
@@ -162,10 +146,6 @@ function buildDOM() {
   });
 }
 
-/* =========================================================
-   SHOW SLIDE
-   ========================================================= */
-
 function showSlide(index) {
   const dots = dotsEl.querySelectorAll(".dot");
   slideEls.forEach((s, i) => s.classList.toggle("active", i === index));
@@ -176,10 +156,6 @@ function showSlide(index) {
   void subjectLabel.offsetWidth;
   subjectLabel.classList.add("fade-in");
 }
-
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
 
 function next() {
   if (isDone) return;
@@ -213,31 +189,14 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* =========================================================
-   START — show first slide IMMEDIATELY, preload in background
-   ========================================================= */
-
 function start() {
   buildDOM();
-
-  // Show first slide right away — don't wait for anything
   showSlide(0);
-
-  // Fire off preloads in the background (don't await)
-  preloadWithTimeout(SLIDES[0].img).then(() => {
-    // first slide settled (loaded or timed out) — do nothing special
-  });
-
-  SLIDES.slice(1).forEach((slide) => {
-    // Background preload, ignore result
-    preloadWithTimeout(slide.img, 8000);
-  });
-
-  // Start the timer immediately
+  preloadWithTimeout(SLIDES[0].img, 8000);
+  SLIDES.slice(1).forEach((slide) => preloadWithTimeout(slide.img, 8000));
   timerId = setTimeout(next, SLIDE_DURATION);
 }
 
-// Kick off as soon as DOM is ready
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", start);
 } else {

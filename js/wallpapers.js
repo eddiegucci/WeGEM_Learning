@@ -16,8 +16,7 @@ if (authLink) {
 }
 
 /* =========================================================
-   WALLPAPERS — add your own later by dropping into
-   assets/images/ and using 'assets/images/yourfile.jpg'
+   WALLPAPERS
    ========================================================= */
 
 const WALLPAPERS = [
@@ -93,6 +92,7 @@ WALLPAPERS.forEach((w) => {
   card.className = "wallpaper-card" + (w.id === activeId ? " active" : "");
   card.style.backgroundImage = `url('${w.url}')`;
   card.dataset.id = w.id;
+
   card.innerHTML = `
     <div class="wallpaper-overlay"></div>
     <div class="wallpaper-meta">
@@ -101,20 +101,24 @@ WALLPAPERS.forEach((w) => {
     </div>
     ${w.id === activeId ? '<div class="wallpaper-check">✓</div>' : ""}
   `;
+
   card.addEventListener("click", () => {
     applyWallpaper(w.url);
     saveWallpaper(w);
+
     document.querySelectorAll(".wallpaper-card").forEach((c) => {
       c.classList.remove("active");
       const oldCheck = c.querySelector(".wallpaper-check");
       if (oldCheck) oldCheck.remove();
     });
+
     card.classList.add("active");
     card.insertAdjacentHTML(
       "beforeend",
       '<div class="wallpaper-check">✓</div>',
     );
   });
+
   grid.appendChild(card);
 });
 
