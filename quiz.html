@@ -6,102 +6,206 @@
   <title>Practice — WeGEM Learning</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="dashboard-body">
 
-<nav class="nav">
-  <a href="home.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
-  <div class="nav-links">
-    <a href="home.html">Home</a>
-    <a href="notes.html">Notes</a>
-    <a href="exams.html">Exams</a>
-    <a href="quiz.html" class="active">Practice</a>
-    <a href="progress.html">Progress</a>
-    <a href="wallpapers.html">Wallpapers</a>
-    <a id="auth-link" href="signup.html">Sign Out</a>
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
+                fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+          <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
+          <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
+                stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+          <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
+                stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">WeGEM</div>
+        <div class="brand-title">Learning</div>
+      </div>
+    </div>
+
+    <div class="sidebar-tagline">Learn · Practise · Excel</div>
+
+    <nav class="sidebar-nav">
+      <a href="home.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 L12 3 L21 10.5 V20 A2 2 0 0 1 19 22 H5 A2 2 0 0 1 3 20 Z"/></svg></span>
+        <span class="side-label">Dashboard</span>
+      </a>
+      <a href="notes.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4 H15 L20 9 V20 A1 1 0 0 1 19 21 H4 A1 1 0 0 1 3 20 V5 A1 1 0 0 1 4 4 Z"/><path d="M15 4 V9 H20"/><path d="M7 13 H17 M7 17 H14"/></svg></span>
+        <span class="side-label">Notes</span>
+      </a>
+      <a href="quiz.html" class="side-link active">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 L4 14 H12 L11 22 L20 10 H12 Z"/></svg></span>
+        <span class="side-label">Quick Quiz</span>
+      </a>
+      <a href="exams.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7 H16 M8 11 H16 M8 15 H13"/></svg></span>
+        <span class="side-label">Exams</span>
+      </a>
+      <a href="progress.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 V10 M10 20 V4 M16 20 V13 M22 20 H2"/></svg></span>
+        <span class="side-label">Progress</span>
+      </a>
+      <a href="wallpapers.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M3 18 L9 13 L14 17 L18 14 L21 17"/></svg></span>
+        <span class="side-label">Wallpapers</span>
+      </a>
+      <a href="settings.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15 A1.65 1.65 0 0 0 19.7 16.5 L19.8 16.7 A2 2 0 1 1 16.7 19.8 L16.5 19.7 A1.65 1.65 0 0 0 15 19.4 A1.65 1.65 0 0 0 14 21 V21.2 A2 2 0 1 1 10 21.2 V21 A1.65 1.65 0 0 0 9 19.4 A1.65 1.65 0 0 0 7.5 19.7 L7.3 19.8 A2 2 0 1 1 4.2 16.7 L4.3 16.5 A1.65 1.65 0 0 0 4.6 15 A1.65 1.65 0 0 0 3 14 H2.8 A2 2 0 1 1 2.8 10 H3 A1.65 1.65 0 0 0 4.6 9 A1.65 1.65 0 0 0 4.3 7.5 L4.2 7.3 A2 2 0 1 1 7.3 4.2 L7.5 4.3 A1.65 1.65 0 0 0 9 4.6 A1.65 1.65 0 0 0 10 3 V2.8 A2 2 0 1 1 14 2.8 V3 A1.65 1.65 0 0 0 15 4.6 A1.65 1.65 0 0 0 16.5 4.3 L16.7 4.2 A2 2 0 1 1 19.8 7.3 L19.7 7.5 A1.65 1.65 0 0 0 19.4 9 A1.65 1.65 0 0 0 21 10 H21.2 A2 2 0 1 1 21.2 14 H21 A1.65 1.65 0 0 0 19.4 15 Z"/></svg></span>
+        <span class="side-label">Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-quote">
+      <div class="quote-mark">“</div>
+      <p class="quote-text">Practice makes<br>progress.<br>Progress wins.</p>
+      <div class="quote-underline"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="footer-brand">WeGEM Learning</div>
+      <div class="footer-flag">
+        <span class="flag-mini"></span>
+        <span class="footer-note">Built for Kenyan Learners</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+
+    <header class="topbar">
+      <div class="topbar-search">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="M20 20 L16.5 16.5"/>
+        </svg>
+        <input type="text" placeholder="Search questions, subjects..." id="quizSearch">
+      </div>
+
+      <div class="topbar-right">
+        <button class="select-chip" type="button">
+          <span class="chip-icon">⚡</span>
+          <span>Quick Quiz</span>
+        </button>
+
+        <button class="user-chip" id="userMenuBtn" type="button">
+          <span class="user-avatar" id="userAvatar">E</span>
+          <span class="user-name" id="userNameTop">Edwin</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- SETUP SCREEN -->
+      <section id="setupScreen">
+        <div class="page-head">
+          <div class="section-label">Practice</div>
+          <h1 class="page-title">Set up your quiz</h1>
+          <p class="page-sub">Pick an exam, subject, and how many questions. Then tap Start.</p>
+        </div>
+
+        <div class="quiz-setup-card">
+          <div class="setup-grid">
+            <label>
+              <span>Exam</span>
+              <select id="examSelect"></select>
+            </label>
+            <label>
+              <span>Subject</span>
+              <select id="subjectSelect"></select>
+            </label>
+            <label>
+              <span>Questions</span>
+              <select id="countSelect">
+                <option value="3">3 — Quick</option>
+                <option value="5" selected>5 — Standard</option>
+                <option value="10">10 — Full</option>
+                <option value="999">All available</option>
+              </select>
+            </label>
+          </div>
+
+          <button class="btn btn-primary btn-wide" id="startBtn" type="button">
+            Start Quiz →
+          </button>
+        </div>
+      </section>
+
+      <!-- QUIZ SCREEN -->
+      <section id="quizScreen" class="hidden">
+        <div class="quiz-topbar">
+          <div>
+            <div class="quiz-meta" id="quizMeta">KCSE · Mathematics</div>
+            <div class="quiz-counter" id="quizCounter">Q 1 of 5</div>
+          </div>
+          <div class="quiz-score">
+            <span class="score-num" id="liveScore">0</span>
+            <span class="score-label">correct</span>
+          </div>
+        </div>
+
+        <div class="progress-bar"><div class="progress-fill" id="quizProgress"></div></div>
+
+        <div class="question-card">
+          <div class="quiz-topic" id="questionTopic">TOPIC</div>
+          <div class="question-text" id="questionText">Question…</div>
+          <div class="options" id="optionsList"></div>
+          <div class="feedback hidden" id="feedbackBox"></div>
+        </div>
+
+        <div class="quiz-actions">
+          <button class="btn btn-primary hidden" id="nextBtn" type="button">Next →</button>
+        </div>
+      </section>
+
+      <!-- RESULTS SCREEN -->
+      <section id="resultsScreen" class="hidden">
+        <div class="results-card">
+          <div class="section-label">Quiz complete</div>
+          <h1 class="section-title" id="resultsTitle">Well done!</h1>
+          <div class="results-score">
+            <div class="score-big" id="finalScore">0%</div>
+            <div class="score-sub" id="finalDetail">0 / 0 correct</div>
+          </div>
+
+          <div id="syncStatus" class="sync-status"></div>
+
+          <h3 class="weak-heading">Areas to review</h3>
+          <div class="weak-list" id="weakList"></div>
+
+          <div class="cta-row" style="justify-content:center;gap:12px;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="retryBtn" type="button">Try Again</button>
+            <a href="progress.html" class="btn btn-ghost">View Progress</a>
+            <a href="home.html" class="btn btn-ghost">Home</a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="footer-bulb">💡</span>
+        <span>Better grades. Brighter future.</span>
+      </div>
+      <div class="footer-right">
+        <span>WeGEM Learning</span>
+        <span class="dot-sep">|</span>
+        <span>For a smarter Kenya</span>
+        <span class="flag-mini"></span>
+      </div>
+    </footer>
   </div>
-</nav>
-
-<main class="container">
-
-  <section id="setupScreen" class="quiz-setup">
-    <div class="section-label">Practice</div>
-    <h1 class="section-title">Set up your quiz</h1>
-    <p class="section-sub">Pick an exam, subject, and how many questions. Then tap Start.</p>
-
-    <div class="setup-grid">
-      <label>
-        <span>Exam</span>
-        <select id="examSelect"></select>
-      </label>
-      <label>
-        <span>Subject</span>
-        <select id="subjectSelect"></select>
-      </label>
-      <label>
-        <span>Questions</span>
-        <select id="countSelect">
-          <option value="3">3 — Quick</option>
-          <option value="5" selected>5 — Standard</option>
-          <option value="10">10 — Full</option>
-          <option value="999">All available</option>
-        </select>
-      </label>
-    </div>
-
-    <button class="btn btn-primary" id="startBtn" style="width:100%;">Start Quiz →</button>
-  </section>
-
-  <section id="quizScreen" class="quiz-screen hidden">
-    <div class="quiz-topbar">
-      <div>
-        <div class="quiz-meta" id="quizMeta">KCSE · Mathematics</div>
-        <div class="quiz-counter" id="quizCounter">Q 1 of 5</div>
-      </div>
-      <div class="quiz-score">
-        <span class="score-num" id="liveScore">0</span>
-        <span class="score-label">correct</span>
-      </div>
-    </div>
-
-    <div class="progress-bar"><div class="progress-fill" id="quizProgress"></div></div>
-
-    <div class="question-card">
-      <div class="quiz-topic" id="questionTopic">TOPIC</div>
-      <div class="question-text" id="questionText">Question…</div>
-      <div class="options" id="optionsList"></div>
-      <div class="feedback hidden" id="feedbackBox"></div>
-    </div>
-
-    <div class="quiz-actions">
-      <button class="btn btn-primary hidden" id="nextBtn">Next →</button>
-    </div>
-  </section>
-
-  <section id="resultsScreen" class="results-screen hidden">
-    <div class="results-card">
-      <div class="section-label">Quiz complete</div>
-      <h1 class="section-title" id="resultsTitle">Well done!</h1>
-      <div class="results-score">
-        <div class="score-big" id="finalScore">0%</div>
-        <div class="score-sub" id="finalDetail">0 / 0 correct</div>
-      </div>
-
-      <div id="syncStatus" class="sync-status"></div>
-
-      <h3 class="weak-heading">Areas to review</h3>
-      <div class="weak-list" id="weakList"></div>
-
-      <div class="cta-row" style="justify-content:center;">
-        <button class="btn btn-primary" id="retryBtn">Try Again</button>
-        <a href="progress.html" class="btn btn-ghost">View Progress</a>
-        <a href="home.html" class="btn btn-ghost">Home</a>
-      </div>
-    </div>
-  </section>
-
-</main>
-
-<footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
+</div>
 
 <script type="module" src="js/quiz.js"></script>
 </body>
