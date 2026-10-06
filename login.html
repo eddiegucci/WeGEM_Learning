@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — WeGEM Learning</title>
+  <meta name="description" content="Sign in to your WeGEM Learning account.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="signup-body">
+
+<div class="signup-page">
+
+  <div class="signup-bg"></div>
+
+  <div class="signup-card login-card">
+
+    <!-- Brand -->
+    <div class="signup-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
+                fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+          <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
+          <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
+                stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+          <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
+                stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="signup-brand-title">WeGEM Learning</div>
+        <div class="signup-brand-sub">Learn · Practise · Excel</div>
+      </div>
+    </div>
+
+    <h1 class="signup-title">Welcome back</h1>
+    <p class="signup-sub">Sign in to continue your learning journey.</p>
+
+    <div id="loginError" class="auth-error hidden"></div>
+
+    <label class="field">
+      <span>Email</span>
+      <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email" autofocus>
+    </label>
+
+    <label class="field">
+      <span>Password</span>
+      <input type="password" id="loginPassword" placeholder="Your password" autocomplete="current-password">
+    </label>
+
+    <div class="login-extras">
+      <label class="remember-check">
+        <input type="checkbox" id="rememberMe">
+        <span>Remember me</span>
+      </label>
+      <a href="#" class="forgot-link" id="forgotLink">Forgot password?</a>
+    </div>
+
+    <div class="signup-actions" style="grid-template-columns: 1fr;">
+      <button class="btn btn-primary" id="signInBtn" type="button">Sign In →</button>
+    </div>
+
+  </div>
+
+  <p class="signup-login-link">
+    New to WeGEM?
+    <a href="signup.html">Create an account</a>
+  </p>
+
+</div>
+
+<script type="module" src="js/login.js"></script>
+</body>
+</html>

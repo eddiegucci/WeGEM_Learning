@@ -6,57 +6,195 @@
   <title>Progress — WeGEM Learning</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="dashboard-body">
 
-<nav class="nav">
-  <a href="home.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
-  <div class="nav-links">
-    <a href="home.html">Home</a>
-    <a href="notes.html">Notes</a>
-    <a href="exams.html">Exams</a>
-    <a href="quiz.html">Practice</a>
-    <a href="progress.html" class="active">Progress</a>
-    <a href="wallpapers.html">Wallpapers</a>
-    <a id="auth-link" href="signup.html">Sign Out</a>
+<div class="app-shell">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
+                fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+          <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
+          <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
+                stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+          <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
+                stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">WeGEM</div>
+        <div class="brand-title">Learning</div>
+      </div>
+    </div>
+
+    <div class="sidebar-tagline">Learn · Practise · Excel</div>
+
+    <nav class="sidebar-nav">
+      <a href="home.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 L12 3 L21 10.5 V20 A2 2 0 0 1 19 22 H5 A2 2 0 0 1 3 20 Z"/></svg></span>
+        <span class="side-label">Dashboard</span>
+      </a>
+      <a href="notes.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4 H15 L20 9 V20 A1 1 0 0 1 19 21 H4 A1 1 0 0 1 3 20 V5 A1 1 0 0 1 4 4 Z"/><path d="M15 4 V9 H20"/><path d="M7 13 H17 M7 17 H14"/></svg></span>
+        <span class="side-label">Notes</span>
+      </a>
+      <a href="quiz.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 L4 14 H12 L11 22 L20 10 H12 Z"/></svg></span>
+        <span class="side-label">Quick Quiz</span>
+      </a>
+      <a href="exams.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7 H16 M8 11 H16 M8 15 H13"/></svg></span>
+        <span class="side-label">Exams</span>
+      </a>
+      <a href="progress.html" class="side-link active">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 V10 M10 20 V4 M16 20 V13 M22 20 H2"/></svg></span>
+        <span class="side-label">Progress</span>
+      </a>
+      <a href="wallpapers.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M3 18 L9 13 L14 17 L18 14 L21 17"/></svg></span>
+        <span class="side-label">Wallpapers</span>
+      </a>
+      <a href="settings.html" class="side-link">
+        <span class="side-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15 A1.65 1.65 0 0 0 19.7 16.5 L19.8 16.7 A2 2 0 1 1 16.7 19.8 L16.5 19.7 A1.65 1.65 0 0 0 15 19.4 A1.65 1.65 0 0 0 14 21 V21.2 A2 2 0 1 1 10 21.2 V21 A1.65 1.65 0 0 0 9 19.4 A1.65 1.65 0 0 0 7.5 19.7 L7.3 19.8 A2 2 0 1 1 4.2 16.7 L4.3 16.5 A1.65 1.65 0 0 0 4.6 15 A1.65 1.65 0 0 0 3 14 H2.8 A2 2 0 1 1 2.8 10 H3 A1.65 1.65 0 0 0 4.6 9 A1.65 1.65 0 0 0 4.3 7.5 L4.2 7.3 A2 2 0 1 1 7.3 4.2 L7.5 4.3 A1.65 1.65 0 0 0 9 4.6 A1.65 1.65 0 0 0 10 3 V2.8 A2 2 0 1 1 14 2.8 V3 A1.65 1.65 0 0 0 15 4.6 A1.65 1.65 0 0 0 16.5 4.3 L16.7 4.2 A2 2 0 1 1 19.8 7.3 L19.7 7.5 A1.65 1.65 0 0 0 19.4 9 A1.65 1.65 0 0 0 21 10 H21.2 A2 2 0 1 1 21.2 14 H21 A1.65 1.65 0 0 0 19.4 15 Z"/></svg></span>
+        <span class="side-label">Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-quote">
+      <div class="quote-mark">“</div>
+      <p class="quote-text">Track your<br>growth. Celebrate<br>every win.</p>
+      <div class="quote-underline"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="footer-brand">WeGEM Learning</div>
+      <div class="footer-flag">
+        <span class="flag-mini"></span>
+        <span class="footer-note">Built for Kenyan Learners</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN ==================== -->
+  <div class="main-area">
+
+    <header class="topbar">
+      <div class="topbar-search">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="M20 20 L16.5 16.5"/>
+        </svg>
+        <input type="text" id="progressSearch" placeholder="Search topics...">
+      </div>
+
+      <div class="topbar-right">
+        <button class="select-chip" type="button">
+          <span class="chip-icon">📊</span>
+          <span>This week</span>
+        </button>
+
+        <button class="user-chip" id="userMenuBtn" type="button">
+          <span class="user-avatar" id="userAvatar">E</span>
+          <span class="user-name" id="userNameTop">Edwin</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <section class="page-head">
+        <div class="section-label">Your Journey</div>
+        <h1 class="page-title">Progress</h1>
+        <p class="page-sub">Every quiz brings you closer to your goals. Here's how you're doing.</p>
+      </section>
+
+      <!-- Stat cards -->
+      <section class="stats-grid-4">
+        <div class="stat-tile st-fire">
+          <div class="st-icon">🔥</div>
+          <div class="st-value" id="pStreak">0</div>
+          <div class="st-label">Day Streak</div>
+          <div class="st-sub" id="pStreakSub">Start today</div>
+        </div>
+
+        <div class="stat-tile st-target">
+          <div class="st-icon">🎯</div>
+          <div class="st-value" id="pAvg">0<span class="st-unit">%</span></div>
+          <div class="st-label">Average Score</div>
+          <div class="st-sub" id="pAvgSub">—</div>
+        </div>
+
+        <div class="stat-tile st-clip">
+          <div class="st-icon">📋</div>
+          <div class="st-value" id="pQuizzes">0</div>
+          <div class="st-label">Quizzes Taken</div>
+          <div class="st-sub" id="pQuizzesSub">Keep going!</div>
+        </div>
+
+        <div class="stat-tile st-clock">
+          <div class="st-icon">⏱</div>
+          <div class="st-value" id="pHours">0<span class="st-unit">h</span></div>
+          <div class="st-label">Study Time</div>
+          <div class="st-sub" id="pHoursSub">This week</div>
+        </div>
+      </section>
+
+      <!-- Performance chart -->
+      <section class="panel chart-panel-v2">
+        <div class="panel-head-inline">
+          <div>
+            <div class="panel-title-lg">📈 Performance Trend</div>
+            <div class="panel-sub-sm">Your last 10 quiz attempts</div>
+          </div>
+          <div class="pill-tag">Avg <span id="chartAvg">0%</span></div>
+        </div>
+        <div class="big-chart-wrap">
+          <svg id="progressChart" viewBox="0 0 800 220" preserveAspectRatio="none" class="big-chart-svg"></svg>
+          <div id="chartEmpty" class="chart-empty hidden">
+            <div>📊</div>
+            <div>Take your first quiz to see your progress trend</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Topic performance + Recent activity -->
+      <section class="row-progress">
+        <div class="panel">
+          <div class="panel-head-inline">
+            <div class="panel-title-lg">🎯 Topic Performance</div>
+            <div class="pill-tag">Weakest first</div>
+          </div>
+          <div id="topicList" class="topic-list-v2"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head-inline">
+            <div class="panel-title-lg">🕐 Recent Attempts</div>
+            <button class="link-sm" id="clearHistoryBtn" type="button">Clear</button>
+          </div>
+          <div id="historyList" class="history-list-v2"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="footer-bulb">💡</span>
+        <span>Better grades. Brighter future.</span>
+      </div>
+      <div class="footer-right">
+        <span>WeGEM Learning</span>
+        <span class="dot-sep">|</span>
+        <span>For a smarter Kenya</span>
+        <span class="flag-mini"></span>
+      </div>
+    </footer>
   </div>
-</nav>
-
-<main class="container">
-  <div class="section-label">Your dashboard</div>
-  <h1 class="section-title">Progress</h1>
-  <p class="section-sub">All your stats in one place.</p>
-
-  <div class="stats-bar">
-    <div>
-      <div class="stat-value" id="pStreak">0</div>
-      <div class="stat-label">Day streak</div>
-    </div>
-    <div>
-      <div class="stat-value" id="pQuizzes">0</div>
-      <div class="stat-label">Quizzes taken</div>
-    </div>
-    <div>
-      <div class="stat-value" id="pAvg">0%</div>
-      <div class="stat-label">Average score</div>
-    </div>
-    <div>
-      <div class="stat-value" id="pTopics">0</div>
-      <div class="stat-label">Topics attempted</div>
-    </div>
-  </div>
-
-  <h2 class="section-title" style="margin-top:60px;">Topic performance</h2>
-  <div id="topicList" class="topic-list"></div>
-
-  <h2 class="section-title" style="margin-top:60px;">Recent attempts</h2>
-  <div id="historyList" class="history-list"></div>
-
-  <div style="margin-top:40px;">
-    <button class="btn btn-ghost" id="resetBtn">Reset all data</button>
-  </div>
-</main>
-
-<footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
+</div>
 
 <script type="module" src="js/progress.js"></script>
 </body>

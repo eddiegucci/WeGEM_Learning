@@ -3,124 +3,168 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Up — WeGEM Learning</title>
+  <title>Get Started — WeGEM Learning</title>
+  <meta name="description" content="Sign up for WeGEM Learning — choose your curriculum, subjects, and start learning.">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="signup-body">
 
-<div class="signup-wrap">
+<div class="signup-page">
 
-  <!-- ===== STEP A: Curriculum Choice ===== -->
-  <section id="stepA" class="signup-step">
+  <!-- Background layers -->
+  <div class="signup-bg"></div>
+
+  <!-- ==================== CARD ==================== -->
+  <div class="signup-card">
+
+    <!-- Brand -->
     <div class="signup-brand">
-      <span class="logo-dot"></span> WeGEM Learning
+      <div class="brand-mark">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
+                fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+          <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
+          <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
+                stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+          <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
+                stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="signup-brand-title">WeGEM Learning</div>
+        <div class="signup-brand-sub">Learn · Practise · Excel</div>
+      </div>
     </div>
-    <h1 class="signup-title">Choose your curriculum</h1>
-    <p class="signup-sub">Select the curriculum you are currently studying.</p>
 
-    <div class="curriculum-grid">
-      <button class="curriculum-btn" data-curriculum="844" type="button">
-        <div class="curr-code">8-4-4</div>
-        <div class="curr-desc">Form 1 to Form 4</div>
-      </button>
-
-      <button class="curriculum-btn" data-curriculum="CBE" type="button">
-        <div class="curr-code">CBE</div>
-        <div class="curr-desc">Grade 7 to Grade 9</div>
-      </button>
+    <!-- Progress steps -->
+    <div class="step-bar">
+      <div class="step-dot active" data-step="1">
+        <span class="step-num">1</span>
+        <span class="step-name">Curriculum</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-dot" data-step="2">
+        <span class="step-num">2</span>
+        <span class="step-name">Level</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-dot" data-step="3">
+        <span class="step-num">3</span>
+        <span class="step-name">Subjects</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-dot" data-step="4">
+        <span class="step-num">4</span>
+        <span class="step-name">Details</span>
+      </div>
     </div>
-  </section>
 
-  <!-- ===== STEP B: Details ===== -->
-  <section id="stepB" class="signup-step hidden">
-    <div class="signup-brand">
-      <span class="logo-dot"></span> WeGEM Learning
-    </div>
-    <h1 class="signup-title" id="detailsTitle">Your details</h1>
-    <p class="signup-sub" id="detailsSub">Tell us about yourself.</p>
-
+    <!-- Error -->
     <div id="signupError" class="auth-error hidden"></div>
 
-    <!-- 8-4-4 fields -->
-    <div id="form844" class="hidden">
+    <!-- ============ STEP 1: CURRICULUM ============ -->
+    <section id="step1" class="signup-step">
+      <h1 class="signup-title">Welcome to WeGEM</h1>
+      <p class="signup-sub">Choose the curriculum you are currently studying.</p>
+
+      <div class="curriculum-grid">
+        <button class="curriculum-btn" data-curriculum="844" type="button">
+          <div class="curr-badge">8-4-4</div>
+          <div class="curr-code">Form 1 to Form 4</div>
+          <div class="curr-desc">Classic Kenyan secondary syllabus</div>
+          <div class="curr-check" aria-hidden="true">✓</div>
+        </button>
+
+        <button class="curriculum-btn" data-curriculum="CBE" type="button">
+          <div class="curr-badge">CBE</div>
+          <div class="curr-code">Grade 7 to Grade 9</div>
+          <div class="curr-desc">Competency-Based Curriculum</div>
+          <div class="curr-check" aria-hidden="true">✓</div>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 2: LEVEL ============ -->
+    <section id="step2" class="signup-step hidden">
+      <h1 class="signup-title" id="levelTitle">Which form are you in?</h1>
+      <p class="signup-sub" id="levelSub">Pick your current level to see relevant subjects.</p>
+
+      <div id="levelGrid" class="level-grid"></div>
+    </section>
+
+    <!-- ============ STEP 3: SUBJECTS ============ -->
+    <section id="step3" class="signup-step hidden">
+      <h1 class="signup-title">Choose your subjects</h1>
+      <p class="signup-sub" id="subjectsSub">
+        Select the subjects you want to focus on. You can change these later.
+      </p>
+
+      <div class="subjects-toolbar">
+        <button class="tool-btn" id="selectAllBtn" type="button">Select all</button>
+        <button class="tool-btn" id="clearAllBtn" type="button">Clear all</button>
+        <div class="subject-counter">
+          <span id="subjectCount">0</span> selected
+        </div>
+      </div>
+
+      <div id="subjectsGrid" class="subjects-grid"></div>
+    </section>
+
+    <!-- ============ STEP 4: DETAILS ============ -->
+    <section id="step4" class="signup-step hidden">
+      <h1 class="signup-title">Almost there</h1>
+      <p class="signup-sub">Tell us a bit about yourself so we can personalize your dashboard.</p>
+
       <label class="field">
         <span>Full name</span>
-        <input type="text" id="name844" placeholder="e.g. Edwin Mwangi" autocomplete="name">
+        <input type="text" id="fullName" placeholder="e.g. Edwin Mwangi" autocomplete="name">
       </label>
+
       <div class="field-row">
         <label class="field">
-          <span>Form</span>
-          <select id="form844Select">
-            <option value="">Select form</option>
-            <option value="Form 1">Form 1</option>
-            <option value="Form 2">Form 2</option>
-            <option value="Form 3">Form 3</option>
-            <option value="Form 4">Form 4</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Class</span>
-          <input type="text" id="class844" placeholder="e.g. 3 East">
-        </label>
-      </div>
-      <div class="field-row">
-        <label class="field">
-          <span>Stream</span>
-          <input type="text" id="stream844" placeholder="e.g. Sciences">
+          <span>School</span>
+          <input type="text" id="school" placeholder="e.g. Alliance High School">
         </label>
         <label class="field">
           <span>ADM Number</span>
-          <input type="text" id="adm844" placeholder="e.g. 12345">
+          <input type="text" id="adm" placeholder="e.g. 12345">
         </label>
       </div>
-      <label class="field">
-        <span>School</span>
-        <input type="text" id="school844" placeholder="e.g. Alliance High School">
-      </label>
-    </div>
 
-    <!-- CBE fields -->
-    <div id="formCBE" class="hidden">
-      <label class="field">
-        <span>Full name</span>
-        <input type="text" id="nameCBE" placeholder="e.g. Edwin Mwangi" autocomplete="name">
-      </label>
       <div class="field-row">
         <label class="field">
-          <span>Grade</span>
-          <select id="gradeCBE">
-            <option value="">Select grade</option>
-            <option value="Grade 7">Grade 7</option>
-            <option value="Grade 8">Grade 8</option>
-            <option value="Grade 9">Grade 9</option>
-          </select>
+          <span>Stream</span>
+          <input type="text" id="stream" placeholder="e.g. North">
         </label>
         <label class="field">
-          <span>Stream</span>
-          <input type="text" id="streamCBE" placeholder="e.g. North">
+          <span>Email (optional)</span>
+          <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
         </label>
       </div>
-      <label class="field">
-        <span>ADM Number</span>
-        <input type="text" id="admCBE" placeholder="e.g. 12345">
-      </label>
-      <label class="field">
-        <span>School</span>
-        <input type="text" id="schoolCBE" placeholder="e.g. Moi Avenue Primary">
-      </label>
-    </div>
 
-    <!-- Email (always) -->
-    <label class="field">
-      <span>Email (optional, for syncing)</span>
-      <input type="email" id="emailField" placeholder="you@example.com" autocomplete="email">
-    </label>
+      <label class="field">
+        <span>Password</span>
+        <input type="password" id="password" placeholder="At least 6 characters" autocomplete="new-password">
+      </label>
 
+      <p class="signup-hint">
+        Your password keeps your progress safe across devices.
+      </p>
+    </section>
+
+    <!-- ============ ACTIONS ============ -->
     <div class="signup-actions">
-      <button class="btn btn-ghost" id="backBtn" type="button">← Back</button>
-      <button class="btn btn-primary" id="finishBtn" type="button">Finish →</button>
+      <button class="btn btn-ghost" id="backBtn" type="button" disabled>← Back</button>
+      <button class="btn btn-primary" id="nextBtn" type="button" disabled>Continue →</button>
     </div>
-  </section>
+
+  </div>
+
+  <!-- Login link -->
+  <p class="signup-login-link">
+    Already have an account?
+    <a href="login.html">Sign in</a>
+  </p>
 
 </div>
 
