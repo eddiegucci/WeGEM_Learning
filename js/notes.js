@@ -1,4 +1,5 @@
 // js/notes.js
+import "./wallpaper-init.js";
 import { NOTES } from "./data.js";
 import { getCurrentUser, clearCurrentUser } from "./firebase.js";
 

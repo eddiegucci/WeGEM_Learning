@@ -1,4 +1,5 @@
 // js/quiz.js
+import "./wallpaper-init.js";
 import { EXAMS, shuffle } from "./data.js";
 import { saveAttempt, getCurrentUser, clearCurrentUser } from "./firebase.js";
 import { recordLocalAttempt } from "./storage.js";

@@ -1,4 +1,5 @@
 // js/main.js
+import "./wallpaper-init.js";
 import {
   getCurrentUser,
   clearCurrentUser,

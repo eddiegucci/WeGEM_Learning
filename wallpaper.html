@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Exams — WeGEM Learning</title>
+  <title>Wallpapers — WeGEM Learning</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -13,24 +13,28 @@
   <div class="nav-links">
     <a href="home.html">Home</a>
     <a href="notes.html">Notes</a>
-    <a href="exams.html" class="active">Exams</a>
+    <a href="exams.html">Exams</a>
     <a href="quiz.html">Practice</a>
     <a href="progress.html">Progress</a>
-    <a href="wallpapers.html">Wallpapers</a>
+    <a href="wallpapers.html" class="active">Wallpapers</a>
     <a id="auth-link" href="signup.html">Sign Out</a>
   </div>
 </nav>
 
 <main class="container">
-  <div class="section-label">Past Papers</div>
-  <h1 class="section-title">Exams</h1>
-  <p class="section-sub">Full papers by subject and grade. Downloadable and printable.</p>
+  <div class="section-label">Personalize</div>
+  <h1 class="section-title">Choose your wallpaper</h1>
+  <p class="section-sub">Pick a background theme. Your choice is saved to this device.</p>
 
-  <div id="examList" class="exam-list"></div>
+  <div id="wallpaperGrid" class="wallpaper-grid"></div>
+
+  <div style="margin-top:40px;">
+    <button class="btn btn-ghost" id="resetWallpaperBtn">Reset to default</button>
+  </div>
 </main>
 
 <footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
 
-<script type="module" src="js/exams.js"></script>
+<script type="module" src="js/wallpapers.js"></script>
 </body>
 </html>

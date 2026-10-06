@@ -1,74 +1,44 @@
-const exams = [
-  {
-    subject: 'Mathematics',
-    grade: 'Form 4',
-    year: '2023',
-    title: 'KCSE Mathematics Paper 1',
-    format: 'PDF',
-    download: '#'
-  },
-  {
-    subject: 'Biology',
-    grade: 'Form 3',
-    year: '2022',
-    title: 'Biology End Term Exam',
-    format: 'PDF',
-    download: '#'
-  },
-  {
-    subject: 'Physics',
-    grade: 'Form 4',
-    year: '2021',
-    title: 'Physics Mock Exam',
-    format: 'Printable',
-    download: '#'
-  }
-];
+// js/exams.js
+import "./wallpaper-init.js";
+import { EXAMS } from "./data.js";
+import { getCurrentUser, clearCurrentUser } from "./firebase.js";
 
-const renderExams = () => {
-  const examList = document.querySelector('#examList');
-  if (!examList) return;
+const user = getCurrentUser();
+if (!user) window.location.href = "signup.html";
 
-  examList.innerHTML = exams
-    .map(
-      (exam) => `
-        <article class="exam-card">
-          <div class="exam-card-header">
-            <span class="exam-subject">${exam.subject}</span>
-            <span class="exam-grade">${exam.grade}</span>
-          </div>
-          <h3>${exam.title}</h3>
-          <div class="exam-meta">
-            <span>${exam.year}</span>
-            <span>${exam.format}</span>
-          </div>
-          <a href="${exam.download}" class="btn btn-primary">Download</a>
-        </article>
-      `
-    )
-    .join('');
-};
+const authLink = document.getElementById("auth-link");
+if (authLink && user) {
+  authLink.onclick = (e) => {
+    e.preventDefault();
+    clearCurrentUser();
+    window.location.href = "signup.html";
+  };
+}
 
-const setAuthLink = () => {
-  const authLink = document.querySelector('#auth-link');
-  if (!authLink) return;
+const container = document.getElementById("examList");
 
-  const user = localStorage.getItem('wegem-user');
-  if (user) {
-    authLink.textContent = 'Sign Out';
-    authLink.href = 'home.html';
-    authLink.addEventListener('click', (event) => {
-      event.preventDefault();
-      localStorage.removeItem('wegem-user');
-      window.location.href = 'signup.html';
-    });
-  } else {
-    authLink.textContent = 'Sign In';
-    authLink.href = 'signup.html';
-  }
-};
+Object.entries(EXAMS).forEach(([key, exam]) => {
+  const card = document.createElement("div");
+  card.className = "exam-detail-card";
+  card.style.setProperty("--accent", exam.color);
 
-document.addEventListener('DOMContentLoaded', () => {
-  renderExams();
-  setAuthLink();
+  const subjectsHtml = exam.subjects
+    .map((s) => {
+      const count = s.questions.length;
+      return `<a class="chip" href="quiz.html?exam=${key}&subject=${encodeURIComponent(s.name)}">${s.name} <span class="chip-count">${count}</span></a>`;
+    })
+    .join("");
+
+  card.innerHTML = `
+    <div class="exam-detail-head">
+      <div>
+        <div class="exam-grade">${exam.gradeLabel}</div>
+        <div class="exam-name">${key}</div>
+      </div>
+      <div class="exam-count">${exam.subjects.length} subjects</div>
+    </div>
+    <p class="exam-desc">${exam.description}</p>
+    <div class="subject-chips">${subjectsHtml}</div>
+  `;
+  container.appendChild(card);
 });

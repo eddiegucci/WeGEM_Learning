@@ -11,7 +11,7 @@
 :root {
   --bg: #08090d;
   --bg-elevated: #0f1117;
-  --surface: rgba(22, 26, 38, 0.7);
+  --surface: rgba(22, 26, 38, 0.72);
   --surface-solid: #161a26;
   --surface-2: #1e2333;
   --border: rgba(255, 255, 255, 0.08);
@@ -39,6 +39,8 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+
+  --wallpaper: url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80");
 }
 
 html {
@@ -59,31 +61,20 @@ body {
   position: relative;
 }
 
+/* Global wallpaper layer */
 body::before {
   content: "";
   position: fixed;
-  top: -50%;
-  left: -20%;
-  width: 800px;
-  height: 800px;
-  background: radial-gradient(circle, rgba(34, 197, 94, 0.08), transparent 60%);
+  inset: 0;
+  background-image:
+    linear-gradient(135deg, rgba(8, 9, 13, 0.82), rgba(8, 9, 13, 0.94)),
+    var(--wallpaper);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   pointer-events: none;
   z-index: 0;
-}
-body::after {
-  content: "";
-  position: fixed;
-  bottom: -50%;
-  right: -20%;
-  width: 900px;
-  height: 900px;
-  background: radial-gradient(
-    circle,
-    rgba(59, 130, 246, 0.06),
-    transparent 60%
-  );
-  pointer-events: none;
-  z-index: 0;
+  transition: background-image 0.5s ease;
 }
 
 a {
@@ -145,17 +136,19 @@ a {
 
 .nav-links {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   font-size: 14px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .nav-links a {
   color: var(--text-dim);
   transition: all 0.2s;
-  padding: 8px 14px;
+  padding: 8px 12px;
   border-radius: 100px;
   font-weight: 500;
+  white-space: nowrap;
 }
 .nav-links a:hover {
   color: #fff;
@@ -427,29 +420,14 @@ h1 span {
   align-items: center;
   justify-content: center;
   padding: 40px 24px;
-  background-image:
-    radial-gradient(
-      circle at 15% 30%,
-      rgba(99, 102, 241, 0.15),
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 85% 70%,
-      rgba(236, 72, 153, 0.12),
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(168, 85, 247, 0.08),
-      transparent 60%
-    );
   position: relative;
+  z-index: 1;
 }
 
 .signup-step {
   width: 100%;
   max-width: 520px;
-  background: rgba(22, 26, 38, 0.75);
+  background: rgba(22, 26, 38, 0.78);
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
   border: 1px solid var(--border-strong);
@@ -567,11 +545,10 @@ h1 span {
   font-size: 13px;
   color: var(--text-dim);
   font-weight: 600;
-  letter-spacing: 0.01em;
 }
 .field input,
 .field select {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--border);
   color: var(--text);
   padding: 14px 18px;
@@ -588,7 +565,7 @@ h1 span {
 .field input:focus,
 .field select:focus {
   border-color: var(--primary);
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.55);
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
 }
 
@@ -678,6 +655,25 @@ h1 span {
   margin-bottom: 14px;
   gap: 16px;
 }
+.exam-grade {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent, var(--primary));
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+.exam-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+.exam-desc {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
 .exam-count {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-dim);
@@ -721,6 +717,55 @@ h1 span {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 100px;
+  font-weight: 700;
+}
+.chip:hover .chip-count {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Note content */
+.note-topics {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.note-topic {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 18px 20px;
+}
+.note-topic-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.note-topic-summary {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+.note-keypoints {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.note-keypoints li {
+  font-size: 13px;
+  color: #c5cad3;
+  padding-left: 20px;
+  position: relative;
+}
+.note-keypoints li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--accent, var(--primary));
   font-weight: 700;
 }
 
@@ -988,7 +1033,6 @@ h1 span {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--primary), transparent);
 }
-
 .results-score {
   margin: 32px 0 24px;
 }
@@ -1082,14 +1126,14 @@ h1 span {
   gap: 24px;
   text-align: center;
 }
-.stat-value {
+.stats-bar .stat-value {
   font-size: 32px;
   font-weight: 800;
   color: var(--primary);
   margin-bottom: 4px;
   letter-spacing: -0.02em;
 }
-.stat-label {
+.stats-bar .stat-label {
   font-size: 12px;
   color: var(--text-dim);
   font-weight: 600;
@@ -1158,6 +1202,120 @@ h1 span {
 }
 
 /* =========================================================
+   WALLPAPERS PAGE
+   ========================================================= */
+
+.wallpaper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.wallpaper-card {
+  position: relative;
+  height: 180px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 2px solid var(--border);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
+}
+
+.wallpaper-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.wallpaper-card.active {
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 4px rgba(34, 197, 94, 0.2),
+    0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.wallpaper-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 40%,
+    rgba(0, 0, 0, 0.85) 100%
+  );
+}
+.wallpaper-card:hover .wallpaper-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.1) 30%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+}
+
+.wallpaper-meta {
+  position: absolute;
+  bottom: 14px;
+  left: 16px;
+  right: 16px;
+  text-align: left;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wallpaper-tag {
+  display: inline-block;
+  background: var(--primary);
+  color: #08090d;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  width: fit-content;
+}
+
+.wallpaper-name {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.wallpaper-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #08090d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  z-index: 3;
+  box-shadow: 0 4px 12px var(--primary-glow);
+  animation: popIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes popIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* =========================================================
    FOOTER
    ========================================================= */
 
@@ -1187,29 +1345,39 @@ h1 span {
   height: 100vh;
   width: 100vw;
 }
+.intro-body::before {
+  display: none;
+}
+
 .intro-wrap {
   position: relative;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
+
 .slideshow {
   position: absolute;
   inset: 0;
   z-index: 1;
 }
+
 .slide {
   position: absolute;
   inset: 0;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   opacity: 0;
   transform: scale(1.08);
   transition:
-    opacity 1.2s ease,
-    transform 2.5s ease;
+    opacity 1400ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 4000ms cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
+
 .slide.active {
   opacity: 1;
   transform: scale(1);
@@ -1221,9 +1389,9 @@ h1 span {
   z-index: 2;
   background: linear-gradient(
     180deg,
-    rgba(0, 0, 0, 0.7) 0%,
-    rgba(0, 0, 0, 0.2) 30%,
-    rgba(0, 0, 0, 0.2) 70%,
+    rgba(0, 0, 0, 0.65) 0%,
+    rgba(0, 0, 0, 0.15) 30%,
+    rgba(0, 0, 0, 0.15) 70%,
     rgba(0, 0, 0, 0.85) 100%
   );
   pointer-events: none;
@@ -1272,18 +1440,18 @@ h1 span {
   opacity: 0;
 }
 .intro-subject.fade-in {
-  animation: subjectIn 1.4s ease both;
+  animation: subjectIn 1600ms ease both;
 }
 @keyframes subjectIn {
   0% {
     opacity: 0;
-    transform: translateX(-50%) translateY(20px) scale(0.95);
+    transform: translateX(-50%) translateY(20px) scale(0.96);
   }
-  20% {
+  15% {
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
   }
-  80% {
+  85% {
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
   }
@@ -1335,7 +1503,7 @@ h1 span {
   height: 6px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
-  transition: all 0.3s;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .intro-dots .dot.active {
   background: var(--primary);
@@ -1354,10 +1522,12 @@ h1 span {
   }
   .nav {
     padding: 14px 20px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
   .nav-links {
-    gap: 6px;
-    font-size: 13px;
+    gap: 4px;
+    font-size: 12px;
   }
   .nav-links a {
     padding: 6px 10px;
@@ -1372,8 +1542,7 @@ h1 span {
   .section-title {
     font-size: 24px;
   }
-  .feature-grid,
-  .stats-bar {
+  .feature-grid {
     grid-template-columns: 1fr;
   }
   .stats-bar {
@@ -1426,5 +1595,8 @@ h1 span {
   }
   .signup-actions {
     grid-template-columns: 1fr;
+  }
+  .wallpaper-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }

@@ -1,4 +1,5 @@
 // js/progress.js
+import "./wallpaper-init.js";
 import {
   getCurrentUser,
   clearCurrentUser,
