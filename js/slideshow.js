@@ -1,112 +1,116 @@
-// js/slideshow.js — WeGEM Learning intro slideshow
+// js/slideshow.js — WeGEM Learning intro slideshow (robust version)
 
 const SLIDE_DURATION = 1800;
 const REDIRECT_URL = "signup.html";
 const REDIRECT_AFTER_LAST = 900;
+const MAX_PRELOAD_WAIT = 2000; // never wait more than 2s for images
 
 /* =========================================================
-   SLIDES — swap img paths to 'assets/images/xyz.jpg' when
-   you have your own photos. Unsplash URLs work as-is.
+   SLIDES
    ========================================================= */
 
 const SLIDES = [
   {
     subject: "Kiswahili",
-    img: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1600&q=70&auto=format",
   },
   {
     subject: "Mathematics",
-    img: "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=1600&q=70&auto=format",
   },
   {
     subject: "English",
-    img: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=1600&q=70&auto=format",
   },
   {
     subject: "Biology",
-    img: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1600&q=70&auto=format",
   },
   {
     subject: "Chemistry",
-    img: "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?w=1600&q=70&auto=format",
   },
   {
     subject: "Physics",
-    img: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1600&q=70&auto=format",
   },
   {
     subject: "Geography",
-    img: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1600&q=70&auto=format",
   },
   {
     subject: "History",
-    img: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=1600&q=70&auto=format",
   },
   {
     subject: "CRE",
-    img: "https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1600&q=70&auto=format",
   },
   {
     subject: "Agriculture",
-    img: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1600&q=70&auto=format",
   },
   {
     subject: "Business",
-    img: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1600&q=70&auto=format",
   },
   {
     subject: "Computer Studies",
-    img: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1600&q=70&auto=format",
   },
   {
     subject: "Woodwork",
-    img: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1600&q=70&auto=format",
   },
   {
     subject: "Metalwork",
-    img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600&q=70&auto=format",
   },
   {
     subject: "Music",
-    img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1600&q=70&auto=format",
   },
   {
     subject: "Fine Art",
-    img: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1600&q=70&auto=format",
   },
   {
     subject: "Home Science",
-    img: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1600&q=70&auto=format",
   },
   {
     subject: "Physical Education",
-    img: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&q=70&auto=format",
   },
   {
     subject: "French",
-    img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1600&q=70&auto=format",
   },
   {
     subject: "German",
-    img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1600&q=70&auto=format",
   },
   {
     subject: "Spanish",
-    img: "https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=1600&q=70&auto=format",
   },
   {
     subject: "Chinese",
-    img: "https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=1600&q=70&auto=format",
   },
   {
     subject: "Indian",
-    img: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1600&q=70&auto=format",
   },
   {
     subject: "Life Skills",
-    img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=85",
+    img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1600&q=70&auto=format",
   },
 ];
+
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
 
 const slideshowEl = document.getElementById("slideshow");
 const subjectLabel = document.getElementById("subjectLabel");
@@ -118,22 +122,29 @@ let timerId = null;
 let isDone = false;
 let slideEls = [];
 
-function preload(url) {
+/* =========================================================
+   PRELOAD with timeout — never blocks
+   ========================================================= */
+
+function preloadWithTimeout(url, timeoutMs = MAX_PRELOAD_WAIT) {
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve(url);
-    img.onerror = () => resolve(url);
+    const timer = setTimeout(() => resolve("timeout"), timeoutMs);
+    img.onload = () => {
+      clearTimeout(timer);
+      resolve("loaded");
+    };
+    img.onerror = () => {
+      clearTimeout(timer);
+      resolve("error");
+    };
     img.src = url;
   });
 }
 
-async function preloadAll() {
-  await preload(SLIDES[0].img);
-  SLIDES.slice(1).forEach((slide) => {
-    const img = new Image();
-    img.src = slide.img;
-  });
-}
+/* =========================================================
+   BUILD DOM
+   ========================================================= */
 
 function buildDOM() {
   SLIDES.forEach((slide, i) => {
@@ -151,6 +162,10 @@ function buildDOM() {
   });
 }
 
+/* =========================================================
+   SHOW SLIDE
+   ========================================================= */
+
 function showSlide(index) {
   const dots = dotsEl.querySelectorAll(".dot");
   slideEls.forEach((s, i) => s.classList.toggle("active", i === index));
@@ -161,6 +176,10 @@ function showSlide(index) {
   void subjectLabel.offsetWidth;
   subjectLabel.classList.add("fade-in");
 }
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
 
 function next() {
   if (isDone) return;
@@ -194,9 +213,33 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-(async () => {
+/* =========================================================
+   START — show first slide IMMEDIATELY, preload in background
+   ========================================================= */
+
+function start() {
   buildDOM();
-  await preloadAll();
+
+  // Show first slide right away — don't wait for anything
   showSlide(0);
+
+  // Fire off preloads in the background (don't await)
+  preloadWithTimeout(SLIDES[0].img).then(() => {
+    // first slide settled (loaded or timed out) — do nothing special
+  });
+
+  SLIDES.slice(1).forEach((slide) => {
+    // Background preload, ignore result
+    preloadWithTimeout(slide.img, 8000);
+  });
+
+  // Start the timer immediately
   timerId = setTimeout(next, SLIDE_DURATION);
-})();
+}
+
+// Kick off as soon as DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", start);
+} else {
+  start();
+}
