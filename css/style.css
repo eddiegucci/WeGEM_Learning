@@ -56,26 +56,15 @@ body {
   position: relative;
 }
 
-/* Static wallpaper — no repaint on scroll */
+/* Static wallpaper — fully transparent, no overlay */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background-image:
-    radial-gradient(
-      ellipse at top left,
-      rgba(16, 185, 129, 0.08),
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at bottom right,
-      rgba(99, 102, 241, 0.08),
-      transparent 50%
-    ),
-    linear-gradient(180deg, rgba(6, 7, 10, 0.85), rgba(6, 7, 10, 0.94)),
-    var(--wallpaper);
+  background-image: var(--wallpaper);
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   pointer-events: none;
   z-index: 0;
 }
