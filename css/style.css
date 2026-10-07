@@ -5206,23 +5206,23 @@ body::before {
 }
 
 /* =========================================================
-   FINAL MOBILE OVERRIDE — forces bottom nav on phones
+   FINAL MOBILE OVERRIDE — bottom nav with all 7 icons
    ========================================================= */
 
 @media (max-width: 768px) {
-  /* Force body padding so nothing hides behind the nav */
+  /* Room for the bottom nav */
   html, body {
     padding-bottom: 90px !important;
     padding-top: 12px !important;
   }
 
-  /* Kill the sidebar entirely on mobile */
+  /* Kill any leftover sidebar */
   .sidebar,
   .app-shell {
     display: none !important;
   }
 
-  /* Force the top nav to become a bottom bar */
+  /* Top nav becomes a fixed bottom bar */
   .top-nav {
     display: flex !important;
     position: fixed !important;
@@ -5233,22 +5233,25 @@ body::before {
     transform: none !important;
     width: auto !important;
     max-width: none !important;
-    padding: 6px !important;
+    padding: 6px 4px !important;
     border-radius: 22px !important;
     background: rgba(10, 16, 32, 0.95) !important;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7) !important;
     z-index: 999 !important;
-    gap: 4px !important;
+    gap: 0 !important;
   }
 
+  /* Hide the brand — no room on mobile */
   .top-nav-brand {
     display: none !important;
   }
 
+  /* Links row — 7 evenly spaced icons */
   .top-nav-links {
     display: flex !important;
     flex: 1 !important;
-    justify-content: space-around !important;
+    justify-content: space-between !important;
+    align-items: stretch !important;
     overflow: visible !important;
     gap: 0 !important;
     padding: 0 !important;
@@ -5259,48 +5262,47 @@ body::before {
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 6px 4px !important;
-    border-radius: 12px !important;
-    font-size: 18px !important;
-    min-width: 44px !important;
-    gap: 2px !important;
+    padding: 4px 1px !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
+    gap: 1px !important;
   }
 
   .top-nav-links a span:first-child {
     display: block !important;
-    font-size: 20px !important;
+    font-size: 17px !important;
     line-height: 1 !important;
   }
 
   .top-nav-links a span:last-child {
     display: block !important;
-    font-size: 9px !important;
+    font-size: 8px !important;
     font-weight: 600 !important;
     line-height: 1.1 !important;
-    margin-top: 2px !important;
+    margin-top: 1px !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
   }
 
-  /* Hide these two on the smallest screens so the rest fit */
-  .top-nav-links a[href="wallpapers.html"],
-  .top-nav-links a[href="settings.html"] {
-    display: none !important;
-  }
-
+  /* User avatar on the right */
   .top-nav-user {
     display: flex !important;
     padding: 4px !important;
     flex-shrink: 0 !important;
+    margin-left: 2px !important;
   }
   .top-nav-user .user-name {
     display: none !important;
   }
   .top-nav-user .user-avatar {
-    width: 34px !important;
-    height: 34px !important;
-    font-size: 14px !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
   }
 
-  /* Also hide any leftover sidebar-related classes */
+  /* Content wrapper — no leftover sidebar offsets */
   .main-area {
     margin-left: 0 !important;
     padding: 0 !important;
@@ -5308,5 +5310,15 @@ body::before {
 
   .container {
     padding: 14px 12px 90px !important;
+  }
+}
+
+/* Very small phones — drop the labels, keep the icons */
+@media (max-width: 380px) {
+  .top-nav-links a span:last-child {
+    display: none !important;
+  }
+  .top-nav-links a span:first-child {
+    font-size: 19px !important;
   }
 }
