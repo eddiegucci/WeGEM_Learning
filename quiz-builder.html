@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Builder — WeGEM Learning</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="builder-body">
+
+<!-- ==================== TOP BAR ==================== -->
+<header class="builder-topbar">
+  <a href="home.html" class="top-nav-brand">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
+            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
+    </svg>
+    <span>WeGEM Builder</span>
+  </a>
+
+  <div class="builder-mode-tabs">
+    <button class="builder-mode-tab active" data-view="list" type="button">📚 All Quizzes</button>
+    <button class="builder-mode-tab" data-view="editor" type="button">✏️ Editor</button>
+  </div>
+
+  <button class="top-nav-user" id="userMenuBtn" type="button">
+    <span class="user-avatar" id="userAvatar">E</span>
+    <span class="user-name" id="userNameTop">Edwin</span>
+  </button>
+</header>
+
+<!-- ==================== PASSWORD GATE ==================== -->
+<div id="gateView" class="builder-gate">
+  <div class="builder-gate-card">
+    <div class="builder-gate-icon">🔒</div>
+    <h1 class="builder-gate-title">Admin Access</h1>
+    <p class="builder-gate-sub">
+      The Quiz Builder is for admin only. Enter the admin password to continue.
+    </p>
+
+    <div id="gateError" class="auth-error hidden"></div>
+
+    <label class="field">
+      <span>Admin password</span>
+      <input type="password" id="gatePassword" placeholder="Enter password" autocomplete="off">
+    </label>
+
+    <button class="btn btn-primary btn-wide" id="gateBtn" type="button">Unlock Builder →</button>
+  </div>
+</div>
+
+<!-- ==================== MAIN VIEW (hidden until unlocked) ==================== -->
+<div id="builderMain" class="hidden">
+
+  <!-- LIST VIEW -->
+  <section id="listView" class="builder-view">
+    <div class="builder-header">
+      <div>
+        <div class="section-label">Quizzes</div>
+        <h1 class="builder-title">All Quizzes</h1>
+        <p class="builder-sub">Author quizzes once. Students see them filtered by their curriculum and level.</p>
+      </div>
+      <button class="btn btn-primary" id="newQuizBtn" type="button">+ New Quiz</button>
+    </div>
+
+    <!-- Filters -->
+    <div class="builder-filters">
+      <select id="filterCurriculum">
+        <option value="">All Curricula</option>
+        <option value="844">8-4-4</option>
+        <option value="CBE">CBE</option>
+      </select>
+      <select id="filterLevel">
+        <option value="">All Levels</option>
+      </select>
+      <select id="filterSubject">
+        <option value="">All Subjects</option>
+      </select>
+      <input type="text" id="filterSearch" placeholder="Search title...">
+    </div>
+
+    <div id="quizList" class="builder-quiz-list"></div>
+  </section>
+
+  <!-- EDITOR VIEW -->
+  <section id="editorView" class="builder-view hidden">
+    <div class="builder-header">
+      <div>
+        <div class="section-label">Author</div>
+        <h1 class="builder-title" id="editorTitle">New Quiz</h1>
+        <p class="builder-sub">Write HTML questions and a JS marking scheme.</p>
+      </div>
+      <div class="builder-editor-actions">
+        <button class="btn btn-ghost" id="backToListBtn" type="button">← Back</button>
+        <button class="btn btn-ghost" id="previewQuizBtn" type="button">👁 Preview</button>
+        <button class="btn btn-primary" id="saveQuizBtn" type="button">💾 Save Quiz</button>
+      </div>
+    </div>
+
+    <!-- Meta fields -->
+    <div class="builder-meta-grid">
+      <label class="field">
+        <span>Title</span>
+        <input type="text" id="quizTitle" placeholder="e.g. Mathematics Form 3 – Algebra Test">
+      </label>
+
+      <label class="field">
+        <span>Curriculum</span>
+        <select id="quizCurriculum">
+          <option value="">Select curriculum</option>
+          <option value="844">8-4-4</option>
+          <option value="CBE">CBE</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Level</span>
+        <select id="quizLevel">
+          <option value="">Select level</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Subject</span>
+        <select id="quizSubject">
+          <option value="">Select subject</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- Two-column editor: HTML + Marking scheme -->
+    <div class="builder-editor-grid">
+
+      <!-- HTML Editor -->
+      <div class="builder-pane">
+        <div class="builder-pane-head">
+          <div class="builder-pane-title">
+            <span class="builder-pane-dot" style="background:#3b82f6;"></span>
+            Question HTML
+          </div>
+          <button class="builder-insert-btn" data-insert="template" type="button">Insert template</button>
+        </div>
+        <div class="builder-pane-hint">
+          Write HTML questions. Use <code>&lt;input type="radio" name="q1" value="A"&gt;</code> for options.
+        </div>
+        <textarea id="quizHtml" class="builder-code" spellcheck="false" placeholder="&lt;div class=&quot;q&quot; data-q=&quot;q1&quot;&gt;
+  &lt;p&gt;What is 7 × 8?&lt;/p&gt;
+  &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;q1&quot; value=&quot;A&quot;&gt; 48&lt;/label&gt;
+  &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;q1&quot; value=&quot;B&quot;&gt; 56&lt;/label&gt;
+  &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;q1&quot; value=&quot;C&quot;&gt; 64&lt;/label&gt;
+  &lt;label&gt;&lt;input type=&quot;radio&quot; name=&quot;q1&quot; value=&quot;D&quot;&gt; 72&lt;/label&gt;
+&lt;/div&gt;"></textarea>
+      </div>
+
+      <!-- Marking JS Editor -->
+      <div class="builder-pane">
+        <div class="builder-pane-head">
+          <div class="builder-pane-title">
+            <span class="builder-pane-dot" style="background:#10b981;"></span>
+            Marking Scheme (JS)
+          </div>
+          <button class="builder-insert-btn" data-insert="marking" type="button">Insert template</button>
+        </div>
+        <div class="builder-pane-hint">
+          Write a function that returns <code>{ score, total, details }</code> from the answers object.
+        </div>
+        <textarea id="quizMarking" class="builder-code" spellcheck="false" placeholder="// answers = { q1: 'B', q2: 'A', ... }
+// return { score: 2, total: 3, details: [...] }
+
+const correct = { q1: 'B', q2: 'A', q3: 'C' };
+let score = 0;
+const details = [];
+
+for (const q in correct) {
+  const ok = answers[q] === correct[q];
+  if (ok) score++;
+  details.push({ q, correct: correct[q], given: answers[q] || null, ok });
+}
+
+return {
+  score,
+  total: Object.keys(correct).length,
+  details
+};"></textarea>
+      </div>
+    </div>
+
+    <!-- Inline preview -->
+    <div class="builder-preview-panel hidden" id="previewPanel">
+      <div class="builder-pane-head">
+        <div class="builder-pane-title">👁 Live Preview</div>
+        <button class="builder-insert-btn" id="closePreviewBtn" type="button">Close preview</button>
+      </div>
+      <div class="builder-preview-body" id="previewBody"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ==================== TOAST ==================== -->
+<div id="toast" class="toast hidden"></div>
+
+<script type="module" src="js/quiz-builder.js"></script>
+</body>
+</html>
