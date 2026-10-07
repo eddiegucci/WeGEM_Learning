@@ -5,8 +5,8 @@ import {
   getCurrentUser,
   clearCurrentUser,
   getNotes,
-  saveNote,
   deleteNote,
+  listCanvases,
 } from "./firebase.js";
 import { NOTES, SUBJECTS_BY_CURRICULUM } from "./data.js";
 
@@ -20,29 +20,25 @@ if (!user) {
 }
 
 /* =========================================================
+   STATE
+   ========================================================= */
+
+let allQuickNotes = [];
+let allCanvases = [];
+let activeSubjectFilter = "all";
+let searchQuery = "";
+
+/* =========================================================
    ELEMENTS
    ========================================================= */
 
 const notesList = document.getElementById("notesList");
+const canvasList = document.getElementById("canvasList");
 const subjectFilterBar = document.getElementById("subjectFilterBar");
 const searchInput = document.getElementById("notesSearch");
-
-const tray = document.getElementById("noteTray");
-const trayBackdrop = document.getElementById("noteTrayBackdrop");
-const trayCloseBtn = document.getElementById("noteTrayCloseBtn");
-const trayCancelBtn = document.getElementById("noteTrayCancelBtn");
-const traySaveBtn = document.getElementById("noteTraySaveBtn");
-const noteSubject = document.getElementById("noteSubject");
-const noteTopic = document.getElementById("noteTopic");
-const noteSummary = document.getElementById("noteSummary");
-const noteKeyPoints = document.getElementById("noteKeyPoints");
-const noteTrayError = document.getElementById("noteTrayError");
-
+const canvasCountEl = document.getElementById("canvasCount");
+const quickCountEl = document.getElementById("quickCount");
 const toast = document.getElementById("toast");
-
-let allNotes = [];
-let activeSubjectFilter = "all";
-let searchQuery = "";
 
 /* =========================================================
    TOPBAR USER
@@ -53,10 +49,6 @@ if (user) {
   const nm = document.getElementById("userNameTop");
   if (av && user.name) av.textContent = user.name.charAt(0).toUpperCase();
   if (nm && user.name) nm.textContent = user.name.split(" ")[0];
-  const cl = document.getElementById("curriculumLabel");
-  const ll = document.getElementById("levelLabel");
-  if (cl) cl.textContent = user.curriculum === "CBE" ? "CBE" : "8-4-4";
-  if (ll) ll.textContent = user.level || user.form || user.grade || "Form 4";
 }
 
 document.getElementById("userMenuBtn")?.addEventListener("click", () => {
@@ -81,8 +73,46 @@ function showToast(msg, kind = "ok") {
 }
 
 /* =========================================================
-   SUBJECT OPTIONS
+   HELPERS
    ========================================================= */
+
+function escapeHtml(str) {
+  return String(str ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[c],
+  );
+}
+function escapeAttr(str) {
+  return escapeHtml(str);
+}
+
+function subjectIcon(name) {
+  const map = {
+    Mathematics: "📐",
+    English: "📘",
+    Kiswahili: "📕",
+    Biology: "🧬",
+    Chemistry: "⚗️",
+    Physics: "⚛️",
+    Geography: "🌍",
+    History: "📜",
+    CRE: "✝️",
+    Business: "💼",
+    Agriculture: "🌾",
+    "Computer Studies": "💻",
+    "Integrated Science": "🔬",
+    "Social Studies": "🌐",
+    "Life Skills": "💡",
+  };
+  return map[name] || "📚";
+}
 
 function getSubjectList() {
   const curriculum = user.curriculum === "CBE" ? "CBE" : "844";
@@ -92,19 +122,19 @@ function getSubjectList() {
   return byLevel[level] || [];
 }
 
-function populateSubjectDropdown() {
-  const subjects = getSubjectList();
-  noteSubject.innerHTML =
-    '<option value="">Select subject</option>' +
-    subjects.map((s) => `<option value="${s}">${s}</option>`).join("");
+function getCurrentCurriculum() {
+  return user.curriculum === "CBE" ? "CBE" : "844";
+}
+
+function getCurrentLevel() {
+  return user.level || user.form || user.grade || "";
 }
 
 /* =========================================================
-   LOAD NOTES
+   LOAD — QUICK NOTES (static + firebase)
    ========================================================= */
 
-async function loadAllNotes() {
-  // Static notes from data.js (organized by curriculum)
+async function loadQuickNotes() {
   const staticNotes = [];
   const curriculumKey = user.curriculum === "CBE" ? "CBE" : "8-4-4";
   const levelKey = user.level || user.form || user.grade;
@@ -124,7 +154,6 @@ async function loadAllNotes() {
     });
   });
 
-  // Dynamic notes from Firebase
   let firebaseNotes = [];
   try {
     firebaseNotes = await getNotes();
@@ -132,12 +161,43 @@ async function loadAllNotes() {
     console.warn("Could not fetch custom notes:", e);
   }
 
-  // Combine + sort
-  allNotes = [...firebaseNotes, ...staticNotes];
+  allQuickNotes = [...firebaseNotes, ...staticNotes];
 }
 
 /* =========================================================
-   RENDER
+   LOAD — CANVASES (long-form notes from Firebase)
+   ========================================================= */
+
+async function loadCanvases() {
+  try {
+    const curriculum = getCurrentCurriculum();
+    const level = getCurrentLevel();
+    const subjects = getSubjectList();
+
+    const results = [];
+    for (const subject of subjects) {
+      try {
+        const list = await listCanvases("notes", curriculum, level, subject);
+        list.forEach((c) => results.push({ ...c, subject }));
+      } catch (e) {
+        // ignore per-subject failures
+      }
+    }
+    // Sort newest first
+    results.sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.createdAt) -
+        new Date(a.updatedAt || a.createdAt),
+    );
+    allCanvases = results;
+  } catch (e) {
+    console.warn("Could not load canvases:", e);
+    allCanvases = [];
+  }
+}
+
+/* =========================================================
+   RENDER — FILTER BAR
    ========================================================= */
 
 function renderFilterBar() {
@@ -158,13 +218,92 @@ function renderFilterBar() {
     chip.addEventListener("click", () => {
       activeSubjectFilter = chip.dataset.filter;
       renderFilterBar();
-      renderNotes();
+      renderAll();
     });
   });
 }
 
-function renderNotes() {
-  let filtered = allNotes;
+/* =========================================================
+   RENDER — CANVAS CARDS
+   ========================================================= */
+
+function renderCanvases() {
+  let filtered = allCanvases;
+
+  if (activeSubjectFilter !== "all") {
+    filtered = filtered.filter((c) => c.subject === activeSubjectFilter);
+  }
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter((c) => {
+      const titleMatch = (c.title || "").toLowerCase().includes(q);
+      const subjectMatch = (c.subject || "").toLowerCase().includes(q);
+      // Search inside pages too
+      const pagesText = (c.pages || [])
+        .map((p) => stripHtml(p))
+        .join(" ")
+        .toLowerCase();
+      return titleMatch || subjectMatch || pagesText.includes(q);
+    });
+  }
+
+  canvasCountEl.textContent =
+    filtered.length + (filtered.length === 1 ? " note" : " notes");
+
+  if (!filtered.length) {
+    canvasList.innerHTML = `
+      <div class="empty-state-box">
+        <div class="empty-icon">📚</div>
+        <div class="empty-title">No long-form notes yet</div>
+        <div class="empty-sub">Check back soon for detailed study material.</div>
+      </div>
+    `;
+    return;
+  }
+
+  canvasList.innerHTML = filtered
+    .map((canvas) => {
+      const icon = subjectIcon(canvas.subject);
+      const pageCount = (canvas.pages || []).length;
+      const preview =
+        canvas.pages && canvas.pages[0]
+          ? stripHtml(canvas.pages[0]).slice(0, 140)
+          : "";
+
+      return `
+      <a class="canvas-card" href="canvas.html?mode=notes&curriculum=${encodeURIComponent(canvas.curriculum)}&level=${encodeURIComponent(canvas.level)}&subject=${encodeURIComponent(canvas.subject)}&id=${encodeURIComponent(canvas.id)}">
+        <div class="canvas-card-icon">${icon}</div>
+        <div class="canvas-card-body">
+          <div class="canvas-card-subject">${escapeHtml(canvas.subject)} · ${escapeHtml(canvas.level)}</div>
+          <div class="canvas-card-title">${escapeHtml(canvas.title || "Untitled")}</div>
+          <div class="canvas-card-preview">${escapeHtml(preview)}${preview.length >= 140 ? "…" : ""}</div>
+          <div class="canvas-card-meta">
+            <span class="canvas-card-pages">📄 ${pageCount} ${pageCount === 1 ? "page" : "pages"}</span>
+            <span class="canvas-card-cta">
+              Read
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12 H19 M13 6 L19 12 L13 18"/></svg>
+            </span>
+          </div>
+        </div>
+      </a>
+    `;
+    })
+    .join("");
+}
+
+function stripHtml(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html || "";
+  return tmp.textContent || tmp.innerText || "";
+}
+
+/* =========================================================
+   RENDER — QUICK NOTES CARDS
+   ========================================================= */
+
+function renderQuickNotes() {
+  let filtered = allQuickNotes;
 
   if (activeSubjectFilter !== "all") {
     filtered = filtered.filter((n) => n.subject === activeSubjectFilter);
@@ -180,14 +319,15 @@ function renderNotes() {
     );
   }
 
+  quickCountEl.textContent =
+    filtered.length + (filtered.length === 1 ? " note" : " notes");
+
   if (!filtered.length) {
     notesList.innerHTML = `
       <div class="empty-state-box">
-        <div class="empty-icon">📖</div>
-        <div class="empty-title">No notes here yet</div>
-        <div class="empty-sub">
-          Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> to add your first note, or switch subjects.
-        </div>
+        <div class="empty-icon">⚡</div>
+        <div class="empty-title">No quick notes here yet</div>
+        <div class="empty-sub">Try another subject or check back soon.</div>
       </div>
     `;
     return;
@@ -232,8 +372,8 @@ function renderNotes() {
       try {
         await deleteNote(id);
         showToast("Note deleted", "ok");
-        await loadAllNotes();
-        renderNotes();
+        await loadQuickNotes();
+        renderQuickNotes();
       } catch (err) {
         console.error(err);
         showToast("Could not delete", "err");
@@ -242,155 +382,14 @@ function renderNotes() {
   });
 }
 
-function subjectIcon(name) {
-  const map = {
-    Mathematics: "📐",
-    English: "📘",
-    Kiswahili: "📕",
-    Biology: "🧬",
-    Chemistry: "⚗️",
-    Physics: "⚛️",
-    Geography: "🌍",
-    History: "📜",
-    CRE: "✝️",
-    Business: "💼",
-    Agriculture: "🌾",
-    "Computer Studies": "💻",
-    "Integrated Science": "🔬",
-    "Social Studies": "🌐",
-    "Life Skills": "💡",
-  };
-  return map[name] || "📚";
-}
-
 /* =========================================================
-   ESCAPE HELPERS
+   RENDER ALL
    ========================================================= */
 
-function escapeHtml(str) {
-  return String(str ?? "").replace(
-    /[&<>"']/g,
-    (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[c],
-  );
+function renderAll() {
+  renderCanvases();
+  renderQuickNotes();
 }
-function escapeAttr(str) {
-  return escapeHtml(str);
-}
-
-/* =========================================================
-   TRAY
-   ========================================================= */
-
-function openTray() {
-  tray.classList.remove("hidden");
-  trayBackdrop.classList.remove("hidden");
-  tray.setAttribute("aria-hidden", "false");
-  requestAnimationFrame(() => {
-    tray.classList.add("open");
-    trayBackdrop.classList.add("open");
-  });
-  noteTopic.value = "";
-  noteSummary.value = "";
-  noteKeyPoints.value = "";
-  hideTrayError();
-  setTimeout(() => noteTopic.focus(), 260);
-}
-
-function closeTray() {
-  tray.classList.remove("open");
-  trayBackdrop.classList.remove("open");
-  tray.setAttribute("aria-hidden", "true");
-  setTimeout(() => {
-    tray.classList.add("hidden");
-    trayBackdrop.classList.add("hidden");
-  }, 260);
-}
-
-trayCloseBtn?.addEventListener("click", closeTray);
-trayCancelBtn?.addEventListener("click", closeTray);
-trayBackdrop?.addEventListener("click", closeTray);
-document.getElementById("addNoteBtn")?.addEventListener("click", openTray);
-
-/* =========================================================
-   KEYBOARD SHORTCUT Ctrl+Shift+Alt+N
-   ========================================================= */
-
-document.addEventListener("keydown", (e) => {
-  if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === "N" || e.key === "n")) {
-    e.preventDefault();
-    if (tray.classList.contains("hidden")) openTray();
-    else closeTray();
-  }
-  if (e.key === "Escape" && !tray.classList.contains("hidden")) closeTray();
-});
-
-/* =========================================================
-   TRAY ERROR
-   ========================================================= */
-
-function showTrayError(msg) {
-  noteTrayError.textContent = msg;
-  noteTrayError.classList.remove("hidden");
-}
-function hideTrayError() {
-  noteTrayError.classList.add("hidden");
-  noteTrayError.textContent = "";
-}
-
-/* =========================================================
-   SAVE NOTE
-   ========================================================= */
-
-traySaveBtn?.addEventListener("click", async () => {
-  hideTrayError();
-
-  const subject = noteSubject.value;
-  const topic = noteTopic.value.trim();
-  const summary = noteSummary.value.trim();
-  const rawPoints = noteKeyPoints.value.trim();
-  const keyPoints = rawPoints
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  if (!subject) return showTrayError("Please choose a subject.");
-  if (!topic) return showTrayError("Please enter a topic.");
-
-  traySaveBtn.disabled = true;
-  const originalText = traySaveBtn.textContent;
-  traySaveBtn.textContent = "Saving…";
-
-  try {
-    await saveNote({
-      subject,
-      topic,
-      summary,
-      keyPoints,
-      curriculum: user.curriculum || "844",
-      level: user.level || "",
-      createdBy: user.userId || "anon",
-      createdByName: user.name || "Anonymous",
-    });
-    showToast("✓ Note saved", "ok");
-    closeTray();
-    await loadAllNotes();
-    renderFilterBar();
-    renderNotes();
-  } catch (e) {
-    console.error(e);
-    showTrayError("Could not save. Check your connection and try again.");
-  } finally {
-    traySaveBtn.disabled = false;
-    traySaveBtn.textContent = originalText;
-  }
-});
 
 /* =========================================================
    SEARCH
@@ -398,7 +397,27 @@ traySaveBtn?.addEventListener("click", async () => {
 
 searchInput?.addEventListener("input", (e) => {
   searchQuery = e.target.value.trim();
-  renderNotes();
+  renderAll();
+});
+
+/* =========================================================
+   SECRET SHORTCUTS (silent — no visible hints)
+   ========================================================= */
+
+document.addEventListener("keydown", (e) => {
+  // Ctrl+Shift+Alt+N → open canvas in read/preview mode (start new)
+  if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === "N" || e.key === "n")) {
+    e.preventDefault();
+    window.location.href = "canvas.html?mode=notes&new=1";
+    return;
+  }
+
+  // Ctrl+Shift+Alt+E → open canvas list in edit mode (password protected)
+  if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === "E" || e.key === "e")) {
+    e.preventDefault();
+    window.location.href = "canvas.html?mode=notes&edit=1";
+    return;
+  }
 });
 
 /* =========================================================
@@ -406,10 +425,9 @@ searchInput?.addEventListener("input", (e) => {
    ========================================================= */
 
 async function init() {
-  populateSubjectDropdown();
-  await loadAllNotes();
+  await Promise.all([loadQuickNotes(), loadCanvases()]);
   renderFilterBar();
-  renderNotes();
+  renderAll();
 }
 
 init();
