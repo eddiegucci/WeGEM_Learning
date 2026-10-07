@@ -14,6 +14,10 @@ import {
   limitToLast,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+/* =========================================================
+   FIREBASE CONFIG
+   ========================================================= */
+
 const firebaseConfig = {
   apiKey: "AIzaSyA3tmQ7WhAdIVnng2pjGI3shElIUG3e6B4",
   authDomain: "wegem-learning.firebaseapp.com",
@@ -27,6 +31,27 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
+
+/* =========================================================
+   ADMIN CONFIG — CHANGE THESE IF NEEDED
+   ========================================================= */
+
+const ADMIN_EMAIL = "eddiegucci08@gmail.com";
+const ADMIN_PASSWORD = "WEGEM2026!";
+
+export function getAdminEmail() {
+  return ADMIN_EMAIL;
+}
+
+// Check if the currently signed-in user is admin (by email)
+export function isAdminEmail(email) {
+  return email && email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase();
+}
+
+// Combined check: admin email + correct password
+export function isAdmin(email, password) {
+  return isAdminEmail(email) && password === ADMIN_PASSWORD;
+}
 
 /* =========================================================
    LOCAL USER (session)
@@ -81,7 +106,6 @@ export async function hashPassword(password) {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
   } catch {
-    // Fallback: simple obfuscation if Web Crypto unavailable
     let h = 0;
     for (let i = 0; i < password.length; i++) {
       h = (h << 5) - h + password.charCodeAt(i);
@@ -92,7 +116,7 @@ export async function hashPassword(password) {
 }
 
 /* =========================================================
-   USER ID (from email)
+   USER ID
    ========================================================= */
 
 export function makeUserId(email) {
@@ -107,7 +131,6 @@ export function makeUserId(email) {
    USERS — save / get / login
    ========================================================= */
 
-// Save or update a user (merges with existing)
 export async function saveUser(userId, data) {
   const userRef = ref(db, `users/${userId}`);
   const payload = {
@@ -115,14 +138,12 @@ export async function saveUser(userId, data) {
     userId,
     updatedAt: new Date().toISOString(),
   };
-  // Preserve original createdAt if it exists
   if (!payload.createdAt) {
     payload.createdAt = new Date().toISOString();
   }
   await withTimeout(set(userRef, payload), 8000, "Save user");
 }
 
-// Fetch a user record
 export async function getUser(userId) {
   const snap = await withTimeout(
     get(ref(db, `users/${userId}`)),
@@ -132,7 +153,6 @@ export async function getUser(userId) {
   return snap.exists() ? snap.val() : null;
 }
 
-// Login: verify email exists, compare hashed password
 export async function loginUser(email, password) {
   const normalizedEmail = email.toLowerCase().trim();
   const userId = makeUserId(normalizedEmail);
@@ -150,16 +170,10 @@ export async function loginUser(email, password) {
   }
 
   const data = snap.val();
-
-  // Compare hashed passwords
   const inputHash = await hashPassword(password);
-
-  // Accept either hashed match OR plain-text (for migrated records)
   const storedPass = data.password || "";
-  const matches =
-    storedPass === inputHash ||
-    storedPass === password ||
-    storedHashFallback(storedPass) === inputHash;
+
+  const matches = storedPass === inputHash || storedPass === password;
 
   if (!matches) {
     const err = new Error("Incorrect password.");
@@ -167,13 +181,11 @@ export async function loginUser(email, password) {
     throw err;
   }
 
-  // If stored was plain text, upgrade it to hash silently
+  // Upgrade plain text to hash silently
   if (storedPass === password) {
     try {
       await update(ref(db, `users/${userId}`), { password: inputHash });
-    } catch {
-      // non-fatal
-    }
+    } catch {}
   }
 
   return {
@@ -191,13 +203,8 @@ export async function loginUser(email, password) {
   };
 }
 
-// Helper for very old records
-function storedHashFallback(s) {
-  return s;
-}
-
 /* =========================================================
-   ATTEMPTS (quiz results)
+   ATTEMPTS (built-in quiz results — legacy)
    ========================================================= */
 
 export async function saveAttempt(userId, attempt) {
@@ -255,12 +262,15 @@ export async function getExamLinks() {
 }
 
 export async function deleteExamLink(linkId) {
-  const linkRef = ref(db, `examLinks/${linkId}`);
-  await withTimeout(remove(linkRef), 8000, "Delete exam link");
+  await withTimeout(
+    remove(ref(db, `examLinks/${linkId}`)),
+    8000,
+    "Delete exam link",
+  );
 }
 
 /* =========================================================
-   NOTES (user-created, organized by curriculum/level/subject)
+   NOTES (single-topic cards — legacy)
    ========================================================= */
 
 export async function saveNote(note) {
@@ -289,6 +299,273 @@ export async function getNotes() {
 }
 
 export async function deleteNote(noteId) {
-  const noteRef = ref(db, `notes/${noteId}`);
-  await withTimeout(remove(noteRef), 8000, "Delete note");
+  await withTimeout(remove(ref(db, `notes/${noteId}`)), 8000, "Delete note");
+}
+
+/* =========================================================
+   CANVAS — paginated long-form notes / exams
+   Structure:
+     /canvases/{mode}/{curriculum}/{level}/{subject}/{canvasId}
+       title, pages[], updatedAt, createdBy
+   mode: 'notes' | 'exams'
+   ========================================================= */
+
+export async function saveCanvas(canvas) {
+  // canvas = { id?, mode, curriculum, level, subject, title, pages: [...] }
+  const base = `canvases/${canvas.mode}/${canvas.curriculum}/${canvas.level}/${canvas.subject}`;
+
+  if (canvas.id) {
+    // Update existing
+    const refPath = `${base}/${canvas.id}`;
+    await withTimeout(
+      update(ref(db, refPath), {
+        title: canvas.title,
+        pages: canvas.pages,
+        updatedAt: new Date().toISOString(),
+      }),
+      8000,
+      "Update canvas",
+    );
+    return canvas.id;
+  }
+
+  // Create new
+  const newRef = push(ref(db, base));
+  await withTimeout(
+    set(newRef, {
+      title: canvas.title,
+      pages: canvas.pages,
+      curriculum: canvas.curriculum,
+      level: canvas.level,
+      subject: canvas.subject,
+      mode: canvas.mode,
+      createdBy: canvas.createdBy || "anon",
+      createdByName: canvas.createdByName || "Anonymous",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+    8000,
+    "Save canvas",
+  );
+  return newRef.key;
+}
+
+export async function getCanvas(mode, curriculum, level, subject, canvasId) {
+  const snap = await withTimeout(
+    get(
+      ref(db, `canvases/${mode}/${curriculum}/${level}/${subject}/${canvasId}`),
+    ),
+    8000,
+    "Get canvas",
+  );
+  return snap.exists() ? { id: canvasId, ...snap.val() } : null;
+}
+
+export async function listCanvases(mode, curriculum, level, subject) {
+  const snap = await withTimeout(
+    get(ref(db, `canvases/${mode}/${curriculum}/${level}/${subject}`)),
+    8000,
+    "List canvases",
+  );
+  if (!snap.exists()) return [];
+
+  const data = snap.val();
+  const list = Object.keys(data).map((id) => ({ id, ...data[id] }));
+  list.sort(
+    (a, b) =>
+      new Date(b.updatedAt || b.createdAt) -
+      new Date(a.updatedAt || a.createdAt),
+  );
+  return list;
+}
+
+export async function listAllCanvases(mode) {
+  const snap = await withTimeout(
+    get(ref(db, `canvases/${mode}`)),
+    8000,
+    "List all canvases",
+  );
+  if (!snap.exists()) return [];
+
+  const out = [];
+  const byCurriculum = snap.val();
+  Object.entries(byCurriculum).forEach(([curriculum, byLevel]) => {
+    Object.entries(byLevel || {}).forEach(([level, bySubject]) => {
+      Object.entries(bySubject || {}).forEach(([subject, byId]) => {
+        Object.entries(byId || {}).forEach(([id, canvas]) => {
+          out.push({ id, curriculum, level, subject, ...canvas });
+        });
+      });
+    });
+  });
+  out.sort(
+    (a, b) =>
+      new Date(b.updatedAt || b.createdAt) -
+      new Date(a.updatedAt || a.createdAt),
+  );
+  return out;
+}
+
+export async function deleteCanvas(mode, curriculum, level, subject, canvasId) {
+  await withTimeout(
+    remove(
+      ref(db, `canvases/${mode}/${curriculum}/${level}/${subject}/${canvasId}`),
+    ),
+    8000,
+    "Delete canvas",
+  );
+}
+
+/* =========================================================
+   QUIZZES — authored by admin in quiz-builder.html
+   Structure:
+     /quizzes/{curriculum}/{level}/{subject}/{quizId}
+       title, html, markingJS, createdAt, createdBy
+   ========================================================= */
+
+export async function saveQuiz(quiz) {
+  // quiz = { id?, curriculum, level, subject, title, html, markingJS }
+  const base = `quizzes/${quiz.curriculum}/${quiz.level}/${quiz.subject}`;
+
+  if (quiz.id) {
+    const refPath = `${base}/${quiz.id}`;
+    await withTimeout(
+      update(ref(db, refPath), {
+        title: quiz.title,
+        html: quiz.html,
+        markingJS: quiz.markingJS,
+        updatedAt: new Date().toISOString(),
+      }),
+      8000,
+      "Update quiz",
+    );
+    return quiz.id;
+  }
+
+  const newRef = push(ref(db, base));
+  await withTimeout(
+    set(newRef, {
+      title: quiz.title,
+      html: quiz.html,
+      markingJS: quiz.markingJS,
+      curriculum: quiz.curriculum,
+      level: quiz.level,
+      subject: quiz.subject,
+      createdBy: quiz.createdBy || "anon",
+      createdByName: quiz.createdByName || "Anonymous",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+    8000,
+    "Save quiz",
+  );
+  return newRef.key;
+}
+
+export async function getQuiz(curriculum, level, subject, quizId) {
+  const snap = await withTimeout(
+    get(ref(db, `quizzes/${curriculum}/${level}/${subject}/${quizId}`)),
+    8000,
+    "Get quiz",
+  );
+  return snap.exists() ? { id: quizId, ...snap.val() } : null;
+}
+
+export async function listQuizzes(curriculum, level, subject) {
+  const snap = await withTimeout(
+    get(ref(db, `quizzes/${curriculum}/${level}/${subject}`)),
+    8000,
+    "List quizzes",
+  );
+  if (!snap.exists()) return [];
+
+  const data = snap.val();
+  const list = Object.keys(data).map((id) => ({ id, ...data[id] }));
+  list.sort(
+    (a, b) =>
+      new Date(b.updatedAt || b.createdAt) -
+      new Date(a.updatedAt || a.createdAt),
+  );
+  return list;
+}
+
+// List every quiz across all subjects (used by quiz-builder admin page)
+export async function listAllQuizzes() {
+  const snap = await withTimeout(
+    get(ref(db, "quizzes")),
+    8000,
+    "List all quizzes",
+  );
+  if (!snap.exists()) return [];
+
+  const out = [];
+  const byCurriculum = snap.val();
+  Object.entries(byCurriculum).forEach(([curriculum, byLevel]) => {
+    Object.entries(byLevel || {}).forEach(([level, bySubject]) => {
+      Object.entries(bySubject || {}).forEach(([subject, byId]) => {
+        Object.entries(byId || {}).forEach(([id, quiz]) => {
+          out.push({ id, curriculum, level, subject, ...quiz });
+        });
+      });
+    });
+  });
+  out.sort(
+    (a, b) =>
+      new Date(b.updatedAt || b.createdAt) -
+      new Date(a.updatedAt || a.createdAt),
+  );
+  return out;
+}
+
+export async function deleteQuiz(curriculum, level, subject, quizId) {
+  await withTimeout(
+    remove(ref(db, `quizzes/${curriculum}/${level}/${subject}/${quizId}`)),
+    8000,
+    "Delete quiz",
+  );
+}
+
+/* =========================================================
+   QUIZ RESULTS — records a student's score for an authored quiz
+   Structure:
+     /users/{userId}/authoredQuizResults/{resultId}
+       quizId, curriculum, level, subject, title, score, total, percent, createdAt
+   ========================================================= */
+
+export async function saveQuizResult(userId, result) {
+  const resultsRef = ref(db, `users/${userId}/authoredQuizResults`);
+  const newRef = push(resultsRef);
+  await withTimeout(
+    set(newRef, {
+      ...result,
+      createdAt: new Date().toISOString(),
+    }),
+    8000,
+    "Save quiz result",
+  );
+  return newRef.key;
+}
+
+export async function getUserQuizResults(userId, max = 100) {
+  const resultsRef = ref(db, `users/${userId}/authoredQuizResults`);
+  const q = query(resultsRef, orderByChild("createdAt"), limitToLast(max));
+  const snap = await withTimeout(get(q), 8000, "Get quiz results");
+  if (!snap.exists()) return [];
+
+  const data = snap.val();
+  const list = Object.keys(data).map((key) => ({ id: key, ...data[key] }));
+  list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return list;
+}
+
+/* =========================================================
+   BULK EXPORT — get everything admin needs to manage
+   ========================================================= */
+
+export async function getAllUsers() {
+  const snap = await withTimeout(get(ref(db, "users")), 10000, "Get all users");
+  if (!snap.exists()) return [];
+
+  const data = snap.val();
+  return Object.keys(data).map((id) => ({ id, ...data[id] }));
 }
