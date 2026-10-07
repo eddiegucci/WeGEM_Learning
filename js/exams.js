@@ -1,4 +1,4 @@
-// js/exams.js — WeGEM Learning exams page + Ctrl+Shift+Alt+V tray
+// js/exams.js — WeGEM Learning exams page
 
 import "./wallpaper-init.js";
 import {
@@ -7,6 +7,7 @@ import {
   getExamLinks,
   saveExamLink,
   deleteExamLink,
+  listCanvases,
 } from "./firebase.js";
 import { EXAMS, SUBJECTS_BY_CURRICULUM } from "./data.js";
 
@@ -18,6 +19,14 @@ const user = getCurrentUser();
 if (!user) {
   window.location.href = "login.html";
 }
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+let activeFilter = "all";
+let allLinks = [];
+let allCanvases = [];
 
 /* =========================================================
    ELEMENTS
@@ -34,39 +43,30 @@ const traySubject = document.getElementById("traySubject");
 const trayType = document.getElementById("trayType");
 const trayError = document.getElementById("trayError");
 
+const canvasList = document.getElementById("canvasList");
+const canvasCountEl = document.getElementById("canvasCount");
 const linksGrid = document.getElementById("examLinksGrid");
+const linkCountEl = document.getElementById("linkCount");
 const subjectPapersGrid = document.getElementById("subjectPapersGrid");
 const paperCountEl = document.getElementById("paperCount");
+const searchInput = document.getElementById("examSearch");
 const toast = document.getElementById("toast");
 
-const userAvatarEl = document.getElementById("userAvatar");
-const userNameEl = document.getElementById("userNameTop");
-const userMenuBtn = document.getElementById("userMenuBtn");
-const curriculumLabel = document.getElementById("curriculumLabel");
-const levelLabel = document.getElementById("levelLabel");
-
-let activeFilter = "all";
-let allLinks = [];
+let searchQuery = "";
 
 /* =========================================================
-   TOPBAR USER INFO
+   TOPBAR USER
    ========================================================= */
 
 if (user) {
-  if (userAvatarEl && user.name)
-    userAvatarEl.textContent = user.name.charAt(0).toUpperCase();
-  if (userNameEl && user.name) userNameEl.textContent = user.name.split(" ")[0];
-  if (curriculumLabel)
-    curriculumLabel.textContent = user.curriculum === "CBE" ? "CBE" : "8-4-4";
-  if (levelLabel)
-    levelLabel.textContent = user.level || user.form || user.grade || "Form 4";
+  const av = document.getElementById("userAvatar");
+  const nm = document.getElementById("userNameTop");
+  if (av && user.name) av.textContent = user.name.charAt(0).toUpperCase();
+  if (nm && user.name) nm.textContent = user.name.split(" ")[0];
 }
 
-userMenuBtn?.addEventListener("click", () => {
-  const choice = confirm(
-    `Signed in as ${user.email || user.name}\n\nOK = Sign out\nCancel = Stay signed in`,
-  );
-  if (choice) {
+document.getElementById("userMenuBtn")?.addEventListener("click", () => {
+  if (confirm(`Signed in as ${user.email}\n\nOK = Sign out`)) {
     clearCurrentUser();
     window.location.href = "login.html";
   }
@@ -87,25 +87,80 @@ function showToast(msg, kind = "ok") {
 }
 
 /* =========================================================
-   SUBJECT SELECT (in tray) — based on user's curriculum
+   HELPERS
    ========================================================= */
 
-function buildSubjectOptions() {
-  if (!traySubject) return;
+function escapeHtml(str) {
+  return String(str ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[c],
+  );
+}
 
+function subjectIcon(name) {
+  const map = {
+    Mathematics: "📐",
+    English: "📘",
+    Kiswahili: "📕",
+    Biology: "🧬",
+    Chemistry: "⚗️",
+    Physics: "⚛️",
+    Geography: "🌍",
+    History: "📜",
+    CRE: "✝️",
+    Business: "💼",
+    Agriculture: "🌾",
+    "Computer Studies": "💻",
+    "Integrated Science": "🔬",
+    "Social Studies": "🌐",
+    "Life Skills": "💡",
+  };
+  return map[name] || "📚";
+}
+
+function getSubjectList() {
   const curriculum = user.curriculum === "CBE" ? "CBE" : "844";
   const byLevel = SUBJECTS_BY_CURRICULUM[curriculum] || {};
   const level =
     user.level || user.form || user.grade || Object.keys(byLevel)[0];
-  const subjects = byLevel[level] || [];
+  return byLevel[level] || [];
+}
 
+function getCurrentCurriculum() {
+  return user.curriculum === "CBE" ? "CBE" : "844";
+}
+
+function getCurrentLevel() {
+  return user.level || user.form || user.grade || "";
+}
+
+function stripHtml(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html || "";
+  return tmp.textContent || tmp.innerText || "";
+}
+
+/* =========================================================
+   BUILD SUBJECT OPTIONS FOR TRAY
+   ========================================================= */
+
+function buildSubjectOptions() {
+  if (!traySubject) return;
+  const subjects = getSubjectList();
   traySubject.innerHTML =
     '<option value="">Select subject</option>' +
     subjects.map((s) => `<option value="${s}">${s}</option>`).join("");
 }
 
 /* =========================================================
-   TRAY OPEN / CLOSE
+   TRAY — OPEN / CLOSE
    ========================================================= */
 
 function openTray() {
@@ -119,7 +174,6 @@ function openTray() {
     trayBackdrop.classList.add("open");
   });
 
-  // Clear fields
   if (trayTitle) trayTitle.value = "";
   if (trayUrl) trayUrl.value = "";
   if (traySubject) traySubject.value = "";
@@ -146,18 +200,33 @@ trayCloseBtn?.addEventListener("click", closeTray);
 trayCancelBtn?.addEventListener("click", closeTray);
 trayBackdrop?.addEventListener("click", closeTray);
 
-document.getElementById("addLinkBtn")?.addEventListener("click", openTray);
-
 /* =========================================================
-   KEYBOARD SHORTCUT — Ctrl+Shift+Alt+V
+   SECRET SHORTCUTS (silent)
    ========================================================= */
 
 document.addEventListener("keydown", (e) => {
+  // Ctrl+Shift+Alt+V → open exam-link tray
   if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === "V" || e.key === "v")) {
     e.preventDefault();
     if (tray?.classList.contains("hidden")) openTray();
     else closeTray();
+    return;
   }
+
+  // Ctrl+Shift+Alt+N → open canvas for exams (read mode / start new)
+  if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === "N" || e.key === "n")) {
+    e.preventDefault();
+    window.location.href = "canvas.html?mode=exams&new=1";
+    return;
+  }
+
+  // Ctrl+Shift+Alt+E → open canvas list in edit mode
+  if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === "E" || e.key === "e")) {
+    e.preventDefault();
+    window.location.href = "canvas.html?mode=exams&edit=1";
+    return;
+  }
+
   if (e.key === "Escape" && tray && !tray.classList.contains("hidden")) {
     closeTray();
   }
@@ -172,7 +241,6 @@ function showTrayError(msg) {
   trayError.textContent = msg;
   trayError.classList.remove("hidden");
 }
-
 function hideTrayError() {
   if (!trayError) return;
   trayError.classList.add("hidden");
@@ -215,9 +283,10 @@ traySaveBtn?.addEventListener("click", async () => {
 
   try {
     await saveExamLink(link);
-    showToast("✓ Link saved — button added", "ok");
+    showToast("✓ Link saved", "ok");
     closeTray();
     await loadLinks();
+    renderLinks();
   } catch (e) {
     console.error(e);
     showTrayError("Could not save. Check your connection and try again.");
@@ -228,21 +297,115 @@ traySaveBtn?.addEventListener("click", async () => {
 });
 
 /* =========================================================
-   LOAD LINKS
+   LOAD — EXAM LINKS
    ========================================================= */
 
 async function loadLinks() {
   try {
     allLinks = await getExamLinks();
-    renderLinks();
   } catch (e) {
     console.error("Failed to load links:", e);
-    renderLinks(true);
+    allLinks = [];
   }
 }
 
 /* =========================================================
-   RENDER LINKS
+   LOAD — CANVASES (exams)
+   ========================================================= */
+
+async function loadCanvases() {
+  try {
+    const curriculum = getCurrentCurriculum();
+    const level = getCurrentLevel();
+    const subjects = getSubjectList();
+
+    const results = [];
+    for (const subject of subjects) {
+      try {
+        const list = await listCanvases("exams", curriculum, level, subject);
+        list.forEach((c) => results.push({ ...c, subject }));
+      } catch (e) {
+        // ignore
+      }
+    }
+    results.sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.createdAt) -
+        new Date(a.updatedAt || a.createdAt),
+    );
+    allCanvases = results;
+  } catch (e) {
+    console.warn("Could not load canvases:", e);
+    allCanvases = [];
+  }
+}
+
+/* =========================================================
+   RENDER — CANVAS CARDS
+   ========================================================= */
+
+function renderCanvases() {
+  let filtered = allCanvases;
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter((c) => {
+      const titleMatch = (c.title || "").toLowerCase().includes(q);
+      const subjectMatch = (c.subject || "").toLowerCase().includes(q);
+      const pagesText = (c.pages || [])
+        .map((p) => stripHtml(p))
+        .join(" ")
+        .toLowerCase();
+      return titleMatch || subjectMatch || pagesText.includes(q);
+    });
+  }
+
+  canvasCountEl.textContent =
+    filtered.length + (filtered.length === 1 ? " doc" : " docs");
+
+  if (!filtered.length) {
+    canvasList.innerHTML = `
+      <div class="empty-state-box">
+        <div class="empty-icon">📄</div>
+        <div class="empty-title">No long-form exam documents yet</div>
+        <div class="empty-sub">Check back soon for full papers and revision material.</div>
+      </div>
+    `;
+    return;
+  }
+
+  canvasList.innerHTML = filtered
+    .map((canvas) => {
+      const icon = subjectIcon(canvas.subject);
+      const pageCount = (canvas.pages || []).length;
+      const preview =
+        canvas.pages && canvas.pages[0]
+          ? stripHtml(canvas.pages[0]).slice(0, 140)
+          : "";
+
+      return `
+      <a class="canvas-card" href="canvas.html?mode=exams&curriculum=${encodeURIComponent(canvas.curriculum)}&level=${encodeURIComponent(canvas.level)}&subject=${encodeURIComponent(canvas.subject)}&id=${encodeURIComponent(canvas.id)}">
+        <div class="canvas-card-icon">${icon}</div>
+        <div class="canvas-card-body">
+          <div class="canvas-card-subject">${escapeHtml(canvas.subject)} · ${escapeHtml(canvas.level)}</div>
+          <div class="canvas-card-title">${escapeHtml(canvas.title || "Untitled")}</div>
+          <div class="canvas-card-preview">${escapeHtml(preview)}${preview.length >= 140 ? "…" : ""}</div>
+          <div class="canvas-card-meta">
+            <span class="canvas-card-pages">📄 ${pageCount} ${pageCount === 1 ? "page" : "pages"}</span>
+            <span class="canvas-card-cta">
+              Read
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12 H19 M13 6 L19 12 L13 18"/></svg>
+            </span>
+          </div>
+        </div>
+      </a>
+    `;
+    })
+    .join("");
+}
+
+/* =========================================================
+   RENDER — EXAM LINKS
    ========================================================= */
 
 const TYPE_META = {
@@ -252,26 +415,33 @@ const TYPE_META = {
   video: { icon: "🎥", label: "Video", color: "#ec4899" },
 };
 
-function renderLinks(hasError = false) {
+function renderLinks() {
   if (!linksGrid) return;
 
-  const filtered =
-    activeFilter === "all"
-      ? allLinks
-      : allLinks.filter((l) => l.type === activeFilter);
+  let filtered = allLinks;
+
+  if (activeFilter !== "all") {
+    filtered = filtered.filter((l) => l.type === activeFilter);
+  }
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(
+      (l) =>
+        (l.title || "").toLowerCase().includes(q) ||
+        (l.subject || "").toLowerCase().includes(q),
+    );
+  }
+
+  linkCountEl.textContent =
+    filtered.length + (filtered.length === 1 ? " link" : " links");
 
   if (!filtered.length) {
     linksGrid.innerHTML = `
       <div class="empty-state-box">
-        <div class="empty-icon">${hasError ? "⚠️" : "📄"}</div>
-        <div class="empty-title">${hasError ? "Could not load links" : "No exam links yet"}</div>
-        <div class="empty-sub">
-          ${
-            hasError
-              ? "Check your connection and refresh the page."
-              : `Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd> to add your first resource.`
-          }
-        </div>
+        <div class="empty-icon">📄</div>
+        <div class="empty-title">No exam links</div>
+        <div class="empty-sub">Check back soon for curated resources.</div>
       </div>
     `;
     return;
@@ -307,7 +477,6 @@ function renderLinks(hasError = false) {
     })
     .join("");
 
-  // Remove buttons
   linksGrid.querySelectorAll(".elb-remove").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
@@ -318,26 +487,13 @@ function renderLinks(hasError = false) {
         await deleteExamLink(id);
         showToast("Link removed", "ok");
         await loadLinks();
+        renderLinks();
       } catch (err) {
         console.error(err);
         showToast("Could not delete link", "err");
       }
     });
   });
-}
-
-function escapeHtml(str) {
-  return String(str).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[c],
-  );
 }
 
 /* =========================================================
@@ -356,21 +512,16 @@ document.querySelectorAll(".filter-chip").forEach((chip) => {
 });
 
 /* =========================================================
-   PAPERS BY SUBJECT (from EXAMS + user's subjects)
+   RENDER — PAPERS BY SUBJECT
    ========================================================= */
 
 function renderSubjectPapers() {
   if (!subjectPapersGrid) return;
 
-  const curriculum = user.curriculum === "CBE" ? "CBE" : "844";
-  const byLevel = SUBJECTS_BY_CURRICULUM[curriculum] || {};
-  const level =
-    user.level || user.form || user.grade || Object.keys(byLevel)[0];
-  const userSubjects = user.subjects?.length
-    ? user.subjects
-    : byLevel[level] || [];
+  const curriculum = getCurrentCurriculum();
+  const level = getCurrentLevel();
+  const userSubjects = getSubjectList();
 
-  // Find matching EXAMS subjects
   const examKey =
     curriculum === "CBE" ? (level === "Grade 9" ? "KJSEA" : "KPSEA") : "KCSE";
 
@@ -411,45 +562,26 @@ function renderSubjectPapers() {
   }
 }
 
-function subjectIcon(name) {
-  const map = {
-    Mathematics: "📐",
-    English: "📘",
-    Kiswahili: "📕",
-    Biology: "🧬",
-    Chemistry: "⚗️",
-    Physics: "⚛️",
-    Geography: "🌍",
-    History: "📜",
-    CRE: "✝️",
-    Business: "💼",
-    Agriculture: "🌾",
-    "Computer Studies": "💻",
-    "Integrated Science": "🔬",
-    "Social Studies": "🌐",
-    "Life Skills": "💡",
-  };
-  return map[name] || "📚";
-}
-
 /* =========================================================
    SEARCH
    ========================================================= */
 
-const searchInput = document.getElementById("examSearch");
 searchInput?.addEventListener("input", (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  const cards = linksGrid.querySelectorAll(".exam-link-btn");
-  cards.forEach((card) => {
-    const text = card.textContent.toLowerCase();
-    card.style.display = text.includes(q) ? "" : "none";
-  });
+  searchQuery = e.target.value.trim();
+  renderCanvases();
+  renderLinks();
 });
 
 /* =========================================================
    INIT
    ========================================================= */
 
-buildSubjectOptions();
-loadLinks();
-renderSubjectPapers();
+async function init() {
+  buildSubjectOptions();
+  await Promise.all([loadLinks(), loadCanvases()]);
+  renderCanvases();
+  renderLinks();
+  renderSubjectPapers();
+}
+
+init();
