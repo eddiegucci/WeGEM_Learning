@@ -10,6 +10,7 @@ import {
   listCanvases,
 } from "./firebase.js";
 import { EXAMS, SUBJECTS_BY_CURRICULUM } from "./data.js";
+import { installTapShortcuts, flashToast } from './mobile-shortcuts.js';
 
 /* =========================================================
    GUARD
@@ -585,3 +586,15 @@ async function init() {
 }
 
 init();
+
+/* =========================================================
+   MOBILE TAP SHORTCUTS
+   Tap 5 times on the page → opens the Add Link tray
+   ========================================================= */
+
+installTapShortcuts({
+  'add-link': () => {
+    flashToast('🔗 Opening Add Link…');
+    setTimeout(openTray, 300);
+  }
+});
