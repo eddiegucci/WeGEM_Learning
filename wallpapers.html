@@ -8,33 +8,84 @@
 </head>
 <body>
 
-<nav class="nav">
-  <a href="home.html" class="logo"><span class="logo-dot"></span> WeGEM Learning</a>
-  <div class="nav-links">
-    <a href="home.html">Home</a>
-    <a href="notes.html">Notes</a>
-    <a href="exams.html">Exams</a>
-    <a href="quiz.html">Practice</a>
-    <a href="progress.html">Progress</a>
-    <a href="wallpapers.html" class="active">Wallpapers</a>
-    <a id="auth-link" href="signup.html">Sign Out</a>
+<nav class="top-nav">
+  <a href="home.html" class="top-nav-brand">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
+            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
+      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
+            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
+            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+    </svg>
+    <span>WeGEM Learning</span>
+  </a>
+
+  <div class="top-nav-links">
+    <a href="home.html"><span>🏠</span><span>Home</span></a>
+    <a href="notes.html"><span>📖</span><span>Notes</span></a>
+    <a href="exams.html"><span>📄</span><span>Exams</span></a>
+    <a href="quiz.html"><span>⚡</span><span>Practice</span></a>
+    <a href="progress.html"><span>📊</span><span>Progress</span></a>
+    <a href="wallpapers.html" class="active"><span>🎨</span><span>Wallpapers</span></a>
+    <a href="settings.html"><span>⚙️</span><span>Settings</span></a>
   </div>
+
+  <button class="top-nav-user" id="userMenuBtn" type="button">
+    <span class="user-avatar" id="userAvatar">E</span>
+    <span class="user-name" id="userNameTop">Edwin</span>
+  </button>
 </nav>
 
 <main class="container">
-  <div class="section-label">Personalize</div>
-  <h1 class="section-title">Choose your wallpaper</h1>
-  <p class="section-sub">Pick a background theme. Your choice is saved to this device.</p>
+  <section class="page-head">
+    <div class="section-label">Personalize</div>
+    <h1 class="page-title">Wallpapers</h1>
+    <p class="page-sub">
+      Pick a background theme. Your choice is saved to this device and applied across the app.
+    </p>
+  </section>
 
   <div id="wallpaperGrid" class="wallpaper-grid"></div>
 
-  <div style="margin-top:40px;">
-    <button class="btn btn-ghost" id="resetWallpaperBtn">Reset to default</button>
+  <div style="margin-top:32px;">
+    <button class="btn btn-ghost" id="resetWallpaperBtn" type="button">Reset to default</button>
   </div>
+
+  <footer class="app-footer">
+    <div class="footer-left">
+      <span class="footer-bulb">💡</span>
+      <span>Better grades. Brighter future.</span>
+    </div>
+    <div class="footer-right">
+      <span>WeGEM Learning</span>
+      <span class="dot-sep">|</span>
+      <span>For a smarter Kenya</span>
+      <span class="flag-mini"></span>
+    </div>
+  </footer>
+
 </main>
 
-<footer class="footer">WeGEM Learning · Interactive exam prep for Kenya</footer>
+<script type="module">
+  import { getCurrentUser, clearCurrentUser } from './js/firebase.js';
 
+  const user = getCurrentUser();
+  if (!user) { window.location.href = 'login.html'; return; }
+
+  const av = document.getElementById('userAvatar');
+  const nm = document.getElementById('userNameTop');
+  if (av && user.name) av.textContent = user.name.charAt(0).toUpperCase();
+  if (nm && user.name) nm.textContent = user.name.split(' ')[0];
+
+  document.getElementById('userMenuBtn')?.addEventListener('click', () => {
+    if (confirm(`Signed in as ${user.email}\n\nOK = Sign out`)) {
+      clearCurrentUser();
+      window.location.href = 'login.html';
+    }
+  });
+</script>
 <script type="module" src="js/wallpapers.js"></script>
 </body>
 </html>
