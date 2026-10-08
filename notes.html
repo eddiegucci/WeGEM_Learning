@@ -9,7 +9,6 @@
   <title>Notes — WeGEM Learning</title>
 
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
@@ -49,33 +48,39 @@
 
 <main class="container">
 
+  <!-- Page header -->
   <section class="page-head">
     <div class="section-label">Study Material</div>
     <h1 class="page-title">Notes</h1>
-    <p class="page-sub">
-      Study notes organized by subject and topic.
-      On desktop, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>.
-      On mobile, <strong>tap 6 times</strong> on this page to add a note.
-    </p>
+    <p class="page-sub">Study notes organized by subject. Tap any note to test yourself on that topic.</p>
   </section>
 
-  <!-- Search -->
-  <div class="search-bar">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <circle cx="11" cy="11" r="7"/>
-      <path d="M20 20 L16.5 16.5"/>
-    </svg>
-    <input type="text" id="notesSearch" placeholder="Search notes by topic or subject..." autocomplete="off">
+  <!-- Toolbar: search + add button -->
+  <div class="notes-toolbar">
+    <div class="notes-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/>
+        <path d="M20 20 L16.5 16.5"/>
+      </svg>
+      <input type="text" id="notesSearch" placeholder="Search by topic or subject…" autocomplete="off">
+    </div>
+
+    <button class="notes-add-btn" id="openAddBtn" type="button" title="Add note">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+        <path d="M12 5 V19 M5 12 H19"/>
+      </svg>
+      Add Note
+    </button>
   </div>
 
   <!-- Subject filter chips -->
-  <div id="subjectFilterBar" class="filter-bar"></div>
+  <div id="subjectFilterBar" class="notes-subject-bar"></div>
 
-  <!-- Notes list -->
-  <div id="notesList" class="notes-list-v2">
-    <div class="loading-wrap" style="grid-column: 1 / -1;">
-      <div class="spinner spinner-lg"></div>
-      <div>Loading notes…</div>
+  <!-- Notes grid -->
+  <div id="notesList" class="notes-grid">
+    <div class="notes-loading">
+      <div class="spinner"></div>
+      <p>Loading notes…</p>
     </div>
   </div>
 
@@ -95,7 +100,7 @@
 
 </main>
 
-<!-- ==================== TRAY ==================== -->
+<!-- ==================== ADD NOTE TRAY ==================== -->
 <div id="noteTrayBackdrop" class="tray-backdrop"></div>
 
 <aside id="noteTray" class="link-tray" aria-hidden="true">
@@ -103,9 +108,8 @@
 
   <div class="tray-header">
     <div>
-      <div class="tray-badge" id="noteTrayBadge">Ctrl+Shift+Alt+N</div>
       <h2 class="tray-title">Add a note</h2>
-      <p class="tray-sub">Create a study note with a topic, summary, and key points.</p>
+      <p class="tray-sub">Save a topic, a quick summary, and key points.</p>
     </div>
     <button class="tray-close" id="noteTrayCloseBtn" type="button" aria-label="Close">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -139,7 +143,7 @@
 
     <div class="tray-actions">
       <button class="btn btn-ghost" id="noteTrayCancelBtn" type="button">Cancel</button>
-      <button class="btn btn-primary" id="noteTraySaveBtn" type="button">Save Note →</button>
+      <button class="btn btn-primary" id="noteTraySaveBtn" type="button">Save Note</button>
     </div>
   </div>
 </aside>
