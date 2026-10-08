@@ -1,363 +1,63 @@
-// js/pages/intro.js
-// Controller for index.html — the intro slideshow.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#060a15">
+  <meta name="description" content="Interactive exam prep for Kenyan students — KCSE, KJSEA, KPSEA with notes, quizzes, and past papers.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WeGEM">
+  <meta name="mobile-web-app-capable" content="yes">
 
-import { getCachedUser, isSignedIn, waitForAuth } from "../core/auth.js";
-import { log, sleep } from "../core/utils.js";
+  <title>WeGEM Learning — Empowering Every Learner</title>
 
-/* =========================================================
-   CONFIG
-   ========================================================= */
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 
-const SLIDE_DURATION = 1700;         // ms visible per slide
-const REDIRECT_URL = "signup.html";
-const REDIRECT_AFTER_LAST = 700;     // ms delay after last slide
-const FAST_SKIP_URL_AFTER = 500;     // ms — if user skips fast
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="intro-body">
 
-const STORAGE_KEY_INTRO_SEEN = "wegem_intro_seen";
-const STORAGE_KEY_INTRO_TIMESTAMP = "wegem_intro_last";
+<div class="intro-wrap" id="introWrap">
 
-const SLIDES = [
-  { subject: "Kiswahili",          img: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1400&q=60&auto=format" },
-  { subject: "Mathematics",        img: "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=1400&q=60&auto=format" },
-  { subject: "English",            img: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=1400&q=60&auto=format" },
-  { subject: "Biology",            img: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1400&q=60&auto=format" },
-  { subject: "Chemistry",          img: "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?w=1400&q=60&auto=format" },
-  { subject: "Physics",            img: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1400&q=60&auto=format" },
-  { subject: "Geography",          img: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=1400&q=60&auto=format" },
-  { subject: "History",            img: "https://images.unsplash.com/photo-1461360370896-922624d12aa1?w=1400&q=60&auto=format" },
-  { subject: "CRE",                img: "https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1400&q=60&auto=format" },
-  { subject: "Agriculture",        img: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1400&q=60&auto=format" },
-  { subject: "Business",           img: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1400&q=60&auto=format" },
-  { subject: "Computer Studies",   img: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1400&q=60&auto=format" },
-  { subject: "Woodwork",           img: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1400&q=60&auto=format" },
-  { subject: "Metalwork",          img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1400&q=60&auto=format" },
-  { subject: "Music",              img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1400&q=60&auto=format" },
-  { subject: "Fine Art",           img: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1400&q=60&auto=format" },
-  { subject: "Home Science",       img: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1400&q=60&auto=format" },
-  { subject: "Physical Education", img: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1400&q=60&auto=format" },
-  { subject: "French",             img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=60&auto=format" },
-  { subject: "German",             img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1400&q=60&auto=format" },
-  { subject: "Spanish",            img: "https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=1400&q=60&auto=format" },
-  { subject: "Chinese",            img: "https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=1400&q=60&auto=format" },
-  { subject: "Indian",             img: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1400&q=60&auto=format" },
-  { subject: "Life Skills",        img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1400&q=60&auto=format" },
-];
+  <div class="slideshow" id="slideshow" aria-hidden="true"></div>
 
-/* =========================================================
-   STATE
-   ========================================================= */
+  <div class="intro-overlay" aria-hidden="true"></div>
 
-let slideEls = [];
-let currentIndex = 0;
-let timerId = null;
-let isDone = false;
-let hasStarted = false;
+  <div class="intro-watermark">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="24" height="24">
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
+            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
+      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
+            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
+            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+    </svg>
+    <span>WeGEM Learning</span>
+  </div>
 
-/* =========================================================
-   ELEMENTS
-   ========================================================= */
+  <button class="intro-skip" id="skipBtn" type="button">
+    Skip
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12 H19 M13 6 L19 12 L13 18"/>
+    </svg>
+  </button>
 
-const slideshowEl = document.getElementById("slideshow");
-const subjectLabel = document.getElementById("subjectLabel");
-const dotsEl = document.getElementById("dots");
-const skipBtn = document.getElementById("skipBtn");
-const loadingEl = document.getElementById("introLoading");
+  <div class="intro-subject" id="subjectLabel" aria-live="polite"></div>
 
-/* =========================================================
-   EARLY REDIRECT — if signed in, skip intro
-   ========================================================= */
+  <div class="intro-dots" id="dots" role="progressbar" aria-label="Slideshow progress"></div>
 
-async function checkExistingSession() {
-  // Quick check from local cache
-  const cached = getCachedUser();
-  if (cached) {
-    window.location.replace("home.html");
-    return true;
-  }
+  <div class="intro-loading" id="introLoading">
+    <div class="spinner spinner-lg"></div>
+  </div>
 
-  // Wait for Firebase Auth (up to 800ms)
-  try {
-    const user = await Promise.race([
-      waitForAuth(),
-      sleep(800).then(() => null),
-    ]);
-    if (user) {
-      window.location.replace("home.html");
-      return true;
-    }
-  } catch (e) {
-    log.warn("Auth check failed:", e);
-  }
+</div>
 
-  return false;
-}
+<link rel="prefetch" href="signup.html">
 
-/* =========================================================
-   PRELOAD IMAGES
-   ========================================================= */
-
-function preloadImage(url, timeoutMs = 6000) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    const timer = setTimeout(() => {
-      img.onload = null;
-      img.onerror = null;
-      resolve("timeout");
-    }, timeoutMs);
-
-    img.onload = () => {
-      clearTimeout(timer);
-      resolve("loaded");
-    };
-
-    img.onerror = () => {
-      clearTimeout(timer);
-      resolve("error");
-    };
-
-    img.src = url;
-  });
-}
-
-async function preloadFirstImage() {
-  if (!SLIDES[0]) return;
-  await preloadImage(SLIDES[0].img, 4000);
-}
-
-function preloadRemainingImages() {
-  // Fire-and-forget background preloading
-  SLIDES.slice(1).forEach((slide, i) => {
-    // Stagger preloads to avoid saturating the network
-    setTimeout(() => {
-      const img = new Image();
-      img.src = slide.img;
-    }, i * 120);
-  });
-}
-
-/* =========================================================
-   BUILD SLIDES
-   ========================================================= */
-
-function buildSlideElements() {
-  if (!slideshowEl) return;
-  slideshowEl.innerHTML = "";
-  slideEls = [];
-
-  SLIDES.forEach((slide, i) => {
-    const div = document.createElement("div");
-    div.className = "slide";
-    div.style.backgroundImage = `url('${slide.img}')`;
-    div.dataset.index = i;
-    div.setAttribute("aria-hidden", "true");
-    slideshowEl.appendChild(div);
-    slideEls.push(div);
-  });
-}
-
-function buildDots() {
-  if (!dotsEl) return;
-  dotsEl.innerHTML = "";
-  SLIDES.forEach((_, i) => {
-    const dot = document.createElement("span");
-    dot.className = "dot";
-    dot.dataset.index = i;
-    dot.setAttribute("aria-hidden", "true");
-    dotsEl.appendChild(dot);
-  });
-}
-
-/* =========================================================
-   SHOW SLIDE
-   ========================================================= */
-
-function showSlide(index) {
-  if (!slideEls.length) return;
-
-  // Toggle slide visibility
-  slideEls.forEach((el, i) => {
-    if (i === index) {
-      el.classList.add("active");
-      el.setAttribute("aria-hidden", "false");
-    } else {
-      el.classList.remove("active");
-      el.setAttribute("aria-hidden", "true");
-    }
-  });
-
-  // Toggle dots
-  const dots = dotsEl?.querySelectorAll(".dot") || [];
-  dots.forEach((dot, i) => {
-    dot.classList.toggle("active", i === index);
-  });
-
-  // Subject label with fade animation
-  if (subjectLabel) {
-    subjectLabel.textContent = SLIDES[index].subject;
-    subjectLabel.classList.remove("fade-in");
-    // Force reflow to restart animation
-    void subjectLabel.offsetWidth;
-    subjectLabel.classList.add("fade-in");
-  }
-
-  // Preload next image
-  const nextIdx = index + 1;
-  if (nextIdx < SLIDES.length) {
-    const img = new Image();
-    img.src = SLIDES[nextIdx].img;
-  }
-}
-
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
-
-function scheduleNext() {
-  if (isDone) return;
-  timerId = setTimeout(advance, SLIDE_DURATION);
-}
-
-function advance() {
-  if (isDone) return;
-
-  currentIndex += 1;
-
-  if (currentIndex >= SLIDES.length) {
-    finish();
-    return;
-  }
-
-  showSlide(currentIndex);
-  scheduleNext();
-}
-
-function finish() {
-  if (isDone) return;
-  isDone = true;
-
-  if (timerId) {
-    clearTimeout(timerId);
-    timerId = null;
-  }
-
-  // Save "intro seen" marker
-  try {
-    localStorage.setItem(STORAGE_KEY_INTRO_SEEN, "1");
-    localStorage.setItem(STORAGE_KEY_INTRO_TIMESTAMP, String(Date.now()));
-  } catch {}
-
-  setTimeout(() => {
-    window.location.href = REDIRECT_URL;
-  }, REDIRECT_AFTER_LAST);
-}
-
-function skip() {
-  if (isDone) return;
-  isDone = true;
-
-  if (timerId) {
-    clearTimeout(timerId);
-    timerId = null;
-  }
-
-  try {
-    localStorage.setItem(STORAGE_KEY_INTRO_SEEN, "1");
-    localStorage.setItem(STORAGE_KEY_INTRO_TIMESTAMP, String(Date.now()));
-  } catch {}
-
-  setTimeout(() => {
-    window.location.href = REDIRECT_URL;
-  }, FAST_SKIP_URL_AFTER);
-}
-
-/* =========================================================
-   EVENT WIRING
-   ========================================================= */
-
-function wireEvents() {
-  skipBtn?.addEventListener("click", skip);
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
-      e.preventDefault();
-      skip();
-    }
-  });
-
-  // Touch: tap anywhere skips
-  document.addEventListener(
-    "touchstart",
-    (e) => {
-      // Ignore taps on buttons
-      if (e.target.closest("button")) return;
-      skip();
-    },
-    { passive: true, once: true }
-  );
-
-  // Pause when tab is hidden, resume when visible
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      if (timerId) {
-        clearTimeout(timerId);
-        timerId = null;
-      }
-    } else if (!isDone && hasStarted && !timerId) {
-      scheduleNext();
-    }
-  });
-}
-
-/* =========================================================
-   HIDE LOADING
-   ========================================================= */
-
-function hideLoading() {
-  if (loadingEl) {
-    loadingEl.style.opacity = "0";
-    setTimeout(() => loadingEl.remove(), 300);
-  }
-}
-
-/* =========================================================
-   START
-   ========================================================= */
-
-async function start() {
-  if (hasStarted) return;
-  hasStarted = true;
-
-  // Check for existing session first
-  const hasSession = await checkExistingSession();
-  if (hasSession) return;
-
-  // Wait for first image
-  await preloadFirstImage();
-
-  // Build DOM
-  buildSlideElements();
-  buildDots();
-  showSlide(0);
-  hideLoading();
-
-  // Show first slide briefly, then begin
-  scheduleNext();
-
-  // Preload the rest in the background
-  preloadRemainingImages();
-
-  // Wire up events
-  wireEvents();
-
-  log.info("Intro slideshow started");
-}
-
-/* =========================================================
-   BOOT
-   ========================================================= */
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", start);
-} else {
-  start();
-}
+<script type="module" src="js/pages/intro.js"></script>
+</body>
+</html>
