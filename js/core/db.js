@@ -6,7 +6,9 @@ import {
   initializeApp,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentSingleTabManager,
   doc,
   setDoc,
   getDoc,
@@ -19,40 +21,28 @@ import {
   where,
   orderBy,
   limit,
-  startAfter,
   serverTimestamp,
   increment,
   writeBatch,
   runTransaction,
   onSnapshot,
   Timestamp,
-  enableIndexedDbPersistence,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import { firebaseConfig } from "../config/firebase-config.js";
 import { log, withTimeout } from "./utils.js";
 
 /* =========================================================
-   INITIALIZE FIRESTORE (singleton)
+   INITIALIZE FIRESTORE (singleton with modern offline cache)
    ========================================================= */
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-export const db = getFirestore(app);
 
-/* Enable offline persistence (IndexedDB cache) */
-try {
-  enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === "failed-precondition") {
-      log.warn("Firestore persistence unavailable: multiple tabs open");
-    } else if (err.code === "unimplemented") {
-      log.warn("Firestore persistence unavailable: browser not supported");
-    } else {
-      log.warn("Firestore persistence error:", err);
-    }
-  });
-} catch (e) {
-  log.warn("Could not enable Firestore persistence:", e);
-}
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentSingleTabManager(),
+  }),
+});
 
 /* =========================================================
    COLLECTIONS
@@ -112,7 +102,7 @@ export async function updateUserDoc(uid, updates) {
 }
 
 /* =========================================================
-   QUIZ ATTEMPTS (stored in subcollection: users/{uid}/attempts)
+   QUIZ ATTEMPTS — subcollection: users/{uid}/attempts
    ========================================================= */
 
 export async function saveAttempt(uid, attempt) {
@@ -310,7 +300,7 @@ export async function getUserRank(uid, curriculum = null) {
 }
 
 /* =========================================================
-   ACTIVITY LOG (for admin)
+   ACTIVITY LOG
    ========================================================= */
 
 export async function logActivity(uid, action, meta = {}) {
@@ -340,6 +330,10 @@ export async function batchWrite(operations) {
   });
   await batch.commit();
 }
+
+/* =========================================================
+   RE-EXPORTS
+   ========================================================= */
 
 export {
   runTransaction,
