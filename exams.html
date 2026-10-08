@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<!-- ==================== FLOATING TOP BAR ==================== -->
+<!-- FLOATING TOP BAR -->
 <nav class="top-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
@@ -39,7 +39,6 @@
   </button>
 </nav>
 
-<!-- ==================== MAIN ==================== -->
 <main class="container">
 
   <section class="page-head">
@@ -47,6 +46,8 @@
     <h1 class="page-title">Exams</h1>
     <p class="page-sub">
       Full papers, revision booklets, and study resources organized by subject.
+      On desktop, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd>.
+      On mobile, <strong>tap 5 times</strong> anywhere on this page to add a link.
     </p>
   </section>
 
@@ -68,39 +69,28 @@
     <button class="filter-chip" data-filter="video" type="button">🎥 Videos</button>
   </div>
 
-  <!-- SECTION A: LONG-FORM CANVAS EXAMS -->
-  <section class="notes-section-block">
-    <div class="panel-head-inline">
-      <div class="panel-title-lg">📄 Long-Form Exam Documents</div>
-      <div class="pill-tag" id="canvasCount">0</div>
-    </div>
-    <div id="canvasList" class="canvas-list"></div>
-  </section>
-
-  <!-- SECTION B: EXAM LINKS (from tray) -->
-  <section class="notes-section-block" style="margin-top:28px;">
-    <div class="panel-head-inline">
-      <div class="panel-title-lg">🔗 Linked Resources</div>
-      <div class="pill-tag" id="linkCount">0</div>
-    </div>
-    <div id="examLinksGrid" class="exam-links-grid">
-      <div class="empty-state-box">
-        <div class="empty-icon">📄</div>
-        <div class="empty-title">No exam links yet</div>
-        <div class="empty-sub">Check back soon for curated resources.</div>
+  <!-- Links grid -->
+  <div id="examLinksGrid" class="exam-links-grid">
+    <div class="empty-state-box">
+      <div class="empty-icon">📄</div>
+      <div class="empty-title">No exam links yet</div>
+      <div class="empty-sub">
+        <strong>Desktop:</strong> Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd><br>
+        <strong>Mobile:</strong> Tap this page 5 times quickly
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- SECTION C: PAPERS BY SUBJECT -->
-  <section class="subject-papers-section" style="margin-top:28px;">
-    <div class="panel-head-inline">
+  <!-- Past papers by subject -->
+  <section class="subject-papers-section">
+    <div class="panel-head-inline" style="margin-top:36px;">
       <div class="panel-title-lg">📚 Papers by Subject</div>
       <div class="pill-tag" id="paperCount">0 papers</div>
     </div>
     <div id="subjectPapersGrid" class="subject-papers-grid"></div>
   </section>
 
+  <!-- Footer -->
   <footer class="app-footer">
     <div class="footer-left">
       <span class="footer-bulb">💡</span>
@@ -116,7 +106,7 @@
 
 </main>
 
-<!-- ==================== EXAM LINK TRAY ==================== -->
+<!-- ==================== TRAY ==================== -->
 <div id="linkTrayBackdrop" class="tray-backdrop hidden"></div>
 
 <aside id="linkTray" class="link-tray hidden" aria-hidden="true">
@@ -124,6 +114,7 @@
 
   <div class="tray-header">
     <div class="tray-title-block">
+      <div class="tray-badge" id="trayBadge">Ctrl+Shift+Alt+V</div>
       <h2 class="tray-title">Add an exam resource</h2>
       <p class="tray-sub">Paste a link and we'll turn it into a clickable button.</p>
     </div>
