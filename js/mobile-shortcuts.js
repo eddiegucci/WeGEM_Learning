@@ -1,82 +1,72 @@
 // js/mobile-shortcuts.js — mobile tap shortcuts for WeGEM Learning
 
-/* =========================================================
-   HOW IT WORKS
-   - On mobile (touch devices), keyboard shortcuts don't exist
-   - This script lets you trigger the same actions by TAPPING
-   - Tap 5 times quickly on Exams → opens Add Link tray
-   - Tap 6 times quickly on Notes → opens Add Note tray
-   - Tap the logo once → opens a quick "Add" menu
-   ========================================================= */
-
-const TAP_WINDOW_MS = 2500;   // taps must happen within 2.5 seconds
+const TAP_WINDOW_MS = 2500;
 const TAP_COUNTS = {
-  5: 'add-link',
-  6: 'add-note'
+  5: "add-link",
+  6: "add-note",
 };
 
 function isTouchDevice() {
-  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
 }
 
 /* =========================================================
-   TAP DETECTOR — on the whole page background
+   TAP DETECTOR
    ========================================================= */
 
 export function installTapShortcuts(handlers = {}) {
-  if (!isTouchDevice()) return;  // desktop uses keyboard shortcuts
+  if (!isTouchDevice()) return;
 
   let tapTimes = [];
-  let lastTarget = null;
 
-  document.addEventListener('touchstart', (e) => {
-    // Ignore taps on interactive elements (buttons, inputs, links)
-    const t = e.target;
-    if (t.closest('button, a, input, textarea, select, .link-tray, .tray-backdrop')) {
-      return;
-    }
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      const t = e.target;
+      if (
+        t.closest(
+          "button, a, input, textarea, select, .link-tray, .tray-backdrop, .modal-backdrop",
+        )
+      ) {
+        return;
+      }
 
-    const now = Date.now();
-    tapTimes.push(now);
+      const now = Date.now();
+      tapTimes.push(now);
+      tapTimes = tapTimes.filter((time) => now - time < TAP_WINDOW_MS);
 
-    // Keep only taps within the window
-    tapTimes = tapTimes.filter(time => now - time < TAP_WINDOW_MS);
+      const count = tapTimes.length;
+      const action = TAP_COUNTS[count];
 
-    lastTarget = t;
+      if (action && handlers[action]) {
+        e.preventDefault();
+        tapTimes = [];
+        handlers[action]();
+      }
 
-    // Check for a match
-    const count = tapTimes.length;
-    const action = TAP_COUNTS[count];
-
-    if (action && handlers[action]) {
-      e.preventDefault();
-      tapTimes = [];  // reset
-      handlers[action]();
-    }
-
-    // Reset after 5 taps exceeded
-    if (count > 6) tapTimes = [];
-  }, { passive: false });
+      if (count > 6) tapTimes = [];
+    },
+    { passive: false },
+  );
 }
 
 /* =========================================================
-   LOGO TAP — single tap opens quick menu
+   LOGO TAP
    ========================================================= */
 
 export function installLogoTap(menuHandler) {
   if (!isTouchDevice()) return;
 
-  const brand = document.querySelector('.top-nav-brand');
+  const brand = document.querySelector(".top-nav-brand");
   if (!brand) return;
 
   let lastTap = 0;
 
-  brand.addEventListener('click', (e) => {
+  brand.addEventListener("click", (e) => {
     const now = Date.now();
     const delta = now - lastTap;
     lastTap = now;
 
-    // Double tap within 400ms → show quick add menu
     if (delta < 400) {
       e.preventDefault();
       menuHandler();
@@ -85,14 +75,14 @@ export function installLogoTap(menuHandler) {
 }
 
 /* =========================================================
-   TOAST HELPER — show feedback after taps
+   TOAST
    ========================================================= */
 
 export function flashToast(message, duration = 1400) {
-  let toast = document.getElementById('tapToast');
+  let toast = document.getElementById("tapToast");
   if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'tapToast';
+    toast = document.createElement("div");
+    toast.id = "tapToast";
     toast.style.cssText = `
       position: fixed;
       top: 20px;
@@ -116,26 +106,25 @@ export function flashToast(message, duration = 1400) {
   }
 
   toast.textContent = message;
-  toast.style.opacity = '1';
-  toast.style.transform = 'translateX(-50%) translateY(0)';
+  toast.style.opacity = "1";
+  toast.style.transform = "translateX(-50%) translateY(0)";
 
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(-50%) translateY(-10px)';
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(-50%) translateY(-10px)";
   }, duration);
 }
 
 /* =========================================================
-   ADD MENU — modal that lets you choose Add Link / Add Note
+   ADD MENU
    ========================================================= */
 
 export function showAddMenu(onAddLink, onAddNote) {
-  // Remove existing menu
-  document.getElementById('addActionMenu')?.remove();
+  document.getElementById("addActionMenu")?.remove();
 
-  const overlay = document.createElement('div');
-  overlay.id = 'addActionMenu';
+  const overlay = document.createElement("div");
+  overlay.id = "addActionMenu";
   overlay.style.cssText = `
     position: fixed;
     inset: 0;
@@ -239,8 +228,16 @@ export function showAddMenu(onAddLink, onAddNote) {
   document.body.appendChild(overlay);
 
   const close = () => overlay.remove();
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-  document.getElementById('addMenuClose').onclick = close;
-  document.getElementById('addMenuLink').onclick = () => { close(); onAddLink?.(); };
-  document.getElementById('addMenuNote').onclick = () => { close(); onAddNote?.(); };
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+  document.getElementById("addMenuClose").onclick = close;
+  document.getElementById("addMenuLink").onclick = () => {
+    close();
+    onAddLink?.();
+  };
+  document.getElementById("addMenuNote").onclick = () => {
+    close();
+    onAddNote?.();
+  };
 }
