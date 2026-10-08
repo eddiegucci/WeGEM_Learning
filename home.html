@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#060a15">
+  <meta name="description" content="Your WeGEM Learning dashboard.">
+
   <title>Dashboard — WeGEM Learning</title>
-  <link rel="stylesheet" href="css/style.css">
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 
-<!-- FLOATING TOP BAR -->
+<!-- ==================== TOP NAV ==================== -->
 <nav class="top-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
@@ -28,82 +34,86 @@
     <a href="notes.html"><span>📖</span><span>Notes</span></a>
     <a href="exams.html"><span>📄</span><span>Exams</span></a>
     <a href="quiz.html"><span>⚡</span><span>Practice</span></a>
-    <a href="progress.html"><span>📊</span><span>Progress</span></a>
+    <a href="compete.html"><span>🏆</span><span>Compete</span></a>
+    <a href="leaderboard.html"><span>📊</span><span>Ranks</span></a>
+    <a href="progress.html"><span>📈</span><span>Progress</span></a>
     <a href="wallpapers.html"><span>🎨</span><span>Wallpapers</span></a>
     <a href="settings.html"><span>⚙️</span><span>Settings</span></a>
   </div>
 
-  <button class="top-nav-user" id="userMenuBtn" type="button">
-    <span class="user-avatar" id="userAvatar">E</span>
-    <span class="user-name" id="userNameTop">Edwin</span>
+  <button class="top-nav-user" id="userMenuBtn" type="button" aria-label="User menu">
+    <span class="user-avatar" id="userAvatar">?</span>
+    <span class="user-name" id="userNameTop">Student</span>
   </button>
 </nav>
 
 <main class="container">
 
-  <!-- HERO BANNER -->
+  <!-- ============ HERO ============ -->
   <section class="hero-banner">
-    <div class="hero-globe"></div>
+    <div class="hero-globe" aria-hidden="true"></div>
     <div class="hero-content">
       <h1 class="hero-greet">
         <span class="sun-icon">☀️</span>
-        <span id="greeting">Good morning</span>, <span id="heroName">Edwin</span> 👋
+        <span id="greeting">Good morning</span>, <span id="heroName">Student</span> 👋
       </h1>
-      <p class="hero-sub">Ready to improve your KCSE score today?</p>
+      <p class="hero-sub" id="heroSub">Ready to improve your score today?</p>
       <button class="btn-hero" id="continueBtn" type="button">
         Continue studying
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12 H19 M13 6 L19 12 L13 18"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12 H19 M13 6 L19 12 L13 18"/>
+        </svg>
       </button>
     </div>
 
     <div class="hero-stats">
       <div class="hero-stat">
         <div class="hs-icon">🔥</div>
-        <div class="hs-value" id="heroStreak">7</div>
+        <div class="hs-value" id="heroStreak">0</div>
         <div class="hs-label">Day Streak</div>
-        <div class="hs-note hs-green">Keep it going!</div>
+        <div class="hs-note hs-green" id="heroStreakNote">Start today!</div>
       </div>
       <div class="hero-stat">
         <div class="hs-icon">🎯</div>
-        <div class="hs-value" id="heroAvg">72<span class="hs-unit">%</span></div>
+        <div class="hs-value" id="heroAvg">0<span class="hs-unit">%</span></div>
         <div class="hs-label">Average Score</div>
-        <div class="hs-note hs-green">+5% this week</div>
+        <div class="hs-note hs-green" id="heroAvgNote">—</div>
       </div>
       <div class="hero-stat">
         <div class="hs-icon">📋</div>
-        <div class="hs-value" id="heroQuizzes">128</div>
+        <div class="hs-value" id="heroQuizzes">0</div>
         <div class="hs-label">Quizzes</div>
-        <div class="hs-note hs-green">+12 this week</div>
+        <div class="hs-note hs-green" id="heroQuizzesNote">Take your first</div>
       </div>
       <div class="hero-stat">
         <div class="hs-icon">⏱</div>
-        <div class="hs-value" id="heroHours">14<span class="hs-unit">h</span></div>
+        <div class="hs-value" id="heroHours">0<span class="hs-unit">h</span></div>
         <div class="hs-label">Study Time</div>
-        <div class="hs-note hs-green">+3h this week</div>
+        <div class="hs-note hs-green" id="heroHoursNote">This week</div>
       </div>
     </div>
   </section>
 
-  <!-- ROW 2 — ACTION CARDS + REVISE NEXT -->
+  <!-- ============ ROW 2 ============ -->
   <section class="row-2">
     <div class="action-cards">
       <a href="notes.html" class="action-card ac-blue">
         <div class="ac-icon">📖</div>
         <div class="ac-title">Continue Learning</div>
-        <div class="ac-sub">Biology – Human Circulatory System (Topic 4)</div>
-        <button class="ac-btn" type="button">Resume →</button>
+        <div class="ac-sub" id="continueCardSub">Browse notes and study by topic</div>
+        <button class="ac-btn" type="button">Open Notes →</button>
       </a>
       <a href="quiz.html" class="action-card ac-green">
         <div class="ac-icon">⚡</div>
         <div class="ac-title">Quick Quiz</div>
-        <div class="ac-sub">Random questions from all subjects</div>
+        <div class="ac-sub">Random questions from your subjects</div>
         <button class="ac-btn" type="button">Start Quiz →</button>
       </a>
-      <a href="exams.html" class="action-card ac-purple">
-        <div class="ac-icon">📄</div>
-        <div class="ac-title">Upcoming Exams</div>
-        <div class="ac-sub">KCSE – Mathematics (2023 Paper 1)</div>
-        <button class="ac-btn" type="button">View Papers →</button>
+      <a href="compete.html" class="action-card ac-purple">
+        <div class="ac-icon">🏆</div>
+        <div class="ac-title">Compete</div>
+        <div class="ac-sub">Challenge classmates in real time</div>
+        <button class="ac-btn" type="button">Create Room →</button>
       </a>
     </div>
 
@@ -115,19 +125,27 @@
           <div class="panel-sub">Focus on your weakest topics</div>
         </div>
       </div>
-      <div id="reviseList" class="revise-list"></div>
+      <div id="reviseList" class="revise-list">
+        <div class="loading-wrap" style="padding: 20px;">
+          <div class="spinner"></div>
+        </div>
+      </div>
       <a href="progress.html" class="panel-link">View all weak topics →</a>
     </aside>
   </section>
 
-  <!-- ROW 3 — SUBJECTS + PROGRESS + ACTIVITY + QUICK LINKS -->
+  <!-- ============ ROW 3 ============ -->
   <section class="row-3">
     <div class="panel subject-panel">
       <div class="panel-head-inline">
         <div class="panel-title-lg">📊 Subject Performance</div>
-        <div class="pill-tag">Overall Average <span id="overallAvg">72%</span></div>
+        <div class="pill-tag">Overall Average <span id="overallAvg">0%</span></div>
       </div>
-      <div id="subjectList" class="subject-list"></div>
+      <div id="subjectList" class="subject-list">
+        <div class="loading-wrap" style="padding: 20px;">
+          <div class="spinner"></div>
+        </div>
+      </div>
     </div>
 
     <div class="col-3-right">
@@ -135,25 +153,19 @@
         <div class="panel-title-lg">📈 Your Progress</div>
         <div class="panel-sub-sm">Last 7 days</div>
         <div class="chart-wrap">
-          <svg viewBox="0 0 300 120" class="chart-svg" preserveAspectRatio="none">
+          <svg viewBox="0 0 300 120" class="chart-svg" preserveAspectRatio="none" id="miniChart">
             <defs>
               <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.35"/>
                 <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
               </linearGradient>
             </defs>
-            <polyline points="0,90 40,70 80,75 120,50 160,60 200,35 240,40 280,25 300,30"
-                      fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <polygon points="0,90 40,70 80,75 120,50 160,60 200,35 240,40 280,25 300,30 300,120 0,120"
-                     fill="url(#chartFill)"/>
           </svg>
-          <div class="chart-xaxis">
-            <span>Sep 10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span>
-          </div>
+          <div class="chart-xaxis" id="chartXAxis"></div>
           <div class="chart-total">
             <div class="ct-label">Total Score</div>
-            <div class="ct-value" id="progressTotal">72%</div>
-            <div class="ct-note">↗ +5% vs. last week</div>
+            <div class="ct-value" id="progressTotal">0%</div>
+            <div class="ct-note" id="progressNote">—</div>
           </div>
         </div>
       </div>
@@ -163,25 +175,29 @@
           <div class="panel-title-lg">🕐 Recent Activity</div>
           <a href="progress.html" class="link-sm">View all →</a>
         </div>
-        <div id="activityList" class="activity-list"></div>
+        <div id="activityList" class="activity-list">
+          <div class="loading-wrap" style="padding: 20px;">
+            <div class="spinner"></div>
+          </div>
+        </div>
       </div>
 
       <div class="panel">
-        <div class="panel-title-lg" style="margin-bottom:16px;">🔗 Quick Links</div>
+        <div class="panel-title-lg" style="margin-bottom: 16px;">🔗 Quick Links</div>
         <div class="quicklinks">
           <a href="notes.html" class="ql">
             <span class="ql-icon">📖</span>
             <span class="ql-text">View All Notes</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6 L15 12 L9 18"/></svg>
           </a>
-          <a href="notes.html" class="ql">
-            <span class="ql-icon">📚</span>
-            <span class="ql-text">All Subjects</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6 L15 12 L9 18"/></svg>
-          </a>
           <a href="exams.html" class="ql">
             <span class="ql-icon">📄</span>
             <span class="ql-text">Past Papers</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6 L15 12 L9 18"/></svg>
+          </a>
+          <a href="leaderboard.html" class="ql">
+            <span class="ql-icon">📊</span>
+            <span class="ql-text">Leaderboard</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6 L15 12 L9 18"/></svg>
           </a>
           <a href="settings.html" class="ql">
@@ -194,7 +210,7 @@
     </div>
   </section>
 
-  <!-- FOOTER -->
+  <!-- ============ FOOTER ============ -->
   <footer class="app-footer">
     <div class="footer-left">
       <span class="footer-bulb">💡</span>
@@ -210,6 +226,6 @@
 
 </main>
 
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/pages/home.js"></script>
 </body>
 </html>

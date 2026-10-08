@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#060a15">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Admin — WeGEM Learning.">
+
+  <title>Admin — WeGEM Learning</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- ==================== TOP NAV ==================== -->
+<nav class="top-nav">
+  <a href="home.html" class="top-nav-brand">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
+            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
+      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
+            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
+            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+    </svg>
+    <span>WeGEM Admin</span>
+  </a>
+
+  <div class="top-nav-links">
+    <a href="home.html"><span>🏠</span><span>Home</span></a>
+    <a href="admin.html" class="active"><span>🛠️</span><span>Admin</span></a>
+  </div>
+
+  <button class="top-nav-user" id="userMenuBtn" type="button" aria-label="User menu">
+    <span class="user-avatar" id="userAvatar">?</span>
+    <span class="user-name" id="userNameTop">Admin</span>
+  </button>
+</nav>
+
+<main class="container">
+
+  <section class="page-head">
+    <div class="section-label">Administration</div>
+    <h1 class="page-title">Admin Panel</h1>
+    <p class="page-sub">Manage users, seed content, and monitor the app.</p>
+  </section>
+
+  <!-- Stats overview -->
+  <section id="statsOverview" class="stats-grid-4" style="margin-bottom: 24px;">
+    <div class="stat-tile st-fire">
+      <div class="st-icon">📝</div>
+      <div class="st-value" id="statQuestions">—</div>
+      <div class="st-label">Questions</div>
+      <div class="st-sub">In database</div>
+    </div>
+    <div class="stat-tile st-target">
+      <div class="st-icon">📖</div>
+      <div class="st-value" id="statNotes">—</div>
+      <div class="st-label">Notes</div>
+      <div class="st-sub">In database</div>
+    </div>
+    <div class="stat-tile st-clip">
+      <div class="st-icon">👥</div>
+      <div class="st-value" id="statUsers">—</div>
+      <div class="st-label">Users</div>
+      <div class="st-sub">Registered</div>
+    </div>
+    <div class="stat-tile st-clock">
+      <div class="st-icon">📄</div>
+      <div class="st-value" id="statLinks">—</div>
+      <div class="st-label">Exam Links</div>
+      <div class="st-sub">Saved</div>
+    </div>
+  </section>
+
+  <!-- Tabs -->
+  <div class="admin-tabs">
+    <button class="lb-tab active" data-tab="content" type="button">📚 Content</button>
+    <button class="lb-tab" data-tab="users" type="button">👥 Users</button>
+    <button class="lb-tab" data-tab="seed" type="button">🌱 Seed</button>
+  </div>
+
+  <!-- ============ CONTENT TAB ============ -->
+  <section id="tabContent" class="admin-tab-panel">
+    <div class="panel" style="margin-bottom: 20px;">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">➕ Add Question</div>
+        <button class="link-sm" id="toggleAddQuestion" type="button">Show / Hide</button>
+      </div>
+
+      <div id="addQuestionForm" class="hidden">
+        <div class="field-row">
+          <label class="field">
+            <span>Exam</span>
+            <select id="qExam">
+              <option value="KCSE">KCSE</option>
+              <option value="KJSEA">KJSEA</option>
+              <option value="KPSEA">KPSEA</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Subject</span>
+            <input type="text" id="qSubject" placeholder="e.g. Mathematics">
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Topic</span>
+          <input type="text" id="qTopic" placeholder="e.g. Integration">
+        </label>
+
+        <label class="field">
+          <span>Question</span>
+          <textarea id="qText" rows="2" placeholder="Enter the question here"></textarea>
+        </label>
+
+        <label class="field">
+          <span>Options (one per line — first is correct)</span>
+          <textarea id="qOptions" rows="4" placeholder="Correct answer&#10;Option B&#10;Option C&#10;Option D"></textarea>
+        </label>
+
+        <label class="field">
+          <span>Explanation (shown after answering)</span>
+          <textarea id="qExplain" rows="2" placeholder="Why is the first option correct?"></textarea>
+        </label>
+
+        <div id="qError" class="alert alert-error hidden"></div>
+
+        <button class="btn btn-primary" id="addQuestionBtn" type="button" style="width: 100%;">
+          Add Question →
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">📋 Recent Questions</div>
+        <button class="link-sm" id="refreshQuestions" type="button">Refresh</button>
+      </div>
+      <div id="questionsList" class="loading-wrap" style="padding: 20px;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ USERS TAB ============ -->
+  <section id="tabUsers" class="admin-tab-panel hidden">
+    <div class="panel">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">👥 Users</div>
+        <button class="link-sm" id="refreshUsers" type="button">Refresh</button>
+      </div>
+      <div id="usersList" class="loading-wrap" style="padding: 20px;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SEED TAB ============ -->
+  <section id="tabSeed" class="admin-tab-panel hidden">
+    <div class="panel">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">🌱 Seed Starter Content</div>
+      </div>
+      <p style="color: var(--text-dim); font-size: 13.5px; line-height: 1.6; margin-bottom: 20px;">
+        This will add the built-in starter questions and notes to Firestore.
+        Run once. Safe to run again (duplicates may occur).
+      </p>
+
+      <div class="alert alert-warn" style="margin-bottom: 16px;">
+        ⚠️ Only run this on a fresh database or when you want to add more sample content.
+      </div>
+
+      <div id="seedProgress" class="hidden" style="margin-bottom: 16px;">
+        <div class="progress-bar">
+          <div class="progress-fill" id="seedBar" style="width: 0%;"></div>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-mute); margin-top: 8px; text-align: center;" id="seedStatus">
+          Preparing…
+        </p>
+      </div>
+
+      <button class="btn btn-primary" id="seedAllBtn" type="button" style="width: 100%; margin-bottom: 10px;">
+        🌱 Seed Everything
+      </button>
+
+      <button class="btn btn-ghost" id="seedQuestionsBtn" type="button" style="width: 100%; margin-bottom: 10px;">
+        📝 Seed Questions Only
+      </button>
+
+      <button class="btn btn-ghost" id="seedNotesBtn" type="button" style="width: 100%;">
+        📖 Seed Notes Only
+      </button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-left">
+      <span class="footer-bulb">💡</span>
+      <span>Admin — WeGEM Learning</span>
+    </div>
+    <div class="footer-right">
+      <span>For a smarter Kenya</span>
+      <span class="flag-mini"></span>
+    </div>
+  </footer>
+
+</main>
+
+<script type="module" src="js/pages/admin.js"></script>
+</body>
+</html>

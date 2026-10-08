@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#060a15">
-  <meta name="description" content="Personalize your WeGEM Learning experience with wallpapers.">
+  <meta name="description" content="National leaderboard — WeGEM Learning.">
 
-  <title>Wallpapers — WeGEM Learning</title>
+  <title>Leaderboard — WeGEM Learning</title>
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
@@ -35,9 +35,9 @@
     <a href="exams.html"><span>📄</span><span>Exams</span></a>
     <a href="quiz.html"><span>⚡</span><span>Practice</span></a>
     <a href="compete.html"><span>🏆</span><span>Compete</span></a>
-    <a href="leaderboard.html"><span>📊</span><span>Ranks</span></a>
+    <a href="leaderboard.html" class="active"><span>📊</span><span>Ranks</span></a>
     <a href="progress.html"><span>📈</span><span>Progress</span></a>
-    <a href="wallpapers.html" class="active"><span>🎨</span><span>Wallpapers</span></a>
+    <a href="wallpapers.html"><span>🎨</span><span>Wallpapers</span></a>
     <a href="settings.html"><span>⚙️</span><span>Settings</span></a>
   </div>
 
@@ -50,33 +50,46 @@
 <main class="container">
 
   <section class="page-head">
-    <div class="section-label">Personalize</div>
-    <h1 class="page-title">Wallpapers</h1>
-    <p class="page-sub">
-      Pick a background theme that fits your mood. Your choice is saved to this device.
-    </p>
+    <div class="section-label">Rankings</div>
+    <h1 class="page-title">Leaderboard</h1>
+    <p class="page-sub">See how you rank against students across the country.</p>
   </section>
 
-  <!-- Category filter chips -->
-  <div id="categoryBar" class="filter-bar"></div>
+  <!-- Time filter tabs -->
+  <div class="leaderboard-tabs" role="tablist">
+    <button class="lb-tab active" data-timeframe="all" type="button" role="tab">All Time</button>
+    <button class="lb-tab" data-timeframe="month" type="button" role="tab">This Month</button>
+    <button class="lb-tab" data-timeframe="week" type="button" role="tab">This Week</button>
+  </div>
 
-  <!-- Wallpaper grid -->
-  <div id="wallpaperGrid" class="wallpaper-grid">
-    <div class="loading-wrap" style="grid-column: 1 / -1;">
-      <div class="spinner spinner-lg"></div>
-      <div>Loading wallpapers…</div>
+  <!-- Curriculum filter chips -->
+  <div class="filter-bar">
+    <button class="chip active" data-curriculum="all" type="button">🌍 All</button>
+    <button class="chip" data-curriculum="844" type="button">8-4-4</button>
+    <button class="chip" data-curriculum="CBE" type="button">CBE</button>
+  </div>
+
+  <!-- My rank card -->
+  <div id="myRankCard" class="my-rank-card hidden">
+    <div class="my-rank-left">
+      <div class="user-avatar" id="myRankAvatar">?</div>
+      <div style="min-width: 0;">
+        <div style="font-size: 12px; color: var(--text-mute); margin-bottom: 2px;">Your Position</div>
+        <div class="my-rank-name" id="myRankName">Loading…</div>
+      </div>
+    </div>
+    <div class="my-rank-right">
+      <div class="my-rank-value" id="myRankValue">#—</div>
+      <div class="my-rank-score" id="myRankScore">0 pts</div>
     </div>
   </div>
 
-  <!-- Reset button -->
-  <div style="margin-top: 32px; text-align: center;">
-    <button class="btn btn-ghost" id="resetWallpaperBtn" type="button">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-        <path d="M3 12 A9 9 0 1 1 12 21"/>
-        <path d="M3 12 L3 6 M3 12 L9 12"/>
-      </svg>
-      Reset to default
-    </button>
+  <!-- Leaderboard list -->
+  <div id="lbList" class="lb-list">
+    <div class="loading-wrap">
+      <div class="spinner spinner-lg"></div>
+      <div>Loading rankings…</div>
+    </div>
   </div>
 
   <!-- Footer -->
@@ -95,6 +108,6 @@
 
 </main>
 
-<script type="module" src="js/pages/wallpapers.js"></script>
+<script type="module" src="js/pages/leaderboard.js"></script>
 </body>
 </html>

@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#060a15">
+  <meta name="description" content="Your progress and analytics — WeGEM Learning.">
+
   <title>Progress — WeGEM Learning</title>
-  <link rel="stylesheet" href="css/style.css">
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 
-<!-- ==================== TOP BAR ==================== -->
+<!-- ==================== TOP NAV ==================== -->
 <nav class="top-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
@@ -28,35 +34,32 @@
     <a href="notes.html"><span>📖</span><span>Notes</span></a>
     <a href="exams.html"><span>📄</span><span>Exams</span></a>
     <a href="quiz.html"><span>⚡</span><span>Practice</span></a>
-    <a href="progress.html" class="active"><span>📊</span><span>Progress</span></a>
+    <a href="compete.html"><span>🏆</span><span>Compete</span></a>
+    <a href="leaderboard.html"><span>📊</span><span>Ranks</span></a>
+    <a href="progress.html" class="active"><span>📈</span><span>Progress</span></a>
     <a href="wallpapers.html"><span>🎨</span><span>Wallpapers</span></a>
     <a href="settings.html"><span>⚙️</span><span>Settings</span></a>
   </div>
 
-  <button class="top-nav-user" id="userMenuBtn" type="button">
-    <span class="user-avatar" id="userAvatar">E</span>
-    <span class="user-name" id="userNameTop">Edwin</span>
+  <button class="top-nav-user" id="userMenuBtn" type="button" aria-label="User menu">
+    <span class="user-avatar" id="userAvatar">?</span>
+    <span class="user-name" id="userNameTop">Student</span>
   </button>
 </nav>
 
-<!-- ==================== MAIN ==================== -->
 <main class="container">
 
   <section class="page-head">
-    <div class="section-label">Your Journey</div>
+    <div class="section-label">Analytics</div>
     <h1 class="page-title">Progress</h1>
-    <p class="page-sub">
-      Every quiz brings you closer to your goals. Here's how you're doing.
-    </p>
+    <p class="page-sub">Track your growth. Every quiz gets you closer to your goal.</p>
   </section>
 
-  <!-- Search -->
-  <div class="topbar-search" style="margin-bottom:16px;max-width:420px;position:relative;">
-    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <circle cx="11" cy="11" r="7"/>
-      <path d="M20 20 L16.5 16.5"/>
-    </svg>
-    <input type="text" id="progressSearch" placeholder="Search topics or subjects...">
+  <!-- Time range tabs -->
+  <div class="leaderboard-tabs" role="tablist">
+    <button class="lb-tab active" data-range="all" type="button" role="tab">All Time</button>
+    <button class="lb-tab" data-range="month" type="button" role="tab">This Month</button>
+    <button class="lb-tab" data-range="week" type="button" role="tab">This Week</button>
   </div>
 
   <!-- Stat tiles -->
@@ -67,32 +70,35 @@
       <div class="st-label">Day Streak</div>
       <div class="st-sub" id="pStreakSub">Start today</div>
     </div>
+
     <div class="stat-tile st-target">
       <div class="st-icon">🎯</div>
       <div class="st-value" id="pAvg">0<span class="st-unit">%</span></div>
       <div class="st-label">Average Score</div>
-      <div class="st-sub" id="pAvgSub">—</div>
+      <div class="st-sub" id="pAvgSub">No data yet</div>
     </div>
+
     <div class="stat-tile st-clip">
       <div class="st-icon">📋</div>
       <div class="st-value" id="pQuizzes">0</div>
       <div class="st-label">Quizzes Taken</div>
-      <div class="st-sub" id="pQuizzesSub">Keep going!</div>
+      <div class="st-sub" id="pQuizzesSub">Take your first</div>
     </div>
+
     <div class="stat-tile st-clock">
       <div class="st-icon">⏱</div>
       <div class="st-value" id="pHours">0<span class="st-unit">h</span></div>
       <div class="st-label">Study Time</div>
-      <div class="st-sub" id="pHoursSub">This week</div>
+      <div class="st-sub" id="pHoursSub">Keep going!</div>
     </div>
   </section>
 
-  <!-- Performance chart -->
-  <section class="panel chart-panel-v2">
+  <!-- Big chart -->
+  <section class="panel" style="margin-bottom: 20px;">
     <div class="panel-head-inline">
       <div>
         <div class="panel-title-lg">📈 Performance Trend</div>
-        <div class="panel-sub-sm">Your last 10 quiz attempts</div>
+        <div class="panel-sub-sm">Your last 12 quiz attempts</div>
       </div>
       <div class="pill-tag">Avg <span id="chartAvg">0%</span></div>
     </div>
@@ -100,39 +106,52 @@
       <svg id="progressChart" viewBox="0 0 800 220" preserveAspectRatio="none" class="big-chart-svg"></svg>
       <div id="chartEmpty" class="chart-empty hidden">
         <div>📊</div>
-        <div>Take your first quiz to see your progress trend</div>
+        <div>Take at least 2 quizzes to see your trend</div>
       </div>
     </div>
   </section>
 
-  <!-- Topic performance + Recent activity -->
+  <!-- Two column: Topics + Recent -->
   <section class="row-progress">
     <div class="panel">
       <div class="panel-head-inline">
         <div class="panel-title-lg">🎯 Topic Performance</div>
-        <div class="pill-tag">Weakest first</div>
+        <div class="pill-tag" id="topicCount">0 topics</div>
       </div>
-      <div id="topicList" class="topic-list-v2"></div>
+      <div id="topicList" class="topic-list-v2">
+        <div class="loading-wrap" style="padding: 20px;">
+          <div class="spinner"></div>
+        </div>
+      </div>
     </div>
 
     <div class="panel">
       <div class="panel-head-inline">
         <div class="panel-title-lg">🕐 Recent Attempts</div>
-        <button class="link-sm" id="clearHistoryBtn" type="button">Clear local</button>
+        <button class="link-sm" id="clearHistoryBtn" type="button">Clear</button>
       </div>
-      <div id="historyList" class="history-list-v2"></div>
+      <div id="historyList" class="history-list-v2">
+        <div class="loading-wrap" style="padding: 20px;">
+          <div class="spinner"></div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- Subject breakdown -->
-  <section class="panel" style="margin-top:16px;">
+  <!-- Subject Breakdown -->
+  <section class="panel" style="margin-top: 20px;">
     <div class="panel-head-inline">
       <div class="panel-title-lg">📚 Subject Breakdown</div>
-      <div class="pill-tag" id="subjectBreakdownCount">0 subjects</div>
+      <div class="pill-tag" id="subjectCount">0 subjects</div>
     </div>
-    <div id="subjectBreakdown" class="subject-breakdown-list"></div>
+    <div id="subjectBreakdown" class="subject-list">
+      <div class="loading-wrap" style="padding: 20px;">
+        <div class="spinner"></div>
+      </div>
+    </div>
   </section>
 
+  <!-- Footer -->
   <footer class="app-footer">
     <div class="footer-left">
       <span class="footer-bulb">💡</span>
@@ -148,8 +167,6 @@
 
 </main>
 
-<div id="toast" class="toast hidden"></div>
-
-<script type="module" src="js/progress.js"></script>
+<script type="module" src="js/pages/progress.js"></script>
 </body>
 </html>

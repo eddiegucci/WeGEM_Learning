@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#060a15">
+  <meta name="description" content="Past papers and exam resources — WeGEM Learning.">
+
   <title>Exams — WeGEM Learning</title>
-  <link rel="stylesheet" href="css/style.css">
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
 
-<!-- FLOATING TOP BAR -->
+<!-- ==================== TOP NAV ==================== -->
 <nav class="top-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
@@ -28,14 +34,16 @@
     <a href="notes.html"><span>📖</span><span>Notes</span></a>
     <a href="exams.html" class="active"><span>📄</span><span>Exams</span></a>
     <a href="quiz.html"><span>⚡</span><span>Practice</span></a>
-    <a href="progress.html"><span>📊</span><span>Progress</span></a>
+    <a href="compete.html"><span>🏆</span><span>Compete</span></a>
+    <a href="leaderboard.html"><span>📊</span><span>Ranks</span></a>
+    <a href="progress.html"><span>📈</span><span>Progress</span></a>
     <a href="wallpapers.html"><span>🎨</span><span>Wallpapers</span></a>
     <a href="settings.html"><span>⚙️</span><span>Settings</span></a>
   </div>
 
-  <button class="top-nav-user" id="userMenuBtn" type="button">
-    <span class="user-avatar" id="userAvatar">E</span>
-    <span class="user-name" id="userNameTop">Edwin</span>
+  <button class="top-nav-user" id="userMenuBtn" type="button" aria-label="User menu">
+    <span class="user-avatar" id="userAvatar">?</span>
+    <span class="user-name" id="userNameTop">Student</span>
   </button>
 </nav>
 
@@ -47,47 +55,47 @@
     <p class="page-sub">
       Full papers, revision booklets, and study resources organized by subject.
       On desktop, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd>.
-      On mobile, <strong>tap 5 times</strong> anywhere on this page to add a link.
+      On mobile, <strong>tap 5 times</strong> on this page to add a link.
     </p>
   </section>
 
   <!-- Search -->
-  <div class="topbar-search" style="margin-bottom:16px;max-width:420px;position:relative;">
-    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+  <div class="search-bar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
       <circle cx="11" cy="11" r="7"/>
       <path d="M20 20 L16.5 16.5"/>
     </svg>
-    <input type="text" id="examSearch" placeholder="Search exam papers, subjects...">
+    <input type="text" id="examSearch" placeholder="Search exam papers, subjects..." autocomplete="off">
   </div>
 
   <!-- Filter chips -->
   <div class="filter-bar">
-    <button class="filter-chip active" data-filter="all" type="button">All</button>
-    <button class="filter-chip" data-filter="notes" type="button">📚 Notes</button>
-    <button class="filter-chip" data-filter="papers" type="button">📝 Past Papers</button>
-    <button class="filter-chip" data-filter="revision" type="button">📖 Revision</button>
-    <button class="filter-chip" data-filter="video" type="button">🎥 Videos</button>
+    <button class="chip active" data-filter="all" type="button">All</button>
+    <button class="chip" data-filter="papers" type="button">📝 Past Papers</button>
+    <button class="chip" data-filter="notes" type="button">📚 Notes</button>
+    <button class="chip" data-filter="revision" type="button">📖 Revision</button>
+    <button class="chip" data-filter="video" type="button">🎥 Videos</button>
   </div>
 
   <!-- Links grid -->
   <div id="examLinksGrid" class="exam-links-grid">
-    <div class="empty-state-box">
-      <div class="empty-icon">📄</div>
-      <div class="empty-title">No exam links yet</div>
-      <div class="empty-sub">
-        <strong>Desktop:</strong> Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd><br>
-        <strong>Mobile:</strong> Tap this page 5 times quickly
-      </div>
+    <div class="loading-wrap" style="grid-column: 1 / -1;">
+      <div class="spinner spinner-lg"></div>
+      <div>Loading resources…</div>
     </div>
   </div>
 
-  <!-- Past papers by subject -->
+  <!-- Papers by subject -->
   <section class="subject-papers-section">
-    <div class="panel-head-inline" style="margin-top:36px;">
-      <div class="panel-title-lg">📚 Papers by Subject</div>
-      <div class="pill-tag" id="paperCount">0 papers</div>
+    <div class="panel-head-inline" style="margin-top: 36px;">
+      <div class="panel-title-lg">📚 Practice by Subject</div>
+      <div class="pill-tag" id="paperCount">—</div>
     </div>
-    <div id="subjectPapersGrid" class="subject-papers-grid"></div>
+    <div id="subjectPapersGrid" class="subject-papers-grid">
+      <div class="loading-wrap" style="grid-column: 1 / -1;">
+        <div class="spinner"></div>
+      </div>
+    </div>
   </section>
 
   <!-- Footer -->
@@ -107,18 +115,18 @@
 </main>
 
 <!-- ==================== TRAY ==================== -->
-<div id="linkTrayBackdrop" class="tray-backdrop hidden"></div>
+<div id="linkTrayBackdrop" class="tray-backdrop"></div>
 
-<aside id="linkTray" class="link-tray hidden" aria-hidden="true">
+<aside id="linkTray" class="link-tray" aria-hidden="true">
   <div class="tray-handle"></div>
 
   <div class="tray-header">
-    <div class="tray-title-block">
+    <div>
       <div class="tray-badge" id="trayBadge">Ctrl+Shift+Alt+V</div>
       <h2 class="tray-title">Add an exam resource</h2>
       <p class="tray-sub">Paste a link and we'll turn it into a clickable button.</p>
     </div>
-    <button class="tray-close" id="trayCloseBtn" type="button" aria-label="Close tray">
+    <button class="tray-close" id="trayCloseBtn" type="button" aria-label="Close">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <path d="M6 6 L18 18 M18 6 L6 18"/>
       </svg>
@@ -128,15 +136,15 @@
   <div class="tray-body">
     <label class="field">
       <span>Title</span>
-      <input type="text" id="trayTitle" placeholder="e.g. KCSE 2023 Mathematics Paper 1">
+      <input type="text" id="trayTitle" placeholder="e.g. KCSE 2023 Mathematics Paper 1" autocomplete="off">
     </label>
 
     <label class="field">
       <span>Link (URL)</span>
-      <input type="url" id="trayUrl" placeholder="https://example.com/paper.pdf">
+      <input type="url" id="trayUrl" placeholder="https://example.com/paper.pdf" autocomplete="off" inputmode="url">
     </label>
 
-    <div class="field-row-2">
+    <div class="field-row">
       <label class="field">
         <span>Subject</span>
         <select id="traySubject">
@@ -155,7 +163,7 @@
       </label>
     </div>
 
-    <div id="trayError" class="auth-error hidden"></div>
+    <div id="trayError" class="alert alert-error hidden"></div>
 
     <div class="tray-actions">
       <button class="btn btn-ghost" id="trayCancelBtn" type="button">Cancel</button>
@@ -164,8 +172,6 @@
   </div>
 </aside>
 
-<div id="toast" class="toast hidden"></div>
-
-<script type="module" src="js/exams.js"></script>
+<script type="module" src="js/pages/exams.js"></script>
 </body>
 </html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#060a15">
+  <meta name="description" content="Compete with classmates in real time — WeGEM Learning.">
+
+  <title>Compete — WeGEM Learning</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- ==================== TOP NAV ==================== -->
+<nav class="top-nav">
+  <a href="home.html" class="top-nav-brand">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
+            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
+      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
+            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
+            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+    </svg>
+    <span>WeGEM Learning</span>
+  </a>
+
+  <div class="top-nav-links">
+    <a href="home.html"><span>🏠</span><span>Home</span></a>
+    <a href="notes.html"><span>📖</span><span>Notes</span></a>
+    <a href="exams.html"><span>📄</span><span>Exams</span></a>
+    <a href="quiz.html"><span>⚡</span><span>Practice</span></a>
+    <a href="compete.html" class="active"><span>🏆</span><span>Compete</span></a>
+    <a href="leaderboard.html"><span>📊</span><span>Ranks</span></a>
+    <a href="progress.html"><span>📈</span><span>Progress</span></a>
+    <a href="wallpapers.html"><span>🎨</span><span>Wallpapers</span></a>
+    <a href="settings.html"><span>⚙️</span><span>Settings</span></a>
+  </div>
+
+  <button class="top-nav-user" id="userMenuBtn" type="button" aria-label="User menu">
+    <span class="user-avatar" id="userAvatar">?</span>
+    <span class="user-name" id="userNameTop">Student</span>
+  </button>
+</nav>
+
+<main class="container">
+
+  <!-- ============ LOBBY ============ -->
+  <section id="lobbyScreen" class="compete-lobby">
+    <section class="page-head" style="text-align: center;">
+      <div class="section-label">Compete</div>
+      <h1 class="page-title">Challenge Classmates</h1>
+      <p class="page-sub" style="margin-left: auto; margin-right: auto;">
+        Create a room and share the code, or join with a code you received.
+      </p>
+    </section>
+
+    <div class="compete-lobby-actions">
+      <button class="btn btn-primary btn-lg" id="createRoomBtn" type="button">
+        🏆 Create Room
+      </button>
+      <button class="btn btn-ghost btn-lg" id="showJoinBtn" type="button">
+        🔗 Join Room
+      </button>
+    </div>
+
+    <!-- Join form (hidden until "Join" clicked) -->
+    <div id="joinForm" class="compete-join-form hidden">
+      <label class="field">
+        <span>Room Code</span>
+        <input type="text" id="joinCodeInput" placeholder="6-letter code" maxlength="6" autocapitalize="characters" autocomplete="off" style="text-align: center; font-family: var(--font-mono); font-size: 22px; letter-spacing: 0.2em; font-weight: 800; text-transform: uppercase;">
+      </label>
+      <div class="compete-join-actions">
+        <button class="btn btn-ghost" id="cancelJoinBtn" type="button">Cancel</button>
+        <button class="btn btn-primary" id="joinRoomBtn" type="button">Join →</button>
+      </div>
+    </div>
+
+    <!-- Create room form -->
+    <div id="createForm" class="compete-create-form hidden">
+      <div class="setup-grid" style="margin: 20px auto; max-width: 400px;">
+        <label>
+          <span>Subject</span>
+          <select id="createSubject"></select>
+        </label>
+        <label>
+          <span>Questions</span>
+          <select id="createCount">
+            <option value="5">5 — Quick</option>
+            <option value="10" selected>10 — Standard</option>
+            <option value="20">20 — Marathon</option>
+          </select>
+        </label>
+        <label>
+          <span>Seconds per question</span>
+          <select id="createTime">
+            <option value="15">15 seconds</option>
+            <option value="20" selected>20 seconds</option>
+            <option value="30">30 seconds</option>
+            <option value="60">60 seconds</option>
+          </select>
+        </label>
+      </div>
+      <div class="compete-join-actions" style="max-width: 400px; margin: 0 auto;">
+        <button class="btn btn-ghost" id="cancelCreateBtn" type="button">Cancel</button>
+        <button class="btn btn-primary" id="confirmCreateBtn" type="button">Create Room →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WAITING ROOM ============ -->
+  <section id="waitingScreen" class="compete-lobby hidden">
+    <section class="page-head" style="text-align: center;">
+      <div class="section-label">Room Created</div>
+      <h1 class="page-title">Waiting for players</h1>
+      <p class="page-sub" style="margin: 0 auto;">Share this code with your classmates:</p>
+    </section>
+
+    <div class="room-code-display" id="roomCodeDisplay">------</div>
+
+    <button class="btn btn-ghost" id="copyCodeBtn" type="button" style="margin-bottom: 20px;">
+      📋 Copy Code
+    </button>
+
+    <div class="waiting-meta">
+      <div class="waiting-meta-item">
+        <div class="wm-label">Subject</div>
+        <div class="wm-value" id="waitingSubject">—</div>
+      </div>
+      <div class="waiting-meta-item">
+        <div class="wm-label">Questions</div>
+        <div class="wm-value" id="waitingCount">—</div>
+      </div>
+      <div class="waiting-meta-item">
+        <div class="wm-label">Seconds</div>
+        <div class="wm-value" id="waitingTime">—</div>
+      </div>
+    </div>
+
+    <h3 class="waiting-players-title">Players (<span id="playerCount">0</span>)</h3>
+
+    <div id="playerList" class="player-list">
+      <div class="loading-wrap" style="padding: 20px;">
+        <div class="spinner"></div>
+      </div>
+    </div>
+
+    <div id="waitingActions" class="compete-join-actions" style="max-width: 400px; margin: 20px auto 0;">
+      <button class="btn btn-ghost" id="leaveRoomBtn" type="button">Leave</button>
+      <button class="btn btn-primary" id="startGameBtn" type="button" disabled>Start Game →</button>
+    </div>
+
+    <p class="signup-hint" style="margin-top: 16px;">
+      Waiting for other players… You can start with just yourself.
+    </p>
+  </section>
+
+  <!-- ============ PLAYING ============ -->
+  <section id="playScreen" class="hidden">
+    <div class="quiz-topbar">
+      <div>
+        <div class="quiz-meta" id="playMeta">KCSE · Mathematics</div>
+        <div class="quiz-counter" id="playCounter">Question 1 of 10</div>
+      </div>
+      <div class="quiz-score">
+        <span class="score-num" id="playTimer">20</span>
+        <span class="score-label">seconds</span>
+      </div>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="playProgress"></div>
+    </div>
+
+    <!-- Live scoreboard -->
+    <div id="liveScoreboard" class="compete-scoreboard"></div>
+
+    <div class="question-card">
+      <div class="quiz-topic" id="playTopic">TOPIC</div>
+      <div class="question-text" id="playQuestion">Question…</div>
+      <div class="options" id="playOptions"></div>
+      <div class="feedback hidden" id="playFeedback"></div>
+    </div>
+
+    <p class="signup-hint" id="playStatus" style="text-align: center;"></p>
+  </section>
+
+  <!-- ============ FINAL RESULTS ============ -->
+  <section id="finalScreen" class="hidden">
+    <div class="results-card">
+      <div class="section-label">Game over</div>
+      <h1 class="section-title" id="finalTitle">Winner! 🏆</h1>
+      <div class="score-big" id="finalWinnerScore">100%</div>
+      <div class="score-sub" id="finalWinnerName">Champion</div>
+
+      <h3 class="weak-heading" style="margin-top: 28px;">Final Standings</h3>
+      <div id="finalStandings" class="lb-list"></div>
+
+      <div class="cta-row" style="justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 24px;">
+        <button class="btn btn-primary" id="playAgainBtn" type="button">Play Again</button>
+        <a href="leaderboard.html" class="btn btn-ghost">Leaderboard</a>
+        <a href="home.html" class="btn btn-ghost">Home</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-left">
+      <span class="footer-bulb">💡</span>
+      <span>Better grades. Brighter future.</span>
+    </div>
+    <div class="footer-right">
+      <span>WeGEM Learning</span>
+      <span class="dot-sep">|</span>
+      <span>For a smarter Kenya</span>
+      <span class="flag-mini"></span>
+    </div>
+  </footer>
+
+</main>
+
+<script type="module" src="js/pages/compete.js"></script>
+</body>
+</html>

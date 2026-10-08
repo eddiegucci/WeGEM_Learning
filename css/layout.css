@@ -1,0 +1,337 @@
+/* =========================================================
+   WeGEM Learning — layout.css
+   Top nav, container, content areas, footer, mobile nav
+   ========================================================= */
+
+/* ---------- TOP NAV (floating pill) ---------- */
+
+.top-nav {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-nav);
+  width: calc(100% - 24px);
+  max-width: var(--container-max);
+  height: var(--top-nav-height);
+  padding: 6px 6px 6px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  background: var(--nav-bg);
+  backdrop-filter: saturate(160%) blur(16px);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-lg);
+}
+
+.top-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: opacity var(--transition-fast);
+}
+
+.top-nav-brand:hover {
+  opacity: 0.85;
+}
+
+.top-nav-brand svg,
+.top-nav-brand .brand-mark-mini {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.top-nav-brand span:last-child {
+  color: #fff;
+}
+
+.top-nav-links {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  justify-content: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 6px;
+}
+
+.top-nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+.top-nav-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.top-nav-links a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.top-nav-links a.active {
+  color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.top-nav-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border-radius: var(--radius-pill);
+  background: var(--gold-soft);
+  border: 1px solid var(--border-gold);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.top-nav-user:hover {
+  background: var(--gold);
+  color: var(--text-inverse);
+}
+
+.top-nav-user:hover .user-avatar {
+  background: var(--text-inverse);
+  color: var(--gold);
+}
+
+.user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), var(--gold-2));
+  color: var(--text-inverse);
+  font-size: 12px;
+  font-weight: 900;
+  flex-shrink: 0;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.user-name {
+  font-weight: 600;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- MAIN CONTAINER ---------- */
+
+.container {
+  position: relative;
+  z-index: var(--z-base);
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 24px 28px 60px;
+  flex: 1;
+}
+
+/* ---------- PAGE HEAD ---------- */
+
+.page-head {
+  margin-bottom: 22px;
+}
+
+.page-title {
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  margin: 4px 0 8px;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+}
+
+.page-sub {
+  color: var(--text-dim);
+  font-size: 14.5px;
+  max-width: 640px;
+  line-height: 1.6;
+}
+
+.page-sub kbd {
+  margin: 0 1px;
+}
+
+.section-label {
+  color: var(--gold);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.025em;
+  margin-bottom: 12px;
+}
+
+.section-sub {
+  color: var(--text-dim);
+  font-size: 15px;
+  max-width: 620px;
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+/* ---------- APP FOOTER ---------- */
+
+.app-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px 8px 0;
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-mute);
+  position: relative;
+  z-index: var(--z-base);
+}
+
+.footer-left,
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-bulb {
+  font-size: 14px;
+  color: var(--gold);
+}
+
+.dot-sep {
+  opacity: 0.4;
+}
+
+/* Kenyan flag mini icon */
+.flag-mini {
+  position: relative;
+  display: inline-block;
+  width: 22px;
+  height: 14px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 25%,
+    #bb0a1e 25%,
+    #bb0a1e 33%,
+    #fff 33%,
+    #fff 41%,
+    #bb0a1e 41%,
+    #bb0a1e 49%,
+    #000 49%,
+    #000 66%,
+    #006600 66%,
+    #006600 100%
+  );
+  flex-shrink: 0;
+}
+
+.flag-mini::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #bb0a1e 40%, transparent 42%);
+  opacity: 0.9;
+}
+
+/* ---------- APP SHELL (for pages that still need it) ---------- */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: transparent;
+}
+
+.main-area {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.content {
+  padding: 24px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+/* ---------- RESPONSIVE LAYOUT ---------- */
+
+@media (max-width: 900px) {
+  .container {
+    padding: 20px 18px 50px;
+  }
+
+  .content {
+    padding: 18px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 16px 14px 96px;
+  }
+
+  .page-sub {
+    font-size: 14px;
+  }
+
+  .app-footer {
+    font-size: 11.5px;
+    padding: 16px 4px 0;
+    flex-direction: column;
+    text-align: center;
+  }
+}
