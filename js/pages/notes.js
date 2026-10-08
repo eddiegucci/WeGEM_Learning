@@ -55,10 +55,11 @@ const els = {
   notesList: document.getElementById("notesList"),
   subjectFilterBar: document.getElementById("subjectFilterBar"),
   searchInput: document.getElementById("notesSearch"),
+  openAddBtn: document.getElementById("openAddBtn"),
 
+  // Tray
   tray: document.getElementById("noteTray"),
   trayBackdrop: document.getElementById("noteTrayBackdrop"),
-  trayBadge: document.getElementById("noteTrayBadge"),
   trayCloseBtn: document.getElementById("noteTrayCloseBtn"),
   trayCancelBtn: document.getElementById("noteTrayCancelBtn"),
   traySaveBtn: document.getElementById("noteTraySaveBtn"),
@@ -92,7 +93,6 @@ async function setupUser() {
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
 
-  // Load full user doc
   try {
     let doc = await getCachedUserFromIDB(user.uid);
     if (!doc) {
@@ -110,16 +110,6 @@ async function setupUser() {
   }
 
   return true;
-}
-
-/* =========================================================
-   TAP BADGE
-   ========================================================= */
-
-function updateTrayBadge() {
-  if (!els.trayBadge) return;
-  const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-  els.trayBadge.textContent = isTouch ? "Tap 6× to open" : "Ctrl+Shift+Alt+N";
 }
 
 /* =========================================================
@@ -154,7 +144,7 @@ function applyFilters() {
 }
 
 /* =========================================================
-   FILTER BAR
+   SUBJECT FILTER BAR
    ========================================================= */
 
 function renderFilterBar() {
@@ -164,13 +154,9 @@ function renderFilterBar() {
   const level =
     state.userDoc?.level || (curriculum === "CBE" ? "Grade 9" : "Form 4");
 
-  // Preferred: user's selected subjects
   let subjects = state.userDoc?.subjects || [];
-
-  // Fallback: all subjects for their level
   if (!subjects.length) subjects = getSubjects(curriculum, level);
 
-  // Additional: subjects that actually have notes
   const noteSubjects = extractSubjects(state.notes);
   const combined = Array.from(new Set([...subjects, ...noteSubjects]));
 
@@ -208,16 +194,19 @@ function renderNotes() {
   if (!els.notesList) return;
 
   if (!state.filtered.length) {
-    const hasAnyNotes = state.notes.length > 0;
+    const hasAny = state.notes.length > 0;
+
     els.notesList.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1;">
         <div class="empty-icon">📖</div>
-        <div class="empty-title">${hasAnyNotes ? "No notes match your filter" : "No notes here yet"}</div>
+        <div class="empty-title">
+          ${hasAny ? "No notes match your filter" : "No notes yet"}
+        </div>
         <div class="empty-sub">
           ${
-            hasAnyNotes
+            hasAny
               ? "Try clearing the search or choosing a different subject."
-              : `On desktop press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> · On mobile tap this page 6 times`
+              : 'Tap "Add Note" to create your first study note.'
           }
         </div>
       </div>
@@ -245,7 +234,10 @@ function renderNoteCard(note) {
 
   const keyPointsHtml =
     Array.isArray(note.keyPoints) && note.keyPoints.length
-      ? `<ul class="note-keypoints">${note.keyPoints.map((k) => `<li>${escapeHTML(k)}</li>`).join("")}</ul>`
+      ? `<ul class="note-keypoints">${note.keyPoints
+          .slice(0, 5)
+          .map((k) => `<li>${escapeHTML(k)}</li>`)
+          .join("")}</ul>`
       : "";
 
   const quizUrl = `quiz.html?subject=${encodeURIComponent(note.subject || "")}`;
@@ -253,12 +245,18 @@ function renderNoteCard(note) {
   return `
     <article class="note-card-v2" data-note-id="${note.id || ""}">
       <header class="note-v2-head">
-        <div class="note-v2-icon" style="background: ${color}22; color: ${color};">${icon}</div>
+        <div class="note-v2-icon" style="background: ${color}22; color: ${color};">
+          ${icon}
+        </div>
         <div class="note-v2-meta">
           <div class="note-v2-subject">${escapeHTML(note.subject || "General")}</div>
           <div class="note-v2-topic">${escapeHTML(note.topic || "Untitled")}</div>
         </div>
-        ${canDelete ? `<button class="note-v2-remove" type="button" data-note-delete="${note.id}" title="Delete" aria-label="Delete note">×</button>` : ""}
+        ${
+          canDelete
+            ? `<button class="note-v2-remove" type="button" data-note-delete="${note.id}" title="Delete" aria-label="Delete note">×</button>`
+            : ""
+        }
       </header>
       ${note.summary ? `<p class="note-v2-summary">${escapeHTML(note.summary)}</p>` : ""}
       ${keyPointsHtml}
@@ -314,14 +312,12 @@ async function handleDeleteNote(id) {
 function openTray() {
   if (!els.tray || !els.trayBackdrop) return;
 
-  // Populate subject dropdown
   populateSubjectDropdown();
 
   els.trayBackdrop.classList.add("open");
   els.tray.classList.add("open");
   els.tray.setAttribute("aria-hidden", "false");
 
-  // Clear fields
   if (els.noteTopic) els.noteTopic.value = "";
   if (els.noteSummary) els.noteSummary.value = "";
   if (els.noteKeyPoints) els.noteKeyPoints.value = "";
@@ -405,7 +401,6 @@ async function saveNote() {
       createdByName: state.userDoc?.name || "",
     });
 
-    // Add to local state
     state.notes.unshift({ ...note, source: "user" });
 
     toastOk("✓ Note saved");
@@ -418,7 +413,7 @@ async function saveNote() {
   } finally {
     if (els.traySaveBtn) {
       els.traySaveBtn.disabled = false;
-      els.traySaveBtn.textContent = "Save Note →";
+      els.traySaveBtn.textContent = "Save Note";
     }
   }
 }
@@ -466,26 +461,26 @@ async function init() {
     if (!ready) return;
 
     initNav();
-    updateTrayBadge();
 
-    // Wire search
+    // Search
     els.searchInput?.addEventListener("input", (e) => {
       debouncedSearch(e.target.value.trim());
     });
 
-    // Wire tray controls
+    // Tray controls
+    els.openAddBtn?.addEventListener("click", openTray);
     els.trayCloseBtn?.addEventListener("click", closeTray);
     els.trayCancelBtn?.addEventListener("click", closeTray);
     els.trayBackdrop?.addEventListener("click", closeTray);
     els.traySaveBtn?.addEventListener("click", saveNote);
 
-    // Keyboard shortcut
+    // Hidden keyboard shortcut (still works, just not advertised)
     bindShortcut("ctrl+shift+alt+n", () => {
       if (els.tray.classList.contains("open")) closeTray();
       else openTray();
     });
 
-    // Mobile tap shortcut — 6 taps
+    // Hidden mobile tap shortcut (6 taps)
     installTapShortcuts({
       6: () => {
         if (!els.tray.classList.contains("open")) openTray();
@@ -501,7 +496,7 @@ async function init() {
     // User menu
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
 
-    // Load notes
+    // Load content
     await loadNotes();
     renderFilterBar();
 
