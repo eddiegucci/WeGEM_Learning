@@ -14,8 +14,6 @@ import {
   addQuestion,
   deleteQuestion,
   listQuestions,
-  addNote,
-  listNotes,
   getContentCounts,
 } from "../features/admin.js";
 import {
@@ -33,9 +31,8 @@ import {
   escapeHTML,
   firstName,
   initials,
-  formatDateTime,
-  timeAgo,
   log,
+  debounce,
 } from "../core/utils.js";
 
 /* =========================================================
@@ -67,16 +64,17 @@ const els = {
 
   tabContent: document.getElementById("tabContent"),
   tabUsers: document.getElementById("tabUsers"),
+  tabBulk: document.getElementById("tabBulk"),
   tabSeed: document.getElementById("tabSeed"),
 
-  // Add question form
+  // Add question
   addQuestionForm: document.getElementById("addQuestionForm"),
   toggleAddQuestion: document.getElementById("toggleAddQuestion"),
   qExam: document.getElementById("qExam"),
   qSubject: document.getElementById("qSubject"),
   qTopic: document.getElementById("qTopic"),
   qText: document.getElementById("qText"),
-  qOptions: document.getElementById("qOptions"),
+  qMarkpoints: document.getElementById("qMarkpoints"),
   qExplain: document.getElementById("qExplain"),
   qError: document.getElementById("qError"),
   addQuestionBtn: document.getElementById("addQuestionBtn"),
@@ -87,6 +85,21 @@ const els = {
   usersList: document.getElementById("usersList"),
   refreshUsers: document.getElementById("refreshUsers"),
 
+  // Bulk add
+  bulkText: document.getElementById("bulkText"),
+  bulkPreview: document.getElementById("bulkPreview"),
+  bulkPreviewTitle: document.getElementById("bulkPreviewTitle"),
+  bulkPreviewList: document.getElementById("bulkPreviewList"),
+  bulkError: document.getElementById("bulkError"),
+  bulkProgress: document.getElementById("bulkProgress"),
+  bulkBar: document.getElementById("bulkBar"),
+  bulkStatus: document.getElementById("bulkStatus"),
+  bulkUploadBtn: document.getElementById("bulkUploadBtn"),
+  bulkClearBtn: document.getElementById("bulkClearBtn"),
+  showBulkFormat: document.getElementById("showBulkFormat"),
+  bulkFormat: document.getElementById("bulkFormat"),
+
+  // Seed
   seedAllBtn: document.getElementById("seedAllBtn"),
   seedQuestionsBtn: document.getElementById("seedQuestionsBtn"),
   seedNotesBtn: document.getElementById("seedNotesBtn"),
@@ -105,6 +118,7 @@ async function setupUser() {
     window.location.replace("login.html");
     return false;
   }
+
   state.user = user;
 
   const cached = getCachedUser();
@@ -113,6 +127,7 @@ async function setupUser() {
     user.displayName ||
     user.email?.split("@")[0] ||
     "Admin";
+
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
 
@@ -129,7 +144,6 @@ async function setupUser() {
       if (els.userNameTop) els.userNameTop.textContent = firstName(doc.name);
     }
 
-    // Role check
     if (doc?.role !== "admin") {
       toastErr("Admin access required.");
       setTimeout(() => window.location.replace("home.html"), 800);
@@ -155,10 +169,15 @@ function switchTab(tabId) {
     t.classList.toggle("active", t.dataset.tab === tabId);
   });
 
+  const idMap = {
+    content: "tabContent",
+    users: "tabUsers",
+    bulk: "tabBulk",
+    seed: "tabSeed",
+  };
+
   document.querySelectorAll(".admin-tab-panel").forEach((panel) => {
-    const isActive =
-      panel.id === "tab" + tabId.charAt(0).toUpperCase() + tabId.slice(1);
-    panel.classList.toggle("hidden", !isActive);
+    panel.classList.toggle("hidden", panel.id !== idMap[tabId]);
   });
 
   if (tabId === "content") loadQuestions();
@@ -206,7 +225,7 @@ async function loadQuestions() {
         <div class="empty-state" style="border: none; background: none;">
           <div class="empty-icon">📝</div>
           <div class="empty-title">No questions yet</div>
-          <div class="empty-sub">Add one above or seed starter content.</div>
+          <div class="empty-sub">Add one above or use Bulk Add.</div>
         </div>
       `;
       return;
@@ -216,12 +235,18 @@ async function loadQuestions() {
       .map((q) => {
         const color = getSubjectColor(q.subject);
         const icon = getSubjectIcon(q.subject);
+        const type = q.type === "mcq" ? "MCQ" : "Open";
+        const marks =
+          q.totalMarks ||
+          (q.markpoints || []).length ||
+          (q.options || []).length;
+
         return `
-        <div class="admin-list-row" style="padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: flex-start;">
-          <div class="subject-icon" style="background: ${color}22; color: ${color}; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
+        <div style="padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: flex-start;">
+          <div style="background: ${color}22; color: ${color}; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">${icon}</div>
           <div style="flex: 1; min-width: 0;">
             <div style="font-size: 13.5px; color: #fff; font-weight: 600; margin-bottom: 4px;">${escapeHTML(q.q || "")}</div>
-            <div style="font-size: 11.5px; color: var(--text-mute);">${escapeHTML(q.exam || "")} · ${escapeHTML(q.subject || "")} · ${escapeHTML(q.topic || "")}</div>
+            <div style="font-size: 11.5px; color: var(--text-mute);">${escapeHTML(q.exam || "")} · ${escapeHTML(q.subject || "")} · ${escapeHTML(q.topic || "")} · ${type} · ${marks} mark${marks === 1 ? "" : "s"}</div>
           </div>
           <button class="elb-remove" type="button" data-delete-q="${q.id}" title="Delete">×</button>
         </div>
@@ -269,7 +294,7 @@ async function handleDeleteQuestion(id) {
 }
 
 /* =========================================================
-   ADD QUESTION
+   ADD QUESTION (single form)
    ========================================================= */
 
 function showQuestionError(msg) {
@@ -291,20 +316,20 @@ async function handleAddQuestion() {
   const subject = (els.qSubject?.value || "").trim();
   const topic = (els.qTopic?.value || "").trim() || "General";
   const q = (els.qText?.value || "").trim();
-  const optionsRaw = (els.qOptions?.value || "").trim();
+  const rawMarkpoints = (els.qMarkpoints?.value || "").trim();
   const explain = (els.qExplain?.value || "").trim();
 
   if (!subject) return showQuestionError("Subject is required.");
   if (!q) return showQuestionError("Question text is required.");
 
-  const options = optionsRaw
+  const markpoints = rawMarkpoints
     .split("\n")
-    .map((o) => o.trim())
+    .map((line) => line.trim())
     .filter(Boolean);
-  if (options.length < 2)
-    return showQuestionError(
-      "Please provide at least 2 options (one per line).",
-    );
+
+  if (markpoints.length < 1) {
+    return showQuestionError("Please provide at least 1 markpoint.");
+  }
 
   els.addQuestionBtn.disabled = true;
   els.addQuestionBtn.textContent = "Adding…";
@@ -315,16 +340,18 @@ async function handleAddQuestion() {
       subject,
       topic,
       q,
-      options,
-      answer: 0, // first option is always correct in this simple form
+      markpoints,
+      totalMarks: markpoints.length,
       explain,
+      type: "open",
     });
 
     toastOk("Question added");
-    // Clear form
+
     if (els.qText) els.qText.value = "";
-    if (els.qOptions) els.qOptions.value = "";
+    if (els.qMarkpoints) els.qMarkpoints.value = "";
     if (els.qExplain) els.qExplain.value = "";
+
     loadQuestions();
     loadStats();
   } catch (e) {
@@ -362,8 +389,9 @@ async function loadUsers() {
       .map((u) => {
         const isAdmin = u.role === "admin";
         const isMe = u.uid === state.user.uid;
+
         return `
-        <div class="admin-list-row" style="padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: center;">
+        <div style="padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: center;">
           <div class="user-avatar" style="width: 34px; height: 34px; font-size: 13px;">${initials(u.name || u.email || "?")}</div>
           <div style="flex: 1; min-width: 0;">
             <div style="font-size: 13.5px; color: #fff; font-weight: 600;">${escapeHTML(u.name || "—")}${isMe ? " (you)" : ""}</div>
@@ -417,6 +445,229 @@ async function handleToggleAdmin(uid, currentRole) {
     log.warn("Toggle admin failed:", e);
     toastErr("Could not change role.");
   }
+}
+
+/* =========================================================
+   BULK ADD — parse pasted text
+   ========================================================= */
+
+function parseBulkText(text) {
+  const questions = [];
+  const errors = [];
+
+  const blocks = text
+    .split(/\n\s*---\s*\n|\n\n\n+/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+
+  blocks.forEach((block, blockIdx) => {
+    const lines = block.split("\n").map((l) => l.trim());
+    const q = {
+      exam: "",
+      subject: "",
+      topic: "",
+      question: "",
+      markpoints: [],
+      explain: "",
+    };
+
+    let inQuestion = false;
+
+    lines.forEach((line) => {
+      if (!line) return;
+
+      const match = line.match(/^([A-Z][A-Z\s]*?):\s*(.*)$/i);
+      if (match) {
+        const key = match[1].toUpperCase().trim();
+        const value = match[2].trim();
+
+        switch (key) {
+          case "EXAM":
+            q.exam = value.toUpperCase();
+            inQuestion = false;
+            break;
+          case "SUBJECT":
+            q.subject = value;
+            inQuestion = false;
+            break;
+          case "TOPIC":
+            q.topic = value;
+            inQuestion = false;
+            break;
+          case "QUESTION":
+          case "Q":
+            q.question = value;
+            inQuestion = true;
+            break;
+          case "MARKPOINT":
+          case "MARK":
+          case "MP":
+            if (value) q.markpoints.push(value);
+            inQuestion = false;
+            break;
+          case "EXPLAIN":
+          case "EXPLANATION":
+            q.explain = value;
+            inQuestion = false;
+            break;
+          default:
+            if (inQuestion) q.question += " " + line;
+        }
+      } else if (inQuestion) {
+        q.question += " " + line;
+      }
+    });
+
+    const blockErrors = [];
+    if (!q.exam) blockErrors.push("missing EXAM");
+    else if (!["KCSE", "KJSEA", "KPSEA"].includes(q.exam)) {
+      blockErrors.push(`invalid EXAM "${q.exam}" (use KCSE, KJSEA, or KPSEA)`);
+    }
+    if (!q.subject) blockErrors.push("missing SUBJECT");
+    if (!q.topic) blockErrors.push("missing TOPIC");
+    if (!q.question) blockErrors.push("missing QUESTION");
+    if (q.markpoints.length < 1) blockErrors.push("needs at least 1 MARKPOINT");
+
+    if (blockErrors.length) {
+      errors.push(`Question #${blockIdx + 1}: ${blockErrors.join(", ")}`);
+    } else {
+      questions.push({
+        ...q,
+        totalMarks: q.markpoints.length,
+        type: "open",
+      });
+    }
+  });
+
+  return { questions, errors };
+}
+
+function previewBulk() {
+  if (!els.bulkText || !els.bulkPreview || !els.bulkUploadBtn) return;
+
+  const text = els.bulkText.value.trim();
+  if (!text) {
+    els.bulkPreview.classList.add("hidden");
+    els.bulkUploadBtn.disabled = true;
+    return;
+  }
+
+  const { questions, errors } = parseBulkText(text);
+
+  els.bulkPreview.classList.remove("hidden");
+
+  if (errors.length) {
+    els.bulkPreviewTitle.textContent = `⚠️ ${errors.length} problem${errors.length === 1 ? "" : "s"}`;
+    els.bulkPreviewTitle.style.color = "#fca5a5";
+    els.bulkPreviewList.innerHTML = errors
+      .map((e) => `<div class="bulk-error-line">${escapeHTML(e)}</div>`)
+      .join("");
+    els.bulkUploadBtn.disabled = true;
+  } else {
+    els.bulkPreviewTitle.textContent = `✓ ${questions.length} question${questions.length === 1 ? "" : "s"} ready`;
+    els.bulkPreviewTitle.style.color = "var(--green-2)";
+    els.bulkPreviewList.innerHTML = questions
+      .map(
+        (q, i) => `
+      <div class="bulk-preview-item">
+        <div class="bulk-preview-num">${i + 1}</div>
+        <div class="bulk-preview-body">
+          <div class="bulk-preview-meta">${escapeHTML(q.exam)} · ${escapeHTML(q.subject)} · ${escapeHTML(q.topic)}</div>
+          <div class="bulk-preview-q">${escapeHTML(q.question)}</div>
+          <div class="bulk-preview-marks">${q.markpoints.length} markpoint${q.markpoints.length === 1 ? "" : "s"}</div>
+        </div>
+      </div>
+    `,
+      )
+      .join("");
+    els.bulkUploadBtn.disabled = false;
+  }
+}
+
+async function uploadBulk() {
+  if (!els.bulkText || !els.bulkUploadBtn) return;
+
+  const text = els.bulkText.value.trim();
+  const { questions, errors } = parseBulkText(text);
+
+  if (errors.length) {
+    toastErr("Fix the errors before uploading.");
+    return;
+  }
+  if (!questions.length) {
+    toastErr("Nothing to upload.");
+    return;
+  }
+
+  els.bulkUploadBtn.disabled = true;
+  els.bulkUploadBtn.textContent = "Uploading…";
+
+  if (els.bulkProgress) els.bulkProgress.classList.remove("hidden");
+
+  let success = 0;
+  let failed = 0;
+
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    const pct = Math.round(((i + 1) / questions.length) * 100);
+
+    if (els.bulkBar) els.bulkBar.style.width = pct + "%";
+    if (els.bulkStatus) {
+      els.bulkStatus.textContent = `Uploading ${i + 1} of ${questions.length}…`;
+    }
+
+    try {
+      await addQuestion({
+        exam: q.exam,
+        subject: q.subject,
+        topic: q.topic,
+        q: q.question,
+        markpoints: q.markpoints,
+        totalMarks: q.totalMarks,
+        explain: q.explain,
+        type: "open",
+      });
+      success++;
+    } catch (e) {
+      log.warn("Upload failed for question", i + 1, e);
+      failed++;
+    }
+  }
+
+  if (els.bulkStatus) {
+    els.bulkStatus.textContent = `Done. ${success} added, ${failed} failed.`;
+  }
+
+  toastOk(`✓ ${success} questions added${failed ? `, ${failed} failed` : ""}`);
+
+  if (success > 0) {
+    setTimeout(() => {
+      if (els.bulkText) els.bulkText.value = "";
+      previewBulk();
+      if (els.bulkProgress) els.bulkProgress.classList.add("hidden");
+      if (els.bulkBar) els.bulkBar.style.width = "0%";
+    }, 2200);
+  }
+
+  els.bulkUploadBtn.disabled = false;
+  els.bulkUploadBtn.textContent = "Add All to Firestore →";
+
+  loadQuestions();
+  loadStats();
+}
+
+function wireBulk() {
+  els.bulkText?.addEventListener("input", debounce(previewBulk, 300));
+  els.bulkUploadBtn?.addEventListener("click", uploadBulk);
+
+  els.bulkClearBtn?.addEventListener("click", () => {
+    if (els.bulkText) els.bulkText.value = "";
+    previewBulk();
+  });
+
+  els.showBulkFormat?.addEventListener("click", () => {
+    els.bulkFormat?.classList.toggle("hidden");
+  });
 }
 
 /* =========================================================
@@ -482,7 +733,7 @@ async function handleSeedAll() {
 
   const ok = await confirmDialog({
     title: "Seed all content?",
-    message: `This will add ${SEED_QUESTIONS.length} questions and ${SEED_NOTES.length} notes to Firestore.`,
+    message: `This will add ${SEED_QUESTIONS.length} questions and ${SEED_NOTES.length} notes.`,
     okLabel: "Seed Everything",
     cancelLabel: "Cancel",
   });
@@ -501,7 +752,7 @@ async function handleSeedAll() {
 
     setSeedProgress(
       100,
-      `Done! Added ${qResult.added} questions, ${nResult.added} notes.`,
+      `Done! ${qResult.added} questions, ${nResult.added} notes.`,
     );
     toastOk(`✓ Seeded ${qResult.added + nResult.added} items`);
     loadStats();
@@ -550,12 +801,12 @@ async function init() {
 
     initNav();
 
-    // Wire tab switching
+    // Tab switching
     document.querySelectorAll(".admin-tabs .lb-tab").forEach((tab) => {
       tab.addEventListener("click", () => switchTab(tab.dataset.tab));
     });
 
-    // Wire content
+    // Content tab
     els.toggleAddQuestion?.addEventListener("click", () => {
       els.addQuestionForm?.classList.toggle("hidden");
     });
@@ -563,12 +814,15 @@ async function init() {
     els.refreshQuestions?.addEventListener("click", loadQuestions);
     els.refreshUsers?.addEventListener("click", loadUsers);
 
-    // Wire seed
+    // Bulk add
+    wireBulk();
+
+    // Seed tab
     els.seedAllBtn?.addEventListener("click", handleSeedAll);
     els.seedQuestionsBtn?.addEventListener("click", handleSeedQuestions);
     els.seedNotesBtn?.addEventListener("click", handleSeedNotes);
 
-    // Wire user menu
+    // User menu
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
 
     // Initial load

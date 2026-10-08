@@ -10,7 +10,6 @@
   <title>Admin — WeGEM Learning</title>
 
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
   <link rel="stylesheet" href="css/main.css">
   <script src="js/core/wallpaper-init.js"></script>
 </head>
@@ -47,7 +46,7 @@
   <section class="page-head">
     <div class="section-label">Administration</div>
     <h1 class="page-title">Admin Panel</h1>
-    <p class="page-sub">Manage users, seed content, and monitor the app.</p>
+    <p class="page-sub">Manage content, users, and the app.</p>
   </section>
 
   <!-- Stats overview -->
@@ -82,6 +81,7 @@
   <div class="admin-tabs">
     <button class="lb-tab active" data-tab="content" type="button">📚 Content</button>
     <button class="lb-tab" data-tab="users" type="button">👥 Users</button>
+    <button class="lb-tab" data-tab="bulk" type="button">📦 Bulk Add</button>
     <button class="lb-tab" data-tab="seed" type="button">🌱 Seed</button>
   </div>
 
@@ -105,13 +105,13 @@
           </label>
           <label class="field">
             <span>Subject</span>
-            <input type="text" id="qSubject" placeholder="e.g. Mathematics">
+            <input type="text" id="qSubject" placeholder="e.g. Mathematics" autocomplete="off">
           </label>
         </div>
 
         <label class="field">
           <span>Topic</span>
-          <input type="text" id="qTopic" placeholder="e.g. Integration">
+          <input type="text" id="qTopic" placeholder="e.g. Integration" autocomplete="off">
         </label>
 
         <label class="field">
@@ -120,13 +120,13 @@
         </label>
 
         <label class="field">
-          <span>Options (one per line — first is correct)</span>
-          <textarea id="qOptions" rows="4" placeholder="Correct answer&#10;Option B&#10;Option C&#10;Option D"></textarea>
+          <span>Markpoints (one per line)</span>
+          <textarea id="qMarkpoints" rows="4" placeholder="Controls what enters and leaves the cell&#10;Selectively permeable&#10;Protects the cell contents"></textarea>
         </label>
 
         <label class="field">
           <span>Explanation (shown after answering)</span>
-          <textarea id="qExplain" rows="2" placeholder="Why is the first option correct?"></textarea>
+          <textarea id="qExplain" rows="2" placeholder="Why are these markpoints correct?"></textarea>
         </label>
 
         <div id="qError" class="alert alert-error hidden"></div>
@@ -161,6 +161,79 @@
     </div>
   </section>
 
+  <!-- ============ BULK ADD TAB ============ -->
+  <section id="tabBulk" class="admin-tab-panel hidden">
+    <div class="panel">
+      <div class="panel-head-inline">
+        <div>
+          <div class="panel-title-lg">📦 Bulk Add Questions</div>
+          <div class="panel-sub-sm">Paste questions in the format below. Each will be added to Firestore.</div>
+        </div>
+        <button class="link-sm" id="showBulkFormat" type="button">Show format</button>
+      </div>
+
+      <div id="bulkFormat" class="bulk-format hidden">
+<pre>
+EXAM: KCSE
+SUBJECT: Biology
+TOPIC: Cell Structure
+QUESTION: State three functions of the cell membrane.
+MARKPOINT: Controls what enters and leaves the cell
+MARKPOINT: Selectively permeable
+MARKPOINT: Protects the cell contents
+EXPLAIN: The cell membrane is the selectively permeable boundary of the cell.
+---
+
+EXAM: KCSE
+SUBJECT: Mathematics
+TOPIC: Quadratic Equations
+QUESTION: Solve x² − 5x + 6 = 0
+MARKPOINT: x = 2
+MARKPOINT: x = 3
+EXPLAIN: Factorise as (x − 2)(x − 3) = 0.
+---
+
+Rules:
+• Use --- between questions
+• Every question needs EXAM, SUBJECT, TOPIC, QUESTION, and at least one MARKPOINT
+• EXAM must be KCSE, KJSEA, or KPSEA
+• Each MARKPOINT is one line
+• EXPLAIN is optional
+</pre>
+      </div>
+
+      <label class="field" style="margin-top: 16px;">
+        <span>Paste questions here</span>
+        <textarea id="bulkText" rows="14" placeholder="EXAM: KCSE&#10;SUBJECT: Biology&#10;TOPIC: Cell Structure&#10;QUESTION: State three functions of the cell membrane.&#10;MARKPOINT: Controls what enters and leaves the cell&#10;MARKPOINT: Selectively permeable&#10;MARKPOINT: Protects the cell contents&#10;EXPLAIN: The cell membrane is the selectively permeable boundary of the cell.&#10;---"></textarea>
+      </label>
+
+      <div id="bulkPreview" class="bulk-preview hidden">
+        <div class="bulk-preview-header">
+          <div class="bulk-preview-title" id="bulkPreviewTitle">Preview</div>
+        </div>
+        <div id="bulkPreviewList" class="bulk-preview-list"></div>
+      </div>
+
+      <div id="bulkError" class="alert alert-error hidden"></div>
+
+      <div id="bulkProgress" class="hidden" style="margin-top: 16px;">
+        <div class="progress-bar">
+          <div class="progress-fill" id="bulkBar" style="width: 0%;"></div>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-mute); margin-top: 8px; text-align: center;" id="bulkStatus">
+          Ready
+        </p>
+      </div>
+
+      <div class="tray-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+        <button class="btn btn-ghost" id="bulkClearBtn" type="button">Clear</button>
+        <button class="btn btn-primary" id="bulkUploadBtn" type="button" disabled>
+          Add All to Firestore →
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ SEED TAB ============ -->
   <section id="tabSeed" class="admin-tab-panel hidden">
     <div class="panel">
@@ -168,12 +241,12 @@
         <div class="panel-title-lg">🌱 Seed Starter Content</div>
       </div>
       <p style="color: var(--text-dim); font-size: 13.5px; line-height: 1.6; margin-bottom: 20px;">
-        This will add the built-in starter questions and notes to Firestore.
-        Run once. Safe to run again (duplicates may occur).
+        Adds the built-in starter questions and notes to Firestore.
+        Safe to run again, but duplicates may occur.
       </p>
 
       <div class="alert alert-warn" style="margin-bottom: 16px;">
-        ⚠️ Only run this on a fresh database or when you want to add more sample content.
+        ⚠️ Only run on a fresh database, or when you want to add more sample content.
       </div>
 
       <div id="seedProgress" class="hidden" style="margin-bottom: 16px;">
@@ -199,7 +272,6 @@
     </div>
   </section>
 
-  <!-- Footer -->
   <footer class="app-footer">
     <div class="footer-left">
       <span class="footer-bulb">💡</span>
