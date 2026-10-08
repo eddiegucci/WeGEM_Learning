@@ -6,7 +6,7 @@ export default {
   subject: "Business Studies",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Business Studies - Set 2",
+  title: "Business Studies — Set 2",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

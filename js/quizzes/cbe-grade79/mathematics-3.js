@@ -6,7 +6,7 @@ export default {
   subject: "Mathematics",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Mathematics - Set 3",
+  title: "Mathematics — Set 3",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

@@ -6,7 +6,7 @@ export default {
   subject: "Integrated Science",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Integrated Science - Set 2",
+  title: "Integrated Science — Set 2",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

@@ -6,7 +6,7 @@ export default {
   subject: "Indigenous Languages",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Indigenous Languages - Set 1",
+  title: "Indigenous Languages — Set 1",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

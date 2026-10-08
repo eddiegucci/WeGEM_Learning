@@ -6,7 +6,7 @@ export default {
   subject: "Home Science",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Home Science - Set 1",
+  title: "Home Science — Set 1",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

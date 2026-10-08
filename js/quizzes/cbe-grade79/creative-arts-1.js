@@ -6,7 +6,7 @@ export default {
   subject: "Creative Arts",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Creative Arts - Set 1",
+  title: "Creative Arts — Set 1",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

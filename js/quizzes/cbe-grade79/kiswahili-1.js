@@ -6,7 +6,7 @@ export default {
   subject: "Kiswahili",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Kiswahili - Set 1",
+  title: "Kiswahili — Set 1",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

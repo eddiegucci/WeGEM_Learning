@@ -6,7 +6,7 @@ export default {
   subject: "Health Education",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Health Education - Set 1",
+  title: "Health Education — Set 1",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

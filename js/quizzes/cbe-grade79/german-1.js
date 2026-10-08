@@ -6,7 +6,7 @@ export default {
   subject: "German",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "German - Set 1",
+  title: "German — Set 1",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

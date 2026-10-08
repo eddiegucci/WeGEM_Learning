@@ -6,7 +6,7 @@ export default {
   subject: "Sports and Physical Education",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Sports and Physical Education - Set 2",
+  title: "Sports and Physical Education — Set 2",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

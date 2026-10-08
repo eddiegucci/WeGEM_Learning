@@ -6,7 +6,7 @@ export default {
   subject: "Pre-Technical and Pre-Career Studies",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Pre-Technical and Pre-Career Studies - Set 3",
+  title: "Pre-Technical and Pre-Career Studies — Set 3",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

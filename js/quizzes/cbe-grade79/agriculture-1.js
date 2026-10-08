@@ -6,7 +6,7 @@ export default {
   subject: "Agriculture",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "Agriculture - Set 1",
+  title: "Agriculture — Set 1",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,

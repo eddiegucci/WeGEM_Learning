@@ -6,7 +6,7 @@ export default {
   subject: "CRE",
   grade: "Grades 7-9",
   curriculum: "CBE",
-  title: "CRE - Set 3",
+  title: "CRE — Set 3",
   description: "Coming soon.",
   duration: 30 * 60,
   totalMarks: 0,
