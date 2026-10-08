@@ -1,0 +1,471 @@
+/* =========================================================
+   WeGEM Learning — polish.css
+   Final layer. Overrides everything else. Loaded LAST.
+   ========================================================= */
+
+/* ---------- CHIPS ---------- */
+
+.chip,
+.filter-chip,
+.filter-bar .chip,
+.notes-subject-bar .chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 9px 18px !important;
+  border-radius: 100px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #a3aec6 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+  letter-spacing: -0.005em !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  flex-shrink: 0 !important;
+}
+
+.chip:hover,
+.filter-chip:hover,
+.filter-bar .chip:hover,
+.notes-subject-bar .chip:hover {
+  background: rgba(251, 191, 36, 0.08) !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+  color: #fbbf24 !important;
+  transform: translateY(-1px) !important;
+}
+
+.chip.active,
+.filter-chip.active,
+.filter-bar .chip.active,
+.notes-subject-bar .chip.active {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.18),
+    rgba(245, 158, 11, 0.12)
+  ) !important;
+  border-color: rgba(251, 191, 36, 0.55) !important;
+  color: #fbbf24 !important;
+  box-shadow:
+    0 0 0 3px rgba(251, 191, 36, 0.08),
+    0 4px 14px -4px rgba(251, 191, 36, 0.3) !important;
+  font-weight: 700 !important;
+}
+
+.chip-count {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 22px !important;
+  padding: 2px 7px !important;
+  border-radius: 100px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: inherit !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  opacity: 0.85 !important;
+}
+
+.chip.active .chip-count {
+  background: rgba(251, 191, 36, 0.2) !important;
+  color: #fbbf24 !important;
+  opacity: 1 !important;
+}
+
+/* ---------- FILTER BAR ---------- */
+
+.filter-bar {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 22px !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 4px 2px !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.filter-bar::-webkit-scrollbar {
+  display: none !important;
+}
+
+.filter-bar > * {
+  flex-shrink: 0 !important;
+}
+
+/* ---------- SEARCH BARS ---------- */
+
+.search-bar,
+.notes-search,
+.topbar-search {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 480px !important;
+  margin-bottom: 20px !important;
+}
+
+.search-bar svg,
+.notes-search svg,
+.topbar-search svg,
+.search-bar .search-icon,
+.notes-search svg,
+.topbar-search .search-icon {
+  position: absolute !important;
+  left: 18px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #6b7590 !important;
+  pointer-events: none !important;
+  width: 17px !important;
+  height: 17px !important;
+  transition: color 0.18s ease !important;
+}
+
+.search-bar input,
+.notes-search input,
+.topbar-search input,
+#notesSearch,
+#examSearch,
+#globalSearch,
+#progressSearch,
+#settingsSearch,
+#quizSearch {
+  width: 100% !important;
+  padding: 13px 18px 13px 46px !important;
+  background: rgba(14, 20, 37, 0.85) !important;
+  backdrop-filter: blur(14px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 100px !important;
+  color: #eef2ff !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+  outline: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.search-bar input::placeholder,
+.notes-search input::placeholder,
+.topbar-search input::placeholder,
+#notesSearch::placeholder,
+#examSearch::placeholder,
+#globalSearch::placeholder,
+#progressSearch::placeholder,
+#settingsSearch::placeholder,
+#quizSearch::placeholder {
+  color: #6b7590 !important;
+  font-weight: 500 !important;
+}
+
+.search-bar input:hover,
+.notes-search input:hover,
+.topbar-search input:hover {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.search-bar input:focus,
+.notes-search input:focus,
+.topbar-search input:focus,
+#notesSearch:focus,
+#examSearch:focus,
+#globalSearch:focus,
+#progressSearch:focus,
+#settingsSearch:focus,
+#quizSearch:focus {
+  border-color: rgba(251, 191, 36, 0.6) !important;
+  background: rgba(14, 20, 37, 0.95) !important;
+  box-shadow:
+    0 0 0 4px rgba(251, 191, 36, 0.1),
+    0 8px 24px -8px rgba(251, 191, 36, 0.2) !important;
+}
+
+.search-bar:focus-within svg,
+.notes-search:focus-within svg,
+.topbar-search:focus-within svg {
+  color: #fbbf24 !important;
+}
+
+/* ---------- BUTTONS ---------- */
+
+.btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 13px 24px !important;
+  border-radius: 12px !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  font-family: inherit !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  border: none !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  color: #06070a !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 4px 16px -4px rgba(251, 191, 36, 0.4) !important;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 10px 28px -6px rgba(251, 191, 36, 0.5) !important;
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #eef2ff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(251, 191, 36, 0.5) !important;
+  color: #fbbf24 !important;
+  transform: translateY(-1px) !important;
+}
+
+.btn-sm {
+  padding: 9px 16px !important;
+  font-size: 12.5px !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+}
+
+.btn-lg {
+  padding: 16px 32px !important;
+  font-size: 15.5px !important;
+  border-radius: 14px !important;
+}
+
+.btn-block {
+  width: 100% !important;
+}
+
+.btn:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* ---------- LEADERBOARD TABS ---------- */
+
+.leaderboard-tabs,
+.admin-tabs {
+  display: flex !important;
+  gap: 4px !important;
+  margin-bottom: 22px !important;
+  padding: 5px !important;
+  border-radius: 100px !important;
+  background: rgba(14, 20, 37, 0.75) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+}
+
+.leaderboard-tabs::-webkit-scrollbar,
+.admin-tabs::-webkit-scrollbar {
+  display: none !important;
+}
+
+.lb-tab {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 9px 20px !important;
+  border-radius: 100px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  font-family: inherit !important;
+  color: #a3aec6 !important;
+  background: transparent !important;
+  border: none !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.lb-tab:hover {
+  color: #fff !important;
+}
+
+.lb-tab.active {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  color: #06070a !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px -2px rgba(251, 191, 36, 0.4) !important;
+}
+
+/* ---------- PILL TAGS ---------- */
+
+.pill-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 6px 14px !important;
+  border-radius: 100px !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  color: #34d399 !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+}
+
+.pill-tag span {
+  color: #fff !important;
+  margin-left: 2px !important;
+  font-weight: 800 !important;
+}
+
+/* ---------- SELECTS ---------- */
+
+select,
+.field select,
+.setup-grid select,
+.tray-body select {
+  background-color: rgba(14, 20, 37, 0.9) !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3aec6' stroke-width='2.5' stroke-linecap='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 15px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #eef2ff !important;
+  padding: 12px 42px 12px 16px !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  transition: all 0.18s ease !important;
+  width: 100% !important;
+}
+
+select:hover,
+.field select:hover {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+select:focus,
+.field select:focus {
+  border-color: rgba(251, 191, 36, 0.6) !important;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1) !important;
+}
+
+select option {
+  background: #0e1425 !important;
+  color: #eef2ff !important;
+  padding: 8px !important;
+}
+
+/* ---------- INPUTS / TEXTAREAS ---------- */
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="url"],
+input[type="number"],
+textarea,
+.field input,
+.field textarea,
+.tray-body input,
+.tray-body textarea {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #eef2ff !important;
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
+  outline: none !important;
+  width: 100% !important;
+  transition: all 0.18s ease !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6b7590 !important;
+}
+
+input:focus,
+textarea:focus,
+.field input:focus,
+.field textarea:focus {
+  border-color: rgba(251, 191, 36, 0.6) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1) !important;
+}
+
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 640px) {
+  .chip,
+  .filter-chip,
+  .filter-bar .chip,
+  .notes-subject-bar .chip {
+    padding: 8px 15px !important;
+    font-size: 12.5px !important;
+  }
+
+  .search-bar,
+  .notes-search,
+  .topbar-search {
+    max-width: none !important;
+    margin-bottom: 16px !important;
+  }
+
+  .search-bar input,
+  .notes-search input,
+  .topbar-search input {
+    padding: 12px 16px 12px 44px !important;
+    font-size: 13.5px !important;
+  }
+
+  .btn {
+    padding: 12px 20px !important;
+    font-size: 14px !important;
+  }
+
+  .btn-lg {
+    padding: 14px 26px !important;
+    font-size: 15px !important;
+  }
+
+  .lb-tab {
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+  }
+}
