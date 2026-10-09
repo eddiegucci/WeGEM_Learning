@@ -19,7 +19,7 @@ export default {
     // Add questions here. Format:
     // {
     //   q: "Question text",
-    //   marks: 3,
+    //   marks: 4,
     //   topic: "Topic name",
     //   markpoints: [
     //     { text: "Acceptable answer phrase", marks: 1 },
@@ -27,5 +27,5 @@ export default {
     //     { text: "Third phrase", marks: 1 }
     //   ]
     // }
-  ]
+  ],
 };
