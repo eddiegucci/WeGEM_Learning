@@ -2,7 +2,7 @@
 // Fill in real questions, then set status to "published".
 
 export default {
-  exam: "KCSE",
+  exam: "KCBE",
   subject: "History and Citizenship",
   grade: "Grade 11",
   class: "grade-11",
