@@ -27,5 +27,5 @@ export default {
     //     { text: "Third phrase", marks: 1 }
     //   ]
     // }
-  ]
+  ],
 };
