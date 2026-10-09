@@ -1,16 +1,20 @@
 // js/pages/quiz.js
-// Typed-answer quiz — simplified.
-// Automatically shows quizzes matching the user's curriculum + level.
+// Typed-answer quiz engine that reads from per-class quiz folders.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
-import { getUserDoc } from "../core/db.js";
+import { getUserDoc, saveAttempt, updateLeaderboardEntry } from "../core/db.js";
 import {
   cacheUser,
   getCachedUser as getCachedUserFromIDB,
   cacheAttempt,
 } from "../core/cache.js";
-import { saveAttempt, updateLeaderboardEntry } from "../core/db.js";
-import { QUIZZES } from "../quizzes/index.js";
+import {
+  QUIZZES,
+  getQuizzesForUser,
+  getSubjects,
+  getSets,
+  resolveUserClass,
+} from "../quizzes/index.js";
 import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
@@ -31,6 +35,7 @@ const state = {
   userDoc: null,
   curriculum: "",
   level: "",
+  availableQuizzes: [],
   subject: "",
   quizId: "",
   quiz: null,
@@ -52,8 +57,6 @@ const els = {
   quizScreen: document.getElementById("quizScreen"),
   resultsScreen: document.getElementById("resultsScreen"),
 
-  curriculumSelect: document.getElementById("curriculumSelect"),
-  levelSelect: document.getElementById("levelSelect"),
   subjectSelect: document.getElementById("subjectSelect"),
   setSelect: document.getElementById("setSelect"),
   quizPreviewInfo: document.getElementById("quizPreviewInfo"),
@@ -93,7 +96,7 @@ const els = {
 };
 
 /* =========================================================
-   SETUP USER
+   USER
    ========================================================= */
 
 async function setupUser() {
@@ -128,12 +131,8 @@ async function setupUser() {
       if (els.userNameTop) els.userNameTop.textContent = firstName(doc.name);
     }
 
-    // Set curriculum + level from user profile
-    if (doc) {
-      state.curriculum = doc.curriculum === "CBE" ? "CBE" : "8-4-4";
-      state.level =
-        doc.level || (state.curriculum === "CBE" ? "Grade 9" : "Form 4");
-    }
+    state.curriculum = doc?.curriculum || "";
+    state.level = doc?.level || "";
   } catch (e) {
     log.warn("Could not load user doc:", e);
   }
@@ -142,63 +141,25 @@ async function setupUser() {
 }
 
 /* =========================================================
-   MATCH USER LEVEL TO QUIZ GRADE
+   LOAD QUIZZES
    ========================================================= */
 
-// The user's `level` field looks like:
-//   "Form 4", "Grade 9", etc.
-// Quiz files use one of these grade buckets:
-//   "Form 1-4", "Grade 6", "Grades 7-9", "Grades 10-12"
-// This maps them together.
-
-function levelMatches(userLevel, quizGrade) {
-  if (!userLevel || !quizGrade) return false;
-
-  const u = userLevel.toLowerCase();
-  const q = quizGrade.toLowerCase();
-
-  // Exact match
-  if (u === q) return true;
-
-  // "Form 1" through "Form 4" → matches "Form 1-4"
-  if (/^form [1-4]$/.test(u) && q === "form 1-4") return true;
-
-  // "Grade 6" → "Grade 6"
-  if (u === "grade 6" && q === "grade 6") return true;
-
-  // "Grade 7", "Grade 8", "Grade 9" → "Grades 7-9"
-  if (/^grade [789]$/.test(u) && q === "grades 7-9") return true;
-
-  // "Grade 10", "Grade 11", "Grade 12" → "Grades 10-12"
-  if (/^grade 1[012]$/.test(u) && q === "grades 10-12") return true;
-
-  return false;
+function loadAvailable() {
+  state.availableQuizzes = getQuizzesForUser(state.curriculum, state.level);
 }
 
 /* =========================================================
-   FILTER QUIZZES FOR THE USER
+   POPULATE DROPDOWNS
    ========================================================= */
 
-function getQuizzesForUser() {
-  return QUIZZES.filter((q) => {
-    if (q.status !== "published") return false;
-    if (!q.questions || !q.questions.length) return false;
-    if (q.curriculum !== state.curriculum) return false;
-    if (!levelMatches(state.level, q.grade)) return false;
-    return true;
-  });
-}
+function populateSubjects() {
+  if (!els.subjectSelect) return;
 
-/* =========================================================
-   BUILD DROPDOWNS
-   ========================================================= */
+  const subjects = getSubjects(state.availableQuizzes);
 
-function populateAll() {
-  const available = getQuizzesForUser();
-
-  if (!available.length) {
+  if (!subjects.length) {
     showError(
-      `No quizzes published yet for ${state.curriculum} — ${state.level}. Check back soon.`,
+      `No quizzes available for ${state.curriculum} — ${state.level}. Check back soon.`,
     );
     els.startBtn.disabled = true;
     els.quizPreviewInfo?.classList.add("hidden");
@@ -207,33 +168,32 @@ function populateAll() {
 
   clearError();
 
-  // Subject dropdown
-  const subjects = [...new Set(available.map((q) => q.subject))];
-  if (els.subjectSelect) {
-    els.subjectSelect.innerHTML = subjects
-      .map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`)
-      .join("");
-    state.subject = subjects[0];
-  }
+  els.subjectSelect.innerHTML = subjects
+    .map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`)
+    .join("");
 
+  state.subject = subjects[0];
   populateSets();
 }
 
 function populateSets() {
-  const available = getQuizzesForUser().filter(
-    (q) => q.subject === state.subject,
-  );
+  if (!els.setSelect) return;
 
-  if (els.setSelect) {
-    els.setSelect.innerHTML = available
-      .map(
-        (q) =>
-          `<option value="${escapeHTML(q.title)}">${escapeHTML(q.title)}</option>`,
-      )
-      .join("");
-    state.quizId = available[0]?.title || "";
+  const sets = getSets(state.availableQuizzes, state.subject);
+
+  if (!sets.length) {
+    els.startBtn.disabled = true;
+    return;
   }
 
+  els.setSelect.innerHTML = sets
+    .map(
+      (q) =>
+        `<option value="${escapeHTML(q.title)}">${escapeHTML(q.title)}</option>`,
+    )
+    .join("");
+
+  state.quizId = sets[0].title;
   updatePreview();
 }
 
@@ -259,13 +219,12 @@ function updatePreview() {
 }
 
 function getMatchingQuiz() {
-  return getQuizzesForUser().find(
-    (q) => q.subject === state.subject && q.title === state.quizId,
-  );
+  const sets = getSets(state.availableQuizzes, state.subject);
+  return sets.find((q) => q.title === state.quizId);
 }
 
 /* =========================================================
-   ERROR HELPERS
+   ERRORS
    ========================================================= */
 
 function showError(msg) {
@@ -286,15 +245,8 @@ function clearError() {
 
 function handleStart() {
   const quiz = getMatchingQuiz();
-  if (!quiz) {
-    showError("Quiz not found.");
-    return;
-  }
-
-  if (!quiz.questions || !quiz.questions.length) {
-    showError("This quiz has no questions.");
-    return;
-  }
+  if (!quiz) return showError("Quiz not found.");
+  if (!quiz.questions?.length) return showError("This quiz has no questions.");
 
   state.quiz = quiz;
   state.answers = new Array(quiz.questions.length).fill("");
@@ -341,12 +293,9 @@ function showResultsScreen() {
 function renderQuestion() {
   const { quiz, currentIndex, answers } = state;
   if (!quiz) return;
-
   const q = quiz.questions[currentIndex];
 
-  if (els.quizMeta) {
-    els.quizMeta.textContent = `${quiz.exam} · ${quiz.subject}`;
-  }
+  if (els.quizMeta) els.quizMeta.textContent = `${quiz.exam} · ${quiz.subject}`;
   if (els.quizCounter) {
     els.quizCounter.textContent = `Question ${currentIndex + 1} of ${quiz.questions.length}`;
   }
@@ -354,9 +303,8 @@ function renderQuestion() {
     els.quizProgress.style.width = `${((currentIndex + 1) / quiz.questions.length) * 100}%`;
   }
 
-  if (els.questionTopic) {
+  if (els.questionTopic)
     els.questionTopic.textContent = (q.topic || quiz.subject).toUpperCase();
-  }
   if (els.questionText) els.questionText.textContent = q.q;
   if (els.questionMarks) {
     els.questionMarks.textContent = `${q.marks} mark${q.marks === 1 ? "" : "s"}`;
@@ -368,7 +316,6 @@ function renderQuestion() {
   }
 
   if (els.prevBtn) els.prevBtn.disabled = currentIndex === 0;
-
   if (els.nextBtn) {
     els.nextBtn.textContent =
       currentIndex === quiz.questions.length - 1 ? "Submit Quiz" : "Next →";
@@ -376,7 +323,7 @@ function renderQuestion() {
 }
 
 /* =========================================================
-   NAVIGATION
+   NAV
    ========================================================= */
 
 function saveCurrentAnswer() {
@@ -451,7 +398,7 @@ function updateTimerDisplay() {
 }
 
 /* =========================================================
-   SUBMIT + SCORE
+   SUBMIT
    ========================================================= */
 
 async function submitQuiz(timeUp = false) {
@@ -469,6 +416,7 @@ async function submitQuiz(timeUp = false) {
     exam: quiz.exam,
     subject: quiz.subject,
     grade: quiz.grade,
+    class: quiz.class,
     curriculum: quiz.curriculum,
     quizTitle: quiz.title,
     correct: result.scored,
@@ -515,7 +463,7 @@ async function submitQuiz(timeUp = false) {
 }
 
 /* =========================================================
-   SCORING ENGINE
+   SCORING
    ========================================================= */
 
 function scoreQuiz(quiz, answers) {
@@ -598,7 +546,6 @@ function scoreQuiz(quiz, answers) {
   });
 
   const percentage = totalMarks ? Math.round((scored / totalMarks) * 100) : 0;
-
   return { scored, totalMarks, percentage, details, topicResults };
 }
 
@@ -612,14 +559,12 @@ function normalize(text) {
 
 function markpointMatches(normalizedAnswer, markpointText, stopWords) {
   if (!normalizedAnswer) return false;
-
   const normalizedMp = normalize(markpointText);
   if (normalizedAnswer.includes(normalizedMp)) return true;
 
   const words = normalizedMp
     .split(" ")
     .filter((w) => w.length > 2 && !stopWords.has(w));
-
   if (!words.length) return false;
 
   let hits = 0;
@@ -647,9 +592,8 @@ function renderResults(result, timeUp, savedToCloud) {
   }
 
   if (els.finalScore) els.finalScore.textContent = pct + "%";
-  if (els.finalDetail) {
+  if (els.finalDetail)
     els.finalDetail.textContent = `${result.scored} / ${result.totalMarks} marks`;
-  }
 
   if (els.statMarks)
     els.statMarks.textContent = `${result.scored}/${result.totalMarks}`;
@@ -663,12 +607,9 @@ function renderResults(result, timeUp, savedToCloud) {
   }
 
   if (els.syncStatus) {
-    if (savedToCloud) {
-      els.syncStatus.innerHTML =
-        '<span class="sync-ok">✓ Saved to your account</span>';
-    } else {
-      els.syncStatus.innerHTML = '<span class="sync-warn">Saved locally</span>';
-    }
+    els.syncStatus.innerHTML = savedToCloud
+      ? '<span class="sync-ok">✓ Saved to your account</span>'
+      : '<span class="sync-warn">Saved locally</span>';
   }
 
   window._quizResult = result;
@@ -725,7 +666,7 @@ function renderReview() {
 }
 
 /* =========================================================
-   RETRY / QUIT
+   RETRY / QUIT / MENU
    ========================================================= */
 
 function handleRetry() {
@@ -755,10 +696,6 @@ async function handleQuit() {
     showSetupScreen();
   }
 }
-
-/* =========================================================
-   USER MENU
-   ========================================================= */
 
 async function handleUserMenu() {
   const ok = await confirmDialog({
@@ -791,18 +728,23 @@ async function init() {
 
     initNav();
 
-    // Wire subject + set selection
+    // Hide old curriculum/level dropdowns if present
+    hideLegacyDropdowns();
+
+    // Load available quizzes
+    loadAvailable();
+
+    // Wire subject + set dropdowns
     els.subjectSelect?.addEventListener("change", () => {
       state.subject = els.subjectSelect.value;
       populateSets();
     });
-
     els.setSelect?.addEventListener("change", () => {
       state.quizId = els.setSelect.value;
       updatePreview();
     });
 
-    // Quiz controls
+    // Wire quiz controls
     els.startBtn?.addEventListener("click", handleStart);
     els.prevBtn?.addEventListener("click", handlePrev);
     els.nextBtn?.addEventListener("click", handleNext);
@@ -811,33 +753,22 @@ async function init() {
     els.retryBtn?.addEventListener("click", handleRetry);
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
 
-    // Hide/remove the curriculum + level dropdowns — we auto-detect
-    hideCurriculumAndLevelDropdowns();
+    populateSubjects();
 
-    // Populate subjects
-    populateAll();
-
-    log.info(`Quiz ready — ${getQuizzesForUser().length} available`);
+    log.info(
+      `Quiz ready — ${state.curriculum} / ${state.level} — ${state.availableQuizzes.length} published`,
+    );
   } catch (e) {
     log.error("Quiz init failed:", e);
     toastErr("Could not load quiz.");
   }
 }
 
-/* =========================================================
-   HIDE curriculum + level dropdowns — we infer from the user
-   ========================================================= */
-
-function hideCurriculumAndLevelDropdowns() {
-  // Hide the parent <label> for curriculum and level selects
-  if (els.curriculumSelect) {
-    const label = els.curriculumSelect.closest("label");
-    if (label) label.style.display = "none";
-  }
-  if (els.levelSelect) {
-    const label = els.levelSelect.closest("label");
-    if (label) label.style.display = "none";
-  }
+function hideLegacyDropdowns() {
+  const curr = document.getElementById("curriculumSelect");
+  const lvl = document.getElementById("levelSelect");
+  if (curr) curr.closest("label")?.style.setProperty("display", "none");
+  if (lvl) lvl.closest("label")?.style.setProperty("display", "none");
 }
 
 if (document.readyState === "loading") {
