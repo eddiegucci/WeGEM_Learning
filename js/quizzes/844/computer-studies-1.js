@@ -1,29 +1,35 @@
-﻿// Auto-generated quiz placeholder.
-// Fill in real questions, then set status to "published".
-
-export default {
-  exam: "844",
+﻿export default {
+  exam: "KCSE",
   subject: "Computer Studies",
-  grade: "Form 1-4",
-  curriculum: "8-4-4",
-  title: "Computer Studies - Set 1",
-  description: "Coming soon.",
-  duration: 30 * 60,
-  totalMarks: 0,
-  status: "draft",
+  grade: "Grades 10-12",
+  curriculum: "CBE",
+  title: "Computer Studies — Set 1",
+  description: "KCSE-style typed-answer assessment.",
+  duration: 45 * 60,
+  totalMarks: 5,
+  status: "published", // ← CHANGE THIS
   updatedAt: "2026-10-08",
-  version: "0.1",
+  version: "1.0",
 
   questions: [
-    // Add questions here. Format:
-    // {
-    //   q: "Question text",
-    //   marks: 3,
-    //   markpoints: [
-    //     { text: "Acceptable answer phrase", marks: 1 },
-    //     { text: "Another phrase", marks: 1 },
-    //     { text: "Third phrase", marks: 1 }
-    //   ]
-    // }
-  ]
+    {
+      q: "State two characteristics of a computer.",
+      marks: 2,
+      topic: "Introduction to Computers",
+      markpoints: [
+        { text: "speed", marks: 1 },
+        { text: "accuracy", marks: 1 },
+      ],
+    },
+    {
+      q: "Define a computer.",
+      marks: 3,
+      topic: "Introduction to Computers",
+      markpoints: [
+        { text: "electronic device", marks: 1 },
+        { text: "accepts data", marks: 1 },
+        { text: "produces information", marks: 1 },
+      ],
+    },
+  ],
 };

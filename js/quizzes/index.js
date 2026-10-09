@@ -22,11 +22,14 @@
    ========================================================= */
 // import form844English1 from "./844/english-1.js";
 
+import kcseComputerStudies1 from "./cbe-grade1012/computer-studies-1.js";
+
 /* =========================================================
    QUIZ REGISTRY
    ========================================================= */
 
 export const QUIZZES = [
+  kcseComputerStudies1,
   // cbeGrade6English1,
   // cbeGrade79English1,
   // cbeGrade1012English1,

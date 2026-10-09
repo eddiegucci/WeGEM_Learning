@@ -3537,3 +3537,339 @@
   color: #fca5a5;
   margin-bottom: 6px;
 }
+
+/* =========================================================
+   QUIZ PAGE — typed answers + markpoints + timer
+   ========================================================= */
+
+.quiz-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  border-radius: var(--radius-sm);
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.qpi-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+}
+
+.qpi-label {
+  color: var(--text-dim);
+}
+
+.qpi-value {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* Timer */
+.quiz-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(14, 20, 37, 0.85);
+  border: 1px solid var(--border-hi);
+  min-width: 110px;
+  transition: all 0.3s ease;
+}
+
+.quiz-timer .timer-value {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.quiz-timer .timer-label {
+  font-size: 10px;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-top: 3px;
+}
+
+.quiz-timer.warn {
+  border-color: rgba(249, 115, 22, 0.6);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.quiz-timer.warn .timer-value {
+  color: #fdba74;
+}
+
+.quiz-timer.danger {
+  border-color: rgba(239, 68, 68, 0.7);
+  background: rgba(239, 68, 68, 0.1);
+  animation: pulse 1s infinite;
+}
+
+.quiz-timer.danger .timer-value {
+  color: #fca5a5;
+}
+
+/* Question marks */
+.question-marks {
+  display: inline-block;
+  padding: 6px 14px;
+  margin-bottom: 22px;
+  border-radius: 100px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Answer area */
+.answer-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.answer-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.answer-area textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-hi);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.answer-area textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1);
+}
+
+.answer-hint {
+  font-size: 11.5px;
+  color: var(--text-mute);
+  font-style: italic;
+}
+
+/* Quiz nav */
+.quiz-nav-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Results summary */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 25px 0;
+}
+
+.stat {
+  padding: 18px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 22px;
+  color: var(--gold);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+/* Review section */
+.review-section {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+  text-align: left;
+}
+
+.review-heading {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-item {
+  padding: 20px;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+}
+
+.review-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.review-num {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.review-score {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.review-question {
+  font-size: 14.5px;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.review-your-answer {
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.review-your-answer strong {
+  display: block;
+  font-size: 11.5px;
+  color: var(--blue-2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.your-answer-text {
+  font-size: 13.5px;
+  color: #e8eaed;
+  line-height: 1.5;
+}
+
+.review-scheme {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scheme-title {
+  font-size: 11.5px;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.review-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.review-point.hit {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #d1fae5;
+}
+
+.review-point.missed {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fee2e2;
+}
+
+.review-icon {
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.review-point.hit .review-icon {
+  color: var(--green-2);
+}
+.review-point.missed .review-icon {
+  color: #fca5a5;
+}
+
+.review-text {
+  flex: 1;
+}
+
+.review-marks {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .quiz-nav-buttons {
+    flex: 1;
+  }
+
+  .quiz-nav-buttons .btn {
+    flex: 1;
+  }
+
+  .answer-area textarea {
+    min-height: 120px;
+    font-size: 14.5px;
+  }
+}

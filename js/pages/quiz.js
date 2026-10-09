@@ -1,5 +1,5 @@
 // js/pages/quiz.js
-// Controller for quiz.html — solo quiz flow.
+// Typed-answer quiz controller with markpoint scoring.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -8,23 +8,8 @@ import {
   getCachedUser as getCachedUserFromIDB,
   cacheAttempt,
 } from "../core/cache.js";
-import {
-  fetchQuestions,
-  startQuiz,
-  submitAnswer,
-  goNext,
-  finished,
-  complete,
-  persistAttempt,
-  getResultsSummary,
-} from "../features/quiz-single.js";
-import { scoreLabel, getWeakTopics } from "../features/quiz-engine.js";
-import {
-  getSubjects,
-  getSubjectIcon,
-  getSubjectColor,
-  EXAM_BY_LEVEL,
-} from "../data/subjects.js";
+import { saveAttempt, updateLeaderboardEntry } from "../core/db.js";
+import { QUIZZES } from "../quizzes/index.js";
 import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
@@ -35,6 +20,7 @@ import {
   getParam,
   setParam,
   log,
+  isOnline,
 } from "../core/utils.js";
 
 /* =========================================================
@@ -44,12 +30,19 @@ import {
 const state = {
   user: null,
   userDoc: null,
-  exam: null,
-  subject: null,
-  count: 10,
-  quizState: null, // created by startQuiz()
-  currentResult: null,
-  savedToCloud: false,
+  curriculum: "CBE",
+  level: "",
+  subject: "",
+  quizId: "",
+  quiz: null,
+  answers: [],
+  currentIndex: 0,
+  totalTime: 0,
+  remaining: 0,
+  timerId: null,
+  started: false,
+  startedAt: null,
+  submitted: false,
 };
 
 /* =========================================================
@@ -57,39 +50,45 @@ const state = {
    ========================================================= */
 
 const els = {
-  // Screens
   setupScreen: document.getElementById("setupScreen"),
   quizScreen: document.getElementById("quizScreen"),
   resultsScreen: document.getElementById("resultsScreen"),
 
-  // Setup
-  examSelect: document.getElementById("examSelect"),
+  curriculumSelect: document.getElementById("curriculumSelect"),
+  levelSelect: document.getElementById("levelSelect"),
   subjectSelect: document.getElementById("subjectSelect"),
-  countSelect: document.getElementById("countSelect"),
+  setSelect: document.getElementById("setSelect"),
+  quizPreviewInfo: document.getElementById("quizPreviewInfo"),
+  qpiMarks: document.getElementById("qpiMarks"),
+  qpiQuestions: document.getElementById("qpiQuestions"),
+  qpiTime: document.getElementById("qpiTime"),
+  setupError: document.getElementById("setupError"),
   startBtn: document.getElementById("startBtn"),
 
-  // Quiz
   quizMeta: document.getElementById("quizMeta"),
   quizCounter: document.getElementById("quizCounter"),
-  liveScore: document.getElementById("liveScore"),
+  quizTimer: document.getElementById("quizTimer"),
   quizProgress: document.getElementById("quizProgress"),
   questionTopic: document.getElementById("questionTopic"),
   questionText: document.getElementById("questionText"),
-  optionsList: document.getElementById("optionsList"),
-  feedbackBox: document.getElementById("feedbackBox"),
-  nextBtn: document.getElementById("nextBtn"),
+  questionMarks: document.getElementById("questionMarks"),
+  answerBox: document.getElementById("answerBox"),
   quitBtn: document.getElementById("quitBtn"),
+  prevBtn: document.getElementById("prevBtn"),
+  nextBtn: document.getElementById("nextBtn"),
 
-  // Results
   resultsTitle: document.getElementById("resultsTitle"),
   finalScore: document.getElementById("finalScore"),
   finalDetail: document.getElementById("finalDetail"),
+  statMarks: document.getElementById("statMarks"),
+  statTime: document.getElementById("statTime"),
+  statQuestions: document.getElementById("statQuestions"),
   syncStatus: document.getElementById("syncStatus"),
-  weakHeading: document.getElementById("weakHeading"),
-  weakList: document.getElementById("weakList"),
+  reviewBtn: document.getElementById("reviewBtn"),
+  reviewSection: document.getElementById("reviewSection"),
+  reviewList: document.getElementById("reviewList"),
   retryBtn: document.getElementById("retryBtn"),
 
-  // User
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
   userMenuBtn: document.getElementById("userMenuBtn"),
@@ -138,137 +137,169 @@ async function setupUser() {
 }
 
 /* =========================================================
-   SETUP SCREEN
+   LOAD QUIZ SETUP
    ========================================================= */
 
-function getExamForLevel() {
-  if (!state.userDoc) return "KCSE";
-  const curriculum = state.userDoc.curriculum || "844";
-  const level =
-    state.userDoc.level || (curriculum === "CBE" ? "Grade 9" : "Form 4");
-  return EXAM_BY_LEVEL[curriculum]?.[level] || "KCSE";
+function getPublishedQuizzes() {
+  return QUIZZES.filter((q) => q.status === "published");
 }
 
-function populateExamSelect() {
-  if (!els.examSelect) return;
+function populateCurriculumSelect() {
+  if (!els.curriculumSelect) return;
 
-  const defaultExam = getExamForLevel();
-  const exams = ["KCSE", "KJSEA", "KPSEA"];
+  const published = getPublishedQuizzes();
+  const curriculums = [...new Set(published.map((q) => q.curriculum))];
 
-  els.examSelect.innerHTML = exams
-    .map(
-      (e) => `
-    <option value="${e}"${e === defaultExam ? " selected" : ""}>${e}</option>
-  `,
-    )
+  // If user has a doc, prefer their curriculum
+  let preferred = "CBE";
+  if (state.userDoc?.curriculum === "CBE") preferred = "CBE";
+  else if (state.userDoc?.curriculum === "844") preferred = "8-4-4";
+
+  if (curriculums.includes(preferred)) {
+    els.curriculumSelect.value = preferred;
+  }
+
+  state.curriculum = els.curriculumSelect.value;
+  populateLevelSelect();
+}
+
+function populateLevelSelect() {
+  if (!els.levelSelect) return;
+
+  const published = getPublishedQuizzes().filter(
+    (q) => q.curriculum === state.curriculum,
+  );
+  const levels = [...new Set(published.map((q) => q.grade))];
+
+  els.levelSelect.innerHTML = levels
+    .map((l) => `<option value="${escapeHTML(l)}">${escapeHTML(l)}</option>`)
     .join("");
 
-  state.exam = defaultExam;
+  state.level = els.levelSelect.value || "";
+  populateSubjectSelect();
 }
 
 function populateSubjectSelect() {
   if (!els.subjectSelect) return;
 
-  const curriculum = state.userDoc?.curriculum === "CBE" ? "CBE" : "844";
-  const level =
-    state.userDoc?.level || (curriculum === "CBE" ? "Grade 9" : "Form 4");
+  const published = getPublishedQuizzes().filter(
+    (q) => q.curriculum === state.curriculum && q.grade === state.level,
+  );
 
-  let subjects = state.userDoc?.subjects || [];
-  if (!subjects.length) subjects = getSubjects(curriculum, level);
+  const subjects = [...new Set(published.map((q) => q.subject))];
 
-  // Deduplicate
-  subjects = Array.from(new Set(subjects));
+  els.subjectSelect.innerHTML = subjects
+    .map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`)
+    .join("");
 
-  els.subjectSelect.innerHTML =
-    `<option value="">Select subject</option>` +
-    subjects
-      .map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`)
-      .join("");
+  state.subject = els.subjectSelect.value || "";
+  populateSetSelect();
 }
 
-function readSetupParamsFromURL() {
-  const examParam = getParam("exam");
-  const subjectParam = getParam("subject");
+function populateSetSelect() {
+  if (!els.setSelect) return;
 
-  if (examParam && ["KCSE", "KJSEA", "KPSEA"].includes(examParam)) {
-    if (els.examSelect) els.examSelect.value = examParam;
-    state.exam = examParam;
+  const matches = getPublishedQuizzes().filter(
+    (q) =>
+      q.curriculum === state.curriculum &&
+      q.grade === state.level &&
+      q.subject === state.subject,
+  );
+
+  els.setSelect.innerHTML = matches
+    .map(
+      (q) =>
+        `<option value="${escapeHTML(q.title)}">${escapeHTML(q.title)}</option>`,
+    )
+    .join("");
+
+  state.quizId = els.setSelect.value || "";
+  updateQuizPreview();
+}
+
+function updateQuizPreview() {
+  const quiz = getMatchingQuiz();
+
+  if (!quiz) {
+    els.quizPreviewInfo?.classList.add("hidden");
+    els.startBtn.disabled = true;
+    return;
   }
 
-  if (subjectParam) {
-    const option = els.subjectSelect?.querySelector(
-      `option[value="${CSS.escape ? CSS.escape(subjectParam) : subjectParam}"]`,
-    );
-    if (option) {
-      els.subjectSelect.value = subjectParam;
-      state.subject = subjectParam;
-    }
+  els.quizPreviewInfo?.classList.remove("hidden");
+
+  if (els.qpiMarks) els.qpiMarks.textContent = quiz.totalMarks || "—";
+  if (els.qpiQuestions)
+    els.qpiQuestions.textContent = quiz.questions.length || 0;
+  if (els.qpiTime) {
+    const mins = Math.round((quiz.duration || 1800) / 60);
+    els.qpiTime.textContent = `${mins} min`;
   }
+
+  els.startBtn.disabled = false;
+}
+
+function getMatchingQuiz() {
+  return getPublishedQuizzes().find(
+    (q) =>
+      q.curriculum === state.curriculum &&
+      q.grade === state.level &&
+      q.subject === state.subject &&
+      q.title === state.quizId,
+  );
 }
 
 /* =========================================================
    START QUIZ
    ========================================================= */
 
-async function handleStartQuiz() {
-  const exam = els.examSelect?.value || "KCSE";
-  const subject = els.subjectSelect?.value || "";
-  const count = parseInt(els.countSelect?.value || "10", 10);
+function handleStart() {
+  const quiz = getMatchingQuiz();
 
-  if (!subject) {
-    toastErr("Please select a subject to begin.");
-    els.subjectSelect?.focus();
+  if (!quiz) {
+    showError("Quiz not found.");
     return;
   }
 
-  state.exam = exam;
-  state.subject = subject;
-  state.count = count;
-
-  if (els.startBtn) {
-    els.startBtn.disabled = true;
-    els.startBtn.textContent = "Loading questions…";
+  if (!quiz.questions || !quiz.questions.length) {
+    showError("This quiz has no questions yet.");
+    return;
   }
 
-  try {
-    const quiz = await fetchQuestions({ exam, subject, count });
+  state.quiz = quiz;
+  state.answers = new Array(quiz.questions.length).fill("");
+  state.currentIndex = 0;
+  state.totalTime = quiz.duration || 45 * 60;
+  state.remaining = state.totalTime;
+  state.startedAt = Date.now();
+  state.started = true;
+  state.submitted = false;
 
-    if (!quiz.questions.length) {
-      throw new Error("No questions available for this subject yet.");
-    }
+  showQuizScreen();
+  renderQuestion();
+  startTimer();
+}
 
-    state.quizState = startQuiz(quiz);
+function showError(msg) {
+  if (!els.setupError) return;
+  els.setupError.textContent = msg;
+  els.setupError.classList.remove("hidden");
+}
 
-    // Update URL
-    setParam("exam", exam);
-    setParam("subject", subject);
-
-    showQuizScreen();
-    renderQuestion();
-
-    log.info(`Quiz started: ${exam} / ${subject} / ${quiz.total} questions`);
-  } catch (e) {
-    log.warn("Start quiz failed:", e);
-    toastErr(e.message || "Could not load questions.");
-    if (els.startBtn) {
-      els.startBtn.disabled = false;
-      els.startBtn.textContent = "Start Quiz →";
-    }
-  }
+function clearError() {
+  if (!els.setupError) return;
+  els.setupError.classList.add("hidden");
+  els.setupError.textContent = "";
 }
 
 /* =========================================================
-   SCREEN SWITCHING
+   SCREENS
    ========================================================= */
 
 function showSetupScreen() {
   els.setupScreen?.classList.remove("hidden");
   els.quizScreen?.classList.add("hidden");
   els.resultsScreen?.classList.add("hidden");
-  if (els.startBtn) {
-    els.startBtn.disabled = false;
-    els.startBtn.textContent = "Start Quiz →";
-  }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -291,227 +322,417 @@ function showResultsScreen() {
    ========================================================= */
 
 function renderQuestion() {
-  const qs = state.quizState;
-  if (!qs) return;
+  const { quiz, currentIndex, answers } = state;
+  if (!quiz) return;
 
-  const { questions, index, correct } = qs;
-  const q = questions[index];
+  const q = quiz.questions[currentIndex];
 
   if (els.quizMeta) {
-    els.quizMeta.textContent = `${state.exam} · ${state.subject}`;
+    els.quizMeta.textContent = `${quiz.exam} · ${quiz.subject}`;
   }
   if (els.quizCounter) {
-    els.quizCounter.textContent = `Question ${index + 1} of ${questions.length}`;
-  }
-  if (els.liveScore) {
-    els.liveScore.textContent = correct;
+    els.quizCounter.textContent = `Question ${currentIndex + 1} of ${quiz.questions.length}`;
   }
   if (els.quizProgress) {
-    els.quizProgress.style.width = `${(index / questions.length) * 100}%`;
+    els.quizProgress.style.width = `${((currentIndex + 1) / quiz.questions.length) * 100}%`;
   }
 
   if (els.questionTopic) {
-    els.questionTopic.textContent = (q.topic || "GENERAL").toUpperCase();
+    els.questionTopic.textContent = (q.topic || quiz.subject).toUpperCase();
   }
   if (els.questionText) {
-    els.questionText.textContent = q.question;
+    els.questionText.textContent = q.q;
+  }
+  if (els.questionMarks) {
+    els.questionMarks.textContent = `${q.marks} mark${q.marks === 1 ? "" : "s"}`;
   }
 
-  // Render options
-  if (els.optionsList) {
-    els.optionsList.innerHTML = q.options
-      .map(
-        (opt, i) => `
-      <button class="option" type="button" data-option-index="${i}">
-        <span class="option-letter">${"ABCD"[i]}</span>
-        <span>${escapeHTML(opt)}</span>
-      </button>
-    `,
-      )
-      .join("");
+  // Restore previous answer for this question
+  if (els.answerBox) {
+    els.answerBox.value = answers[currentIndex] || "";
+    els.answerBox.focus();
+  }
 
-    els.optionsList.querySelectorAll(".option").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = parseInt(btn.dataset.optionIndex, 10);
-        handleAnswer(idx);
-      });
+  // Update buttons
+  if (els.prevBtn) els.prevBtn.disabled = currentIndex === 0;
+
+  if (els.nextBtn) {
+    if (currentIndex === quiz.questions.length - 1) {
+      els.nextBtn.textContent = "Submit Quiz";
+      els.nextBtn.classList.add("btn-primary");
+    } else {
+      els.nextBtn.textContent = "Next →";
+    }
+  }
+}
+
+/* =========================================================
+   ANSWER HANDLING
+   ========================================================= */
+
+function saveCurrentAnswer() {
+  if (!els.answerBox) return;
+  state.answers[state.currentIndex] = els.answerBox.value;
+}
+
+function handlePrev() {
+  if (state.currentIndex === 0) return;
+  saveCurrentAnswer();
+  state.currentIndex -= 1;
+  renderQuestion();
+}
+
+async function handleNext() {
+  const { quiz, currentIndex } = state;
+  if (!quiz) return;
+
+  saveCurrentAnswer();
+
+  if (currentIndex === quiz.questions.length - 1) {
+    const ok = await confirmDialog({
+      title: "Submit quiz?",
+      message:
+        "Once submitted, your answers will be marked against the scheme.",
+      okLabel: "Submit",
+      cancelLabel: "Keep working",
     });
-  }
-
-  // Hide feedback and next button
-  if (els.feedbackBox) {
-    els.feedbackBox.classList.add("hidden");
-    els.feedbackBox.className = "feedback hidden";
-  }
-  if (els.nextBtn) {
-    els.nextBtn.classList.add("hidden");
-  }
-}
-
-/* =========================================================
-   HANDLE ANSWER
-   ========================================================= */
-
-function handleAnswer(selectedIndex) {
-  const qs = state.quizState;
-  if (!qs) return;
-
-  // Prevent double-answer
-  if (els.optionsList?.querySelector(".option.disabled")) return;
-
-  const result = submitAnswer(qs, selectedIndex);
-  if (!result) return;
-
-  const { isCorrect, correctIndex, explain } = result;
-
-  // Disable all options and mark correct/wrong
-  const allOptions = els.optionsList?.querySelectorAll(".option") || [];
-  allOptions.forEach((btn) => btn.classList.add("disabled"));
-
-  allOptions[correctIndex]?.classList.add("correct");
-  if (!isCorrect) {
-    allOptions[selectedIndex]?.classList.add("wrong");
-  }
-
-  // Update live score
-  if (els.liveScore) els.liveScore.textContent = qs.correct;
-
-  // Show feedback
-  if (els.feedbackBox) {
-    els.feedbackBox.className = `feedback ${isCorrect ? "correct" : "wrong"}`;
-    els.feedbackBox.innerHTML = isCorrect
-      ? `<strong>✓ Correct</strong>${escapeHTML(explain || "")}`
-      : `<strong>✗ Not quite</strong>Correct answer: <b>${escapeHTML(qs.quiz.questions[qs.index].options[correctIndex])}</b><br>${escapeHTML(explain || "")}`;
-    els.feedbackBox.classList.remove("hidden");
-  }
-
-  // Show next button
-  if (els.nextBtn) {
-    const isLast = qs.index === qs.quiz.questions.length - 1;
-    els.nextBtn.textContent = isLast ? "See Results →" : "Next →";
-    els.nextBtn.classList.remove("hidden");
-    els.nextBtn.onclick = handleNext;
-  }
-}
-
-/* =========================================================
-   NEXT
-   ========================================================= */
-
-function handleNext() {
-  const qs = state.quizState;
-  if (!qs) return;
-
-  const hasNext = goNext(qs);
-  if (hasNext) {
-    renderQuestion();
+    if (ok) submitQuiz(false);
   } else {
-    finishQuiz();
+    state.currentIndex += 1;
+    renderQuestion();
   }
 }
 
 /* =========================================================
-   FINISH QUIZ
+   TIMER
    ========================================================= */
 
-async function finishQuiz() {
-  const qs = state.quizState;
-  if (!qs) return;
+function startTimer() {
+  clearTimer();
+  updateTimerDisplay();
 
-  const result = complete(qs);
-  state.currentResult = result;
+  state.timerId = setInterval(() => {
+    state.remaining -= 1;
+    updateTimerDisplay();
+
+    if (state.remaining <= 0) {
+      clearTimer();
+      submitQuiz(true);
+    }
+  }, 1000);
+}
+
+function clearTimer() {
+  if (state.timerId) {
+    clearInterval(state.timerId);
+    state.timerId = null;
+  }
+}
+
+function updateTimerDisplay() {
+  if (!els.quizTimer) return;
+
+  const m = Math.floor(Math.max(0, state.remaining) / 60);
+  const s = Math.max(0, state.remaining) % 60;
+
+  const valueEl = els.quizTimer.querySelector(".timer-value");
+  if (valueEl) {
+    valueEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  els.quizTimer.classList.remove("warn", "danger");
+
+  if (state.remaining <= 60) els.quizTimer.classList.add("danger");
+  else if (state.remaining <= 180) els.quizTimer.classList.add("warn");
+}
+
+/* =========================================================
+   SUBMIT + SCORE
+   ========================================================= */
+
+async function submitQuiz(timeUp = false) {
+  if (state.submitted) return;
+  state.submitted = true;
+  state.started = false;
+  clearTimer();
+
+  saveCurrentAnswer();
+
+  const quiz = state.quiz;
+  const result = scoreQuiz(quiz, state.answers);
+
+  const timeUsed = state.totalTime - Math.max(0, state.remaining);
 
   // Save attempt
-  try {
-    const { savedToCloud } = await persistAttempt(state.user.uid, {
-      exam: state.exam,
-      subject: state.subject,
-      result,
-    });
-    state.savedToCloud = savedToCloud;
-  } catch (e) {
-    log.warn("Could not save attempt:", e);
-    state.savedToCloud = false;
+  const attempt = {
+    exam: quiz.exam,
+    subject: quiz.subject,
+    grade: quiz.grade,
+    curriculum: quiz.curriculum,
+    quizTitle: quiz.title,
+    correct: result.scored,
+    total: result.totalMarks,
+    score: result.percentage,
+    duration: timeUsed,
+    topicResults: result.topicResults,
+    mode: "typed",
+    answers: state.answers,
+  };
+
+  let savedToCloud = false;
+  if (state.user && isOnline()) {
+    try {
+      await saveAttempt(state.user.uid, attempt);
+      savedToCloud = true;
+      await updateLeaderboardEntry(state.user.uid, {
+        name: state.userDoc?.name || "",
+        school: state.userDoc?.school || "",
+        curriculum: quiz.curriculum,
+        level: quiz.grade,
+        scoreDelta: result.percentage,
+        quizDelta: 1,
+        correctDelta: result.scored,
+        totalDelta: result.totalMarks,
+      });
+    } catch (e) {
+      log.warn("Could not save attempt:", e);
+    }
   }
 
-  renderResults(result);
+  try {
+    await cacheAttempt({
+      ...attempt,
+      id: "local_" + Date.now(),
+      createdAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    log.warn("Could not cache attempt:", e);
+  }
+
+  renderResults(result, timeUp, savedToCloud);
   showResultsScreen();
 }
 
 /* =========================================================
-   RENDER RESULTS
+   SCORING ENGINE — matches answers against markpoints
    ========================================================= */
 
-function renderResults(result) {
-  const { score, correct, total, topicResults } = result;
-  const badge = scoreLabel(score);
+function scoreQuiz(quiz, answers) {
+  let scored = 0;
+  let totalMarks = 0;
+  const details = [];
+  const topicResults = {};
+
+  const STOP_WORDS = new Set([
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "and",
+    "or",
+    "of",
+    "to",
+    "in",
+    "on",
+    "at",
+    "for",
+    "with",
+    "by",
+    "from",
+    "as",
+    "it",
+    "its",
+    "that",
+    "this",
+    "these",
+    "those",
+    "such",
+    "also",
+    "so",
+    "then",
+    "than",
+    "if",
+    "when",
+  ]);
+
+  quiz.questions.forEach((q, i) => {
+    const studentAnswer = answers[i] || "";
+    const normalized = normalize(studentAnswer);
+    const matched = [];
+    let qScore = 0;
+
+    (q.markpoints || []).forEach((mp, j) => {
+      const mpText = typeof mp === "string" ? mp : mp.text;
+      const mpMarks = typeof mp === "string" ? 1 : mp.marks || 1;
+
+      if (markpointMatches(normalized, mpText, STOP_WORDS)) {
+        matched.push(j);
+        qScore += mpMarks;
+      }
+    });
+
+    qScore = Math.min(qScore, q.marks);
+    scored += qScore;
+    totalMarks += q.marks;
+
+    details.push({
+      qIndex: i,
+      q: q.q,
+      marks: q.marks,
+      scored: qScore,
+      matched,
+      studentAnswer,
+      markpoints: q.markpoints,
+    });
+
+    // Topic tracking
+    const topic = q.topic || quiz.subject;
+    if (!topicResults[topic]) topicResults[topic] = { correct: 0, total: 0 };
+    topicResults[topic].correct += qScore;
+    topicResults[topic].total += q.marks;
+  });
+
+  const percentage = totalMarks ? Math.round((scored / totalMarks) * 100) : 0;
+
+  return {
+    scored,
+    totalMarks,
+    percentage,
+    details,
+    topicResults,
+  };
+}
+
+function normalize(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function markpointMatches(normalizedAnswer, markpointText, stopWords) {
+  if (!normalizedAnswer) return false;
+
+  const normalizedMp = normalize(markpointText);
+
+  // Full phrase match
+  if (normalizedAnswer.includes(normalizedMp)) return true;
+
+  // Extract keywords from the markpoint
+  const words = normalizedMp
+    .split(" ")
+    .filter((w) => w.length > 2 && !stopWords.has(w));
+
+  if (!words.length) return false;
+
+  // Count how many keywords the student's answer contains
+  let hits = 0;
+  for (const word of words) {
+    if (normalizedAnswer.includes(word)) hits += 1;
+  }
+
+  // Require at least 60% of keywords (with a floor of 1)
+  const threshold = Math.max(1, Math.ceil(words.length * 0.6));
+  return hits >= threshold;
+}
+
+/* =========================================================
+   RESULTS
+   ========================================================= */
+
+function renderResults(result, timeUp, savedToCloud) {
+  const pct = result.percentage;
 
   if (els.resultsTitle) {
-    els.resultsTitle.textContent = `${badge.emoji} ${badge.label}`;
+    if (timeUp) els.resultsTitle.textContent = "Time's up!";
+    else if (pct >= 80) els.resultsTitle.textContent = "Outstanding! 🎉";
+    else if (pct >= 60) els.resultsTitle.textContent = "Well done!";
+    else if (pct >= 40) els.resultsTitle.textContent = "Keep practicing";
+    else els.resultsTitle.textContent = "Let's review this together";
   }
 
-  if (els.finalScore) {
-    els.finalScore.textContent = `${score}%`;
-    els.finalScore.style.background = `linear-gradient(135deg, ${badge.color}, #fcd34d)`;
-    els.finalScore.style.webkitBackgroundClip = "text";
-    els.finalScore.style.backgroundClip = "text";
-    els.finalScore.style.webkitTextFillColor = "transparent";
-  }
-
+  if (els.finalScore) els.finalScore.textContent = pct + "%";
   if (els.finalDetail) {
-    els.finalDetail.textContent = `${correct} / ${total} correct`;
+    els.finalDetail.textContent = `${result.scored} / ${result.totalMarks} marks`;
   }
 
-  // Sync status
+  if (els.statMarks)
+    els.statMarks.textContent = `${result.scored}/${result.totalMarks}`;
+  if (els.statQuestions)
+    els.statQuestions.textContent = state.quiz.questions.length;
+  if (els.statTime) {
+    const used = state.totalTime - Math.max(0, state.remaining);
+    const m = Math.floor(used / 60);
+    const s = used % 60;
+    els.statTime.textContent = `${m}:${String(s).padStart(2, "0")}`;
+  }
+
   if (els.syncStatus) {
-    if (state.savedToCloud) {
+    if (savedToCloud) {
       els.syncStatus.innerHTML =
         '<span class="sync-ok">✓ Saved to your account</span>';
-    } else if (state.user) {
-      els.syncStatus.innerHTML =
-        '<span class="sync-warn">Saved locally (offline)</span>';
     } else {
-      els.syncStatus.innerHTML =
-        '<span class="sync-info">Not saved — sign in to sync</span>';
+      els.syncStatus.innerHTML = '<span class="sync-warn">Saved locally</span>';
     }
   }
 
-  // Weak topics
-  const weak = getWeakTopics(topicResults, 0.7);
+  window._quizResult = result;
+}
 
-  if (els.weakHeading) {
-    els.weakHeading.textContent = weak.length
-      ? "Areas to review"
-      : "Great work!";
-  }
+/* =========================================================
+   REVIEW
+   ========================================================= */
 
-  if (els.weakList) {
-    if (!weak.length) {
-      els.weakList.innerHTML = `
-        <div class="empty-state" style="border: none; background: none; padding: 20px;">
-          <div class="empty-icon">🎉</div>
-          <div class="empty-title">No weak topics</div>
-          <div class="empty-sub">You did excellent on every topic!</div>
-        </div>
-      `;
-    } else {
-      els.weakList.innerHTML = weak
-        .slice(0, 5)
-        .map((t) => {
-          const pct = Math.round(t.score * 100);
+function renderReview() {
+  const result = window._quizResult;
+  if (!result || !els.reviewList) return;
+
+  els.reviewSection?.classList.remove("hidden");
+
+  els.reviewList.innerHTML = result.details
+    .map((d, i) => {
+      const rows = (d.markpoints || [])
+        .map((mp, j) => {
+          const text = typeof mp === "string" ? mp : mp.text;
+          const marks = typeof mp === "string" ? 1 : mp.marks || 1;
+          const hit = d.matched.includes(j);
           return `
-          <div class="weak-item">
-            <span>${escapeHTML(t.name)}</span>
-            <strong>${t.correct}/${t.total} · ${pct}%</strong>
-          </div>
-        `;
+            <div class="review-point ${hit ? "hit" : "missed"}">
+              <span class="review-icon">${hit ? "✓" : "✗"}</span>
+              <span class="review-text">${escapeHTML(text)}</span>
+              <span class="review-marks">${marks} mark${marks === 1 ? "" : "s"}</span>
+            </div>
+          `;
         })
         .join("");
-    }
-  }
 
-  // Focus the retry button for keyboard users
-  setTimeout(() => els.retryBtn?.focus(), 200);
+      return `
+        <div class="review-item">
+          <div class="review-item-head">
+            <span class="review-num">Q${i + 1}</span>
+            <span class="review-score">${d.scored}/${d.marks} marks</span>
+          </div>
+          <div class="review-question">${escapeHTML(d.q)}</div>
+          <div class="review-your-answer">
+            <strong>Your answer:</strong>
+            <div class="your-answer-text">${d.studentAnswer ? escapeHTML(d.studentAnswer) : "<em>Not answered</em>"}</div>
+          </div>
+          <div class="review-scheme">
+            <div class="scheme-title">Mark scheme:</div>
+            ${rows}
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  els.reviewBtn?.classList.add("hidden");
 }
 
 /* =========================================================
@@ -519,26 +740,31 @@ function renderResults(result) {
    ========================================================= */
 
 function handleRetry() {
-  state.quizState = null;
-  state.currentResult = null;
-  state.savedToCloud = false;
+  clearTimer();
+  state.quiz = null;
+  state.answers = [];
+  state.currentIndex = 0;
+  state.submitted = false;
+  state.started = false;
+  els.reviewSection?.classList.add("hidden");
+  els.reviewBtn?.classList.remove("hidden");
   showSetupScreen();
 }
 
 async function handleQuit() {
   const ok = await confirmDialog({
     title: "Quit quiz?",
-    message: "Your progress on this quiz will not be saved.",
+    message: "Your progress will be lost.",
     okLabel: "Quit",
     cancelLabel: "Keep going",
     danger: true,
   });
 
   if (ok) {
-    state.quizState = null;
+    clearTimer();
+    state.started = false;
+    state.quiz = null;
     showSetupScreen();
-    setParam("exam", null);
-    setParam("subject", null);
   }
 }
 
@@ -577,49 +803,56 @@ async function init() {
 
     initNav();
 
-    // Populate selectors
-    populateExamSelect();
-    populateSubjectSelect();
-
-    // Read initial params from URL
-    readSetupParamsFromURL();
-
-    // Wire up buttons
-    els.startBtn?.addEventListener("click", handleStartQuiz);
-    els.quitBtn?.addEventListener("click", handleQuit);
-    els.retryBtn?.addEventListener("click", handleRetry);
-    els.userMenuBtn?.addEventListener("click", handleUserMenu);
-
-    // Enter key triggers Next when answer is submitted
-    document.addEventListener("keydown", (e) => {
-      if (
-        e.key === "Enter" &&
-        els.nextBtn &&
-        !els.nextBtn.classList.contains("hidden")
-      ) {
-        e.preventDefault();
-        handleNext();
-      }
+    // Dropdown change events
+    els.curriculumSelect?.addEventListener("change", () => {
+      state.curriculum = els.curriculumSelect.value;
+      populateLevelSelect();
     });
 
-    // Keep dropdowns in sync
-    els.examSelect?.addEventListener("change", () => {
-      state.exam = els.examSelect.value;
+    els.levelSelect?.addEventListener("change", () => {
+      state.level = els.levelSelect.value;
+      populateSubjectSelect();
     });
 
     els.subjectSelect?.addEventListener("change", () => {
       state.subject = els.subjectSelect.value;
+      populateSetSelect();
     });
 
-    // Auto-start if URL has exam + subject
-    if (getParam("exam") && getParam("subject")) {
-      setTimeout(() => handleStartQuiz(), 300);
+    els.setSelect?.addEventListener("change", () => {
+      state.quizId = els.setSelect.value;
+      updateQuizPreview();
+    });
+
+    // Start button
+    els.startBtn?.addEventListener("click", handleStart);
+
+    // Quiz navigation
+    els.prevBtn?.addEventListener("click", handlePrev);
+    els.nextBtn?.addEventListener("click", handleNext);
+    els.quitBtn?.addEventListener("click", handleQuit);
+
+    // Results
+    els.reviewBtn?.addEventListener("click", renderReview);
+    els.retryBtn?.addEventListener("click", handleRetry);
+
+    // User menu
+    els.userMenuBtn?.addEventListener("click", handleUserMenu);
+
+    // Init dropdowns
+    populateCurriculumSelect();
+
+    // If nothing published, show message
+    const published = getPublishedQuizzes();
+    if (!published.length) {
+      showError("No quizzes published yet. Check back soon.");
+      els.startBtn.disabled = true;
     }
 
-    log.info("Quiz page ready");
+    log.info(`Quiz page ready — ${published.length} published quiz(zes)`);
   } catch (e) {
     log.error("Quiz init failed:", e);
-    toastErr("Could not load quiz. Please refresh.");
+    toastErr("Could not load quiz.");
   }
 }
 

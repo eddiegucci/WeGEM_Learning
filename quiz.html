@@ -9,7 +9,6 @@
   <title>Practice — WeGEM Learning</title>
 
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
   <link rel="stylesheet" href="css/main.css">
   <script src="js/core/wallpaper-init.js"></script>
 </head>
@@ -54,32 +53,51 @@
   <section id="setupScreen">
     <section class="page-head">
       <div class="section-label">Practice</div>
-      <h1 class="page-title">Set up your quiz</h1>
-      <p class="page-sub">Pick an exam, subject, and how many questions. Then tap Start.</p>
+      <h1 class="page-title">Pick a quiz</h1>
+      <p class="page-sub">Choose a subject and set. Answer in your own words — you'll be scored against the official mark scheme.</p>
     </section>
 
     <div class="quiz-setup-card">
       <div class="setup-grid">
         <label>
-          <span>Exam</span>
-          <select id="examSelect"></select>
+          <span>Curriculum</span>
+          <select id="curriculumSelect">
+            <option value="CBE">CBE</option>
+            <option value="8-4-4">8-4-4</option>
+          </select>
+        </label>
+        <label>
+          <span>Level</span>
+          <select id="levelSelect"></select>
         </label>
         <label>
           <span>Subject</span>
           <select id="subjectSelect"></select>
         </label>
         <label>
-          <span>Questions</span>
-          <select id="countSelect">
-            <option value="5">5 — Quick</option>
-            <option value="10" selected>10 — Standard</option>
-            <option value="20">20 — Full</option>
-            <option value="50">50 — Marathon</option>
-          </select>
+          <span>Set</span>
+          <select id="setSelect"></select>
         </label>
       </div>
 
-      <button class="btn btn-primary btn-block" id="startBtn" type="button">
+      <div id="quizPreviewInfo" class="quiz-preview-info hidden">
+        <div class="qpi-row">
+          <span class="qpi-label">Total marks</span>
+          <span class="qpi-value" id="qpiMarks">—</span>
+        </div>
+        <div class="qpi-row">
+          <span class="qpi-label">Questions</span>
+          <span class="qpi-value" id="qpiQuestions">—</span>
+        </div>
+        <div class="qpi-row">
+          <span class="qpi-label">Time allowed</span>
+          <span class="qpi-value" id="qpiTime">—</span>
+        </div>
+      </div>
+
+      <div id="setupError" class="alert alert-error hidden"></div>
+
+      <button class="btn btn-primary btn-block" id="startBtn" type="button" disabled>
         Start Quiz →
       </button>
     </div>
@@ -89,12 +107,12 @@
   <section id="quizScreen" class="hidden">
     <div class="quiz-topbar">
       <div>
-        <div class="quiz-meta" id="quizMeta">KCSE · Mathematics</div>
+        <div class="quiz-meta" id="quizMeta">KCSE · Biology</div>
         <div class="quiz-counter" id="quizCounter">Question 1 of 10</div>
       </div>
-      <div class="quiz-score">
-        <span class="score-num" id="liveScore">0</span>
-        <span class="score-label">correct</span>
+      <div class="quiz-timer" id="quizTimer">
+        <span class="timer-value">45:00</span>
+        <span class="timer-label">remaining</span>
       </div>
     </div>
 
@@ -105,13 +123,21 @@
     <div class="question-card">
       <div class="quiz-topic" id="questionTopic">TOPIC</div>
       <div class="question-text" id="questionText">Question…</div>
-      <div class="options" id="optionsList"></div>
-      <div class="feedback hidden" id="feedbackBox" role="status"></div>
+      <div class="question-marks" id="questionMarks">3 marks</div>
+
+      <div class="answer-area">
+        <label class="answer-label">Type your answer:</label>
+        <textarea id="answerBox" placeholder="Write your answer here. Be specific and use key terms." rows="6"></textarea>
+        <div class="answer-hint">You can move to other questions and come back. Your answers are saved automatically.</div>
+      </div>
     </div>
 
     <div class="quiz-actions">
       <button class="btn btn-ghost" id="quitBtn" type="button">Quit</button>
-      <button class="btn btn-primary hidden" id="nextBtn" type="button">Next →</button>
+      <div class="quiz-nav-buttons">
+        <button class="btn btn-ghost" id="prevBtn" type="button">← Previous</button>
+        <button class="btn btn-primary" id="nextBtn" type="button">Next →</button>
+      </div>
     </div>
   </section>
 
@@ -123,19 +149,36 @@
 
       <div class="results-score">
         <div class="score-big" id="finalScore">0%</div>
-        <div class="score-sub" id="finalDetail">0 / 0 correct</div>
+        <div class="score-sub" id="finalDetail">0 / 0 marks</div>
+      </div>
+
+      <div class="summary">
+        <div class="stat">
+          <div class="stat-label">Marks scored</div>
+          <div class="stat-value" id="statMarks">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Time used</div>
+          <div class="stat-value" id="statTime">0:00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Questions</div>
+          <div class="stat-value" id="statQuestions">0</div>
+        </div>
       </div>
 
       <div id="syncStatus" class="sync-status"></div>
 
-      <h3 class="weak-heading" id="weakHeading">Areas to review</h3>
-      <div class="weak-list" id="weakList"></div>
-
-      <div class="cta-row" style="justify-content: center; gap: 12px; flex-wrap: wrap;">
-        <button class="btn btn-primary" id="retryBtn" type="button">Try Again</button>
-        <a href="progress.html" class="btn btn-ghost">View Progress</a>
-        <a href="leaderboard.html" class="btn btn-ghost">Leaderboard</a>
+      <div class="cta-row" style="justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 24px;">
+        <button class="btn btn-primary" id="reviewBtn" type="button">View Marking Scheme</button>
+        <button class="btn btn-ghost" id="retryBtn" type="button">Try Another</button>
         <a href="home.html" class="btn btn-ghost">Home</a>
+      </div>
+
+      <!-- Review -->
+      <div id="reviewSection" class="review-section hidden">
+        <h2 class="review-heading">Detailed Marking Report</h2>
+        <div id="reviewList" class="review-list"></div>
       </div>
     </div>
   </section>
