@@ -27,5 +27,6 @@ export default {
     //     { text: "Third phrase", marks: 1 }
     //   ]
     // }
-  ]
+    // {q: wat is life? }
+  ],
 };
