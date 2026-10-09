@@ -13,7 +13,7 @@ export default {
   totalMarks: 0,
   status: "draft",
   updatedAt: "2026-10-09",
-  version: "0.1",
+  version: "v6.0",
 
   questions: [
     // Add questions here. Format:
