@@ -24,17 +24,7 @@
 
 import kcseComputerStudies1 from "./cbe-grade1012/computer-studies-1.js";
 
-/* =========================================================
-   QUIZ REGISTRY
-   ========================================================= */
-
-export const QUIZZES = [
-  kcseComputerStudies1,
-  // cbeGrade6English1,
-  // cbeGrade79English1,
-  // cbeGrade1012English1,
-  // form844English1,
-];
+export const QUIZZES = [kcseComputerStudies1];
 
 /* =========================================================
    LOOKUP HELPERS
