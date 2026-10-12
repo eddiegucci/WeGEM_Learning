@@ -1,5 +1,5 @@
 // js/pages/quiz.js
-// Typed-answer quiz engine that reads from per-class quiz folders.
+// Typed-answer quiz engine. Reads from js/quizzes/ per-class folders.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc, saveAttempt, updateLeaderboardEntry } from "../core/db.js";
@@ -8,13 +8,7 @@ import {
   getCachedUser as getCachedUserFromIDB,
   cacheAttempt,
 } from "../core/cache.js";
-import {
-  QUIZZES,
-  getQuizzesForUser,
-  getSubjects,
-  getSets,
-  resolveUserClass,
-} from "../quizzes/index.js";
+import { getQuizzesForUser, getSubjects, getSets } from "../quizzes/index.js";
 import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
@@ -96,7 +90,7 @@ const els = {
 };
 
 /* =========================================================
-   USER
+   SETUP USER
    ========================================================= */
 
 async function setupUser() {
@@ -141,15 +135,18 @@ async function setupUser() {
 }
 
 /* =========================================================
-   LOAD QUIZZES
+   LOAD AVAILABLE QUIZZES FOR USER
    ========================================================= */
 
 function loadAvailable() {
   state.availableQuizzes = getQuizzesForUser(state.curriculum, state.level);
+  log.info(
+    `Available quizzes for ${state.curriculum} / ${state.level}: ${state.availableQuizzes.length}`,
+  );
 }
 
 /* =========================================================
-   POPULATE DROPDOWNS
+   SUBJECT DROPDOWN
    ========================================================= */
 
 function populateSubjects() {
@@ -158,8 +155,9 @@ function populateSubjects() {
   const subjects = getSubjects(state.availableQuizzes);
 
   if (!subjects.length) {
+    els.subjectSelect.innerHTML = `<option value="">No subjects</option>`;
     showError(
-      `No quizzes available for ${state.curriculum} — ${state.level}. Check back soon.`,
+      `No quizzes available for ${state.curriculum || "your curriculum"} — ${state.level || "your level"}. Check back soon.`,
     );
     els.startBtn.disabled = true;
     els.quizPreviewInfo?.classList.add("hidden");
@@ -176,13 +174,19 @@ function populateSubjects() {
   populateSets();
 }
 
+/* =========================================================
+   SET DROPDOWN
+   ========================================================= */
+
 function populateSets() {
   if (!els.setSelect) return;
 
   const sets = getSets(state.availableQuizzes, state.subject);
 
   if (!sets.length) {
+    els.setSelect.innerHTML = `<option value="">No sets</option>`;
     els.startBtn.disabled = true;
+    els.quizPreviewInfo?.classList.add("hidden");
     return;
   }
 
@@ -196,6 +200,10 @@ function populateSets() {
   state.quizId = sets[0].title;
   updatePreview();
 }
+
+/* =========================================================
+   PREVIEW INFO
+   ========================================================= */
 
 function updatePreview() {
   const quiz = getMatchingQuiz();
@@ -224,7 +232,7 @@ function getMatchingQuiz() {
 }
 
 /* =========================================================
-   ERRORS
+   ERROR HELPERS
    ========================================================= */
 
 function showError(msg) {
@@ -323,7 +331,7 @@ function renderQuestion() {
 }
 
 /* =========================================================
-   NAV
+   NAVIGATION
    ========================================================= */
 
 function saveCurrentAnswer() {
@@ -398,7 +406,7 @@ function updateTimerDisplay() {
 }
 
 /* =========================================================
-   SUBMIT
+   SUBMIT + SCORE
    ========================================================= */
 
 async function submitQuiz(timeUp = false) {
@@ -463,7 +471,7 @@ async function submitQuiz(timeUp = false) {
 }
 
 /* =========================================================
-   SCORING
+   SCORING ENGINE
    ========================================================= */
 
 function scoreQuiz(quiz, answers) {
@@ -592,8 +600,9 @@ function renderResults(result, timeUp, savedToCloud) {
   }
 
   if (els.finalScore) els.finalScore.textContent = pct + "%";
-  if (els.finalDetail)
+  if (els.finalDetail) {
     els.finalDetail.textContent = `${result.scored} / ${result.totalMarks} marks`;
+  }
 
   if (els.statMarks)
     els.statMarks.textContent = `${result.scored}/${result.totalMarks}`;
@@ -666,7 +675,7 @@ function renderReview() {
 }
 
 /* =========================================================
-   RETRY / QUIT / MENU
+   RETRY / QUIT / USER MENU
    ========================================================= */
 
 function handleRetry() {
@@ -728,13 +737,11 @@ async function init() {
 
     initNav();
 
-    // Hide old curriculum/level dropdowns if present
-    hideLegacyDropdowns();
-
-    // Load available quizzes
+    // Populate subject + set dropdowns
     loadAvailable();
+    populateSubjects();
 
-    // Wire subject + set dropdowns
+    // Wire dropdowns
     els.subjectSelect?.addEventListener("change", () => {
       state.subject = els.subjectSelect.value;
       populateSets();
@@ -753,22 +760,11 @@ async function init() {
     els.retryBtn?.addEventListener("click", handleRetry);
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
 
-    populateSubjects();
-
-    log.info(
-      `Quiz ready — ${state.curriculum} / ${state.level} — ${state.availableQuizzes.length} published`,
-    );
+    log.info(`Quiz page ready — ${state.availableQuizzes.length} available`);
   } catch (e) {
     log.error("Quiz init failed:", e);
     toastErr("Could not load quiz.");
   }
-}
-
-function hideLegacyDropdowns() {
-  const curr = document.getElementById("curriculumSelect");
-  const lvl = document.getElementById("levelSelect");
-  if (curr) curr.closest("label")?.style.setProperty("display", "none");
-  if (lvl) lvl.closest("label")?.style.setProperty("display", "none");
 }
 
 if (document.readyState === "loading") {

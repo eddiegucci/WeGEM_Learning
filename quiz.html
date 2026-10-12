@@ -54,22 +54,13 @@
     <section class="page-head">
       <div class="section-label">Practice</div>
       <h1 class="page-title">Pick a quiz</h1>
-      <p class="page-sub">Choose a subject and set. Answer in your own words — you'll be scored against the official mark scheme.</p>
+      <p class="page-sub">
+        Answer in your own words — you'll be scored against the official mark scheme.
+      </p>
     </section>
 
     <div class="quiz-setup-card">
       <div class="setup-grid">
-        <label>
-          <span>Curriculum</span>
-          <select id="curriculumSelect">
-            <option value="CBE">CBE</option>
-            <option value="8-4-4">8-4-4</option>
-          </select>
-        </label>
-        <label>
-          <span>Level</span>
-          <select id="levelSelect"></select>
-        </label>
         <label>
           <span>Subject</span>
           <select id="subjectSelect"></select>
@@ -107,7 +98,7 @@
   <section id="quizScreen" class="hidden">
     <div class="quiz-topbar">
       <div>
-        <div class="quiz-meta" id="quizMeta">KCSE · Biology</div>
+        <div class="quiz-meta" id="quizMeta">KCSE · Mathematics</div>
         <div class="quiz-counter" id="quizCounter">Question 1 of 10</div>
       </div>
       <div class="quiz-timer" id="quizTimer">
@@ -128,7 +119,7 @@
       <div class="answer-area">
         <label class="answer-label">Type your answer:</label>
         <textarea id="answerBox" placeholder="Write your answer here. Be specific and use key terms." rows="6"></textarea>
-        <div class="answer-hint">You can move to other questions and come back. Your answers are saved automatically.</div>
+        <div class="answer-hint">You can move between questions and come back. Answers save automatically.</div>
       </div>
     </div>
 
@@ -175,7 +166,6 @@
         <a href="home.html" class="btn btn-ghost">Home</a>
       </div>
 
-      <!-- Review -->
       <div id="reviewSection" class="review-section hidden">
         <h2 class="review-heading">Detailed Marking Report</h2>
         <div id="reviewList" class="review-list"></div>
@@ -183,7 +173,6 @@
     </div>
   </section>
 
-  <!-- Footer -->
   <footer class="app-footer">
     <div class="footer-left">
       <span class="footer-bulb">💡</span>
