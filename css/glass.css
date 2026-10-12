@@ -943,3 +943,395 @@
     width: 100%;
   }
 }
+
+/* =========================================================
+   COMPETE — Room code, players, scoreboard, options
+   ========================================================= */
+
+.glass-form {
+  margin-top: 22px;
+  padding: 22px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-input {
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-input:focus {
+  border-color: #fbbf24;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 4px rgba(251, 191, 36, 0.15);
+}
+
+.glass-input-code {
+  text-align: center;
+  font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+  font-size: 28px;
+  letter-spacing: 0.25em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.room-code-display {
+  display: block;
+  text-align: center;
+  padding: 28px 24px;
+  margin: 0 auto;
+  border-radius: 20px;
+  background: rgba(251, 191, 36, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px dashed rgba(251, 191, 36, 0.6);
+  font-family: "SFMono-Regular", Consolas, Menlo, monospace;
+  font-size: 46px;
+  font-weight: 900;
+  color: #fbbf24;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+}
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.player-row.is-you {
+  border-color: rgba(251, 191, 36, 0.5);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.player-row .player-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.player-row .player-school {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+}
+
+.player-row .player-badge {
+  font-size: 10.5px;
+  font-weight: 900;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.compete-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.compete-player-card {
+  padding: 14px 12px;
+  border-radius: 14px;
+  background: rgba(20, 25, 45, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.compete-player-card.is-you {
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow:
+    0 0 0 3px rgba(251, 191, 36, 0.15),
+    0 0 20px rgba(251, 191, 36, 0.2);
+}
+
+.compete-player-card.answered {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.compete-player-card .cp-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.compete-player-card .cp-score {
+  font-size: 24px;
+  font-weight: 900;
+  color: #fbbf24;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.option:hover:not(.disabled) {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  transform: translateX(4px);
+}
+
+.option-letter {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.option:hover:not(.disabled) .option-letter {
+  background: #fbbf24;
+  color: #06070a;
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.5);
+}
+
+.option.correct {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.option.correct .option-letter {
+  background: #10b981;
+  color: #06070a;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.5);
+}
+
+.option.wrong {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.option.wrong .option-letter {
+  background: #ef4444;
+  color: #fff;
+}
+
+.option.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.glass-feedback {
+  margin-top: 20px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  animation: fadeInUp 0.3s ease;
+}
+
+.glass-feedback.correct {
+  background: rgba(16, 185, 129, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #d1fae5;
+}
+
+.glass-feedback.wrong {
+  background: rgba(239, 68, 68, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fee2e2;
+}
+
+/* Leaderboard rows in final standings */
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.lb-row.top-1 {
+  border-color: rgba(251, 191, 36, 0.6);
+  background: linear-gradient(
+    90deg,
+    rgba(251, 191, 36, 0.15),
+    rgba(0, 0, 0, 0.25)
+  );
+  box-shadow: 0 0 24px -6px rgba(251, 191, 36, 0.4);
+}
+
+.lb-row.top-2 {
+  border-color: rgba(192, 192, 192, 0.5);
+}
+
+.lb-row.top-3 {
+  border-color: rgba(205, 127, 50, 0.5);
+}
+
+.lb-rank {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+
+.lb-row.top-1 .lb-rank {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #06070a;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.lb-row.top-2 .lb-rank {
+  background: #c0c0c0;
+  color: #06070a;
+}
+
+.lb-row.top-3 .lb-rank {
+  background: #cd7f32;
+  color: #fff;
+}
+
+.lb-user {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lb-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.lb-school {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+}
+
+.lb-score {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fbbf24;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 16px rgba(251, 191, 36, 0.4);
+}
+
+@media (max-width: 640px) {
+  .room-code-display {
+    font-size: 34px;
+    padding: 22px 16px;
+    letter-spacing: 0.15em;
+  }
+
+  .glass-input-code {
+    font-size: 22px;
+  }
+
+  .compete-scoreboard {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .option {
+    padding: 14px;
+    font-size: 14px;
+  }
+}

@@ -9,14 +9,13 @@
   <title>Compete — WeGEM Learning</title>
 
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/glass.css">
   <script src="js/core/wallpaper-init.js"></script>
 </head>
-<body>
+<body class="glass-body">
 
-<!-- ==================== TOP NAV ==================== -->
-<nav class="top-nav">
+<nav class="top-nav glass-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
       <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
@@ -51,173 +50,212 @@
 <main class="container">
 
   <!-- ============ LOBBY ============ -->
-  <section id="lobbyScreen" class="compete-lobby">
-    <section class="page-head" style="text-align: center;">
-      <div class="section-label">Compete</div>
-      <h1 class="page-title">Challenge Classmates</h1>
-      <p class="page-sub" style="margin-left: auto; margin-right: auto;">
-        Create a room and share the code, or join with a code you received.
+  <section id="lobbyScreen" class="glass-hero">
+    <div class="glass-hero-head">
+      <div class="glass-badge">🏆 Compete Mode</div>
+      <h1 class="glass-title">Challenge <span>classmates</span></h1>
+      <p class="glass-sub">
+        Create a room, share the code, and race to answer the same question first.
       </p>
-    </section>
-
-    <div class="compete-lobby-actions">
-      <button class="btn btn-primary btn-lg" id="createRoomBtn" type="button">
-        🏆 Create Room
-      </button>
-      <button class="btn btn-ghost btn-lg" id="showJoinBtn" type="button">
-        🔗 Join Room
-      </button>
     </div>
 
-    <!-- Join form (hidden until "Join" clicked) -->
-    <div id="joinForm" class="compete-join-form hidden">
-      <label class="field">
-        <span>Room Code</span>
-        <input type="text" id="joinCodeInput" placeholder="6-letter code" maxlength="6" autocapitalize="characters" autocomplete="off" style="text-align: center; font-family: var(--font-mono); font-size: 22px; letter-spacing: 0.2em; font-weight: 800; text-transform: uppercase;">
-      </label>
-      <div class="compete-join-actions">
-        <button class="btn btn-ghost" id="cancelJoinBtn" type="button">Cancel</button>
-        <button class="btn btn-primary" id="joinRoomBtn" type="button">Join →</button>
+    <div class="glass-card glass-card-lg">
+      <div class="glass-row">
+        <button class="glass-btn glass-btn-primary" id="createRoomBtn" type="button">
+          <span>🏆 Create Room</span>
+        </button>
+        <button class="glass-btn glass-btn-ghost" id="showJoinBtn" type="button">
+          <span>🔗 Join Room</span>
+        </button>
       </div>
-    </div>
 
-    <!-- Create room form -->
-    <div id="createForm" class="compete-create-form hidden">
-      <div class="setup-grid" style="margin: 20px auto; max-width: 400px;">
-        <label>
-          <span>Subject</span>
-          <select id="createSubject"></select>
-        </label>
-        <label>
-          <span>Questions</span>
-          <select id="createCount">
-            <option value="5">5 — Quick</option>
-            <option value="10" selected>10 — Standard</option>
-            <option value="20">20 — Marathon</option>
+      <!-- Join form -->
+      <div id="joinForm" class="glass-form hidden">
+        <div class="glass-label">Room Code</div>
+        <input
+          type="text"
+          id="joinCodeInput"
+          class="glass-input glass-input-code"
+          placeholder="ABC123"
+          maxlength="6"
+          autocapitalize="characters"
+          autocomplete="off"
+        />
+        <div class="glass-row" style="margin-top: 16px;">
+          <button class="glass-btn glass-btn-ghost" id="cancelJoinBtn" type="button">Cancel</button>
+          <button class="glass-btn glass-btn-primary" id="joinRoomBtn" type="button">Join →</button>
+        </div>
+      </div>
+
+      <!-- Create form -->
+      <div id="createForm" class="glass-form hidden">
+        <div class="glass-label">Subject</div>
+        <div class="glass-select-wrap" style="margin-bottom: 14px;">
+          <select id="createSubject" class="glass-select"></select>
+          <span class="glass-select-arrow">▾</span>
+        </div>
+
+        <div class="glass-label">Questions per player</div>
+        <div class="glass-select-wrap" style="margin-bottom: 14px;">
+          <select id="createCount" class="glass-select">
+            <option value="5">5 questions</option>
+            <option value="10" selected>10 questions</option>
+            <option value="15">15 questions</option>
+            <option value="20">20 questions</option>
           </select>
-        </label>
-        <label>
-          <span>Seconds per question</span>
-          <select id="createTime">
+          <span class="glass-select-arrow">▾</span>
+        </div>
+
+        <div class="glass-label">Seconds per question</div>
+        <div class="glass-select-wrap">
+          <select id="createTime" class="glass-select">
             <option value="15">15 seconds</option>
             <option value="20" selected>20 seconds</option>
             <option value="30">30 seconds</option>
             <option value="60">60 seconds</option>
           </select>
-        </label>
+          <span class="glass-select-arrow">▾</span>
+        </div>
+
+        <div class="glass-row" style="margin-top: 16px;">
+          <button class="glass-btn glass-btn-ghost" id="cancelCreateBtn" type="button">Cancel</button>
+          <button class="glass-btn glass-btn-primary" id="confirmCreateBtn" type="button">Create →</button>
+        </div>
       </div>
-      <div class="compete-join-actions" style="max-width: 400px; margin: 0 auto;">
-        <button class="btn btn-ghost" id="cancelCreateBtn" type="button">Cancel</button>
-        <button class="btn btn-primary" id="confirmCreateBtn" type="button">Create Room →</button>
+
+      <div id="lobbyError" class="glass-coming hidden" style="margin-top: 16px;">
+        <div class="gc-icon">⚠️</div>
+        <div class="gc-title">Cannot create room</div>
+        <div class="gc-text" id="lobbyErrorText">—</div>
       </div>
     </div>
   </section>
 
   <!-- ============ WAITING ROOM ============ -->
-  <section id="waitingScreen" class="compete-lobby hidden">
-    <section class="page-head" style="text-align: center;">
-      <div class="section-label">Room Created</div>
-      <h1 class="page-title">Waiting for players</h1>
-      <p class="page-sub" style="margin: 0 auto;">Share this code with your classmates:</p>
-    </section>
-
-    <div class="room-code-display" id="roomCodeDisplay">------</div>
-
-    <button class="btn btn-ghost" id="copyCodeBtn" type="button" style="margin-bottom: 20px;">
-      📋 Copy Code
-    </button>
-
-    <div class="waiting-meta">
-      <div class="waiting-meta-item">
-        <div class="wm-label">Subject</div>
-        <div class="wm-value" id="waitingSubject">—</div>
-      </div>
-      <div class="waiting-meta-item">
-        <div class="wm-label">Questions</div>
-        <div class="wm-value" id="waitingCount">—</div>
-      </div>
-      <div class="waiting-meta-item">
-        <div class="wm-label">Seconds</div>
-        <div class="wm-value" id="waitingTime">—</div>
-      </div>
+  <section id="waitingScreen" class="glass-hero hidden">
+    <div class="glass-hero-head">
+      <div class="glass-badge">Room ready</div>
+      <h1 class="glass-title">Share this <span>code</span></h1>
+      <p class="glass-sub">Your classmates enter this code in the Join Room form.</p>
     </div>
 
-    <h3 class="waiting-players-title">Players (<span id="playerCount">0</span>)</h3>
+    <div class="glass-card glass-card-lg">
+      <div class="room-code-display" id="roomCodeDisplay">------</div>
 
-    <div id="playerList" class="player-list">
-      <div class="loading-wrap" style="padding: 20px;">
-        <div class="spinner"></div>
+      <div class="glass-row" style="margin-top: 16px; margin-bottom: 22px;">
+        <button class="glass-btn glass-btn-ghost" id="copyCodeBtn" type="button">
+          📋 Copy Code
+        </button>
+        <button class="glass-btn glass-btn-ghost" id="leaveRoomBtn" type="button">
+          ❌ Leave
+        </button>
+      </div>
+
+      <div class="glass-preview" style="margin-bottom: 22px;">
+        <div class="glass-preview-item">
+          <div class="gpi-icon">📘</div>
+          <div class="gpi-body">
+            <div class="gpi-label">Subject</div>
+            <div class="gpi-value" id="waitingSubject" style="font-size: 15px;">—</div>
+          </div>
+        </div>
+        <div class="glass-preview-item">
+          <div class="gpi-icon">❓</div>
+          <div class="gpi-body">
+            <div class="gpi-label">Questions</div>
+            <div class="gpi-value" id="waitingCount">—</div>
+          </div>
+        </div>
+        <div class="glass-preview-item">
+          <div class="gpi-icon">⏱</div>
+          <div class="gpi-body">
+            <div class="gpi-label">Per Question</div>
+            <div class="gpi-value" id="waitingTime">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-label" style="margin-bottom: 12px;">
+        Players (<span id="playerCount">0</span>)
+      </div>
+
+      <div id="playerList" class="player-list"></div>
+
+      <button class="glass-btn glass-btn-primary hidden" id="startGameBtn" type="button" style="margin-top: 22px;">
+        <span>Start Game</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12 H19 M13 6 L19 12 L13 18"/>
+        </svg>
+      </button>
+
+      <div class="glass-hint" style="margin-top: 16px; text-align: center;">
+        Waiting for other players to join…
       </div>
     </div>
-
-    <div id="waitingActions" class="compete-join-actions" style="max-width: 400px; margin: 20px auto 0;">
-      <button class="btn btn-ghost" id="leaveRoomBtn" type="button">Leave</button>
-      <button class="btn btn-primary" id="startGameBtn" type="button" disabled>Start Game →</button>
-    </div>
-
-    <p class="signup-hint" style="margin-top: 16px;">
-      Waiting for other players… You can start with just yourself.
-    </p>
   </section>
 
   <!-- ============ PLAYING ============ -->
   <section id="playScreen" class="hidden">
-    <div class="quiz-topbar">
+    <div class="glass-card glass-topbar">
       <div>
-        <div class="quiz-meta" id="playMeta">KCSE · Mathematics</div>
-        <div class="quiz-counter" id="playCounter">Question 1 of 10</div>
+        <div class="glass-meta" id="playMeta">KCSE · Mathematics</div>
+        <div class="glass-counter" id="playCounter">Question 1 of 10</div>
       </div>
-      <div class="quiz-score">
-        <span class="score-num" id="playTimer">20</span>
-        <span class="score-label">seconds</span>
+      <div class="glass-timer" id="playTimer">
+        <span class="timer-value">20</span>
+        <span class="timer-label">seconds</span>
       </div>
     </div>
 
-    <div class="progress-bar">
-      <div class="progress-fill" id="playProgress"></div>
+    <div class="glass-progress-bar">
+      <div class="glass-progress-fill" id="playProgress"></div>
     </div>
 
     <!-- Live scoreboard -->
     <div id="liveScoreboard" class="compete-scoreboard"></div>
 
-    <div class="question-card">
-      <div class="quiz-topic" id="playTopic">TOPIC</div>
-      <div class="question-text" id="playQuestion">Question…</div>
+    <div class="glass-card glass-question">
+      <div class="glass-topic" id="playTopic">TOPIC</div>
+      <div class="glass-question-text" id="playQuestion">Question…</div>
+
       <div class="options" id="playOptions"></div>
-      <div class="feedback hidden" id="playFeedback"></div>
+
+      <div class="glass-feedback hidden" id="playFeedback"></div>
     </div>
 
-    <p class="signup-hint" id="playStatus" style="text-align: center;"></p>
+    <p class="glass-hint" id="playStatus" style="text-align: center; font-size: 13px;"></p>
   </section>
 
-  <!-- ============ FINAL RESULTS ============ -->
+  <!-- ============ FINAL ============ -->
   <section id="finalScreen" class="hidden">
-    <div class="results-card">
-      <div class="section-label">Game over</div>
-      <h1 class="section-title" id="finalTitle">Winner! 🏆</h1>
-      <div class="score-big" id="finalWinnerScore">100%</div>
-      <div class="score-sub" id="finalWinnerName">Champion</div>
+    <div class="glass-card glass-results">
+      <div class="glass-badge">Game over</div>
+      <h1 class="glass-title" id="finalTitle">Winner! 🏆</h1>
 
-      <h3 class="weak-heading" style="margin-top: 28px;">Final Standings</h3>
-      <div id="finalStandings" class="lb-list"></div>
+      <div class="glass-score">
+        <div class="glass-score-big" id="finalWinnerScore">100%</div>
+        <div class="glass-score-sub" id="finalWinnerName">Champion</div>
+      </div>
 
-      <div class="cta-row" style="justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 24px;">
-        <button class="btn btn-primary" id="playAgainBtn" type="button">Play Again</button>
-        <a href="leaderboard.html" class="btn btn-ghost">Leaderboard</a>
-        <a href="home.html" class="btn btn-ghost">Home</a>
+      <div class="glass-review-heading">Final Standings</div>
+      <div id="finalStandings" class="lb-list" style="text-align: left;"></div>
+
+      <div class="glass-cta-row" style="margin-top: 28px;">
+        <button class="glass-btn glass-btn-primary" id="playAgainBtn" type="button">Play Again</button>
+        <a href="leaderboard.html" class="glass-btn glass-btn-ghost">Leaderboard</a>
+        <a href="home.html" class="glass-btn glass-btn-ghost">Home</a>
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer class="app-footer">
-    <div class="footer-left">
-      <span class="footer-bulb">💡</span>
+  <footer class="glass-footer">
+    <div class="glass-footer-left">
+      <span>💡</span>
       <span>Better grades. Brighter future.</span>
     </div>
-    <div class="footer-right">
+    <div class="glass-footer-right">
       <span>WeGEM Learning</span>
-      <span class="dot-sep">|</span>
+      <span class="glass-dot">|</span>
       <span>For a smarter Kenya</span>
       <span class="flag-mini"></span>
     </div>
