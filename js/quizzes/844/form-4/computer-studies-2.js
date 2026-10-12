@@ -1,5 +1,5 @@
-﻿// Auto-generated quiz placeholder.
-// Fill in real questions, then set status to "published".
+﻿// js/quizzes/844/form-4/computer-studies-2.js
+// Form 4 Computer Studies — Set 2 (20 Structured Questions, 5 marks each)
 
 export default {
   exam: "KCSE",
@@ -7,25 +7,268 @@ export default {
   grade: "Form 4",
   class: "form-4",
   curriculum: "844",
-  title: "Computer Studies — Set 2",
-  description: "Coming soon.",
-  duration: 30 * 60,
-  totalMarks: 0,
-  status: "draft",
-  updatedAt: "2026-10-09",
-  version: "0.1",
+  title: "Computer Studies — Set 2 (Advanced Structured)",
+  description:
+    "KCSE Form 4 Computer Studies advanced practice featuring 20 comprehensive structured multi-part questions.",
+  duration: 120 * 60,
+  totalMarks: 100,
+  status: "published",
+  updatedAt: "2026-10-12",
+  version: "3.0",
 
   questions: [
-    // Add questions here. Format:
-    // {
-    //   q: "Question text",
-    //   marks: 3,
-    //   topic: "Topic name",
-    //   markpoints: [
-    //     { text: "Acceptable answer phrase", marks: 1 },
-    //     { text: "Another phrase", marks: 1 },
-    //     { text: "Third phrase", marks: 1 }
-    //   ]
-    // }
-  ]
+    {
+      q: "(a) Define the term 'system flowchart'. (2 marks)\n(b) State three symbols used in system flowcharts and their meanings. (3 marks)",
+      marks: 5,
+      topic: "System Analysis and Design",
+      markpoints: [
+        { text: "graphical representation of data flow", marks: 1 },
+        { text: "shows sequence of operations", marks: 1 },
+        { text: "input/output parallelogram", marks: 1 },
+        { text: "process rectangle", marks: 1 },
+        { text: "decision diamond", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Explain the function of a SQL SELECT statement in databases. (2 marks)\n(b) List three aggregate functions commonly used in database queries. (3 marks)",
+      marks: 5,
+      topic: "Databases",
+      markpoints: [
+        { text: "retrieve data from tables", marks: 1 },
+        { text: "query records", marks: 1 },
+        { text: "sum", marks: 1 },
+        { text: "avg", marks: 1 },
+        { text: "count", marks: 1 },
+        { text: "max", marks: 1 },
+        { text: "min", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Differentiate between a hub and a switch in network devices. (2 marks)\n(b) State three network transmission impairment factors. (3 marks)",
+      marks: 5,
+      topic: "Networking",
+      markpoints: [
+        { text: "hub broadcasts data to all ports", marks: 1 },
+        { text: "switch forwards data to specific target port", marks: 1 },
+        { text: "attenuation", marks: 1 },
+        { text: "noise", marks: 1 },
+        { text: "distortion", marks: 1 },
+        { text: "interference", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) State the purpose of HTML in web design. (2 marks)\n(b) List three basic structural tags used in an HTML document. (3 marks)",
+      marks: 5,
+      topic: "Web Design",
+      markpoints: [
+        { text: "markup language for creating web pages", marks: 1 },
+        { text: "structures content", marks: 1 },
+        { text: "<html>", marks: 1 },
+        { text: "<head>", marks: 1 },
+        { text: "<body>", marks: 1 },
+        { text: "<title>", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Distinguish between RAM and ROM memory types. (2 marks)\n(b) State three types of ROM based on programmability. (3 marks)",
+      marks: 5,
+      topic: "Computer Memory",
+      markpoints: [
+        { text: "ram is volatile", marks: 1 },
+        { text: "rom is non-volatile", marks: 1 },
+        { text: "prom", marks: 1 },
+        { text: "eprom", marks: 1 },
+        { text: "eeprom", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) State two advantages of direct changeover strategy in system implementation. (2 marks)\n(b) List three other methods of system changeover. (3 marks)",
+      marks: 5,
+      topic: "System Analysis and Design",
+      markpoints: [
+        { text: "cheap", marks: 1 },
+        { text: "less time consuming", marks: 1 },
+        { text: "parallel", marks: 1 },
+        { text: "pilot", marks: 1 },
+        { text: "phased", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Define 'data integrity'. (2 marks)\n(b) Give three ways integrity can be compromised in a database. (3 marks)",
+      marks: 5,
+      topic: "Data Security and Controls",
+      markpoints: [
+        { text: "accuracy and consistency of data", marks: 1 },
+        { text: "validity of stored records", marks: 1 },
+        { text: "unauthorized data modification", marks: 1 },
+        { text: "hardware failure", marks: 1 },
+        { text: "software bugs", marks: 1 },
+        { text: "human error during entry", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) State two differences between a CLI and GUI operating system interface. (2 marks)\n(b) List three examples of modern operating systems. (3 marks)",
+      marks: 5,
+      topic: "Operating Systems",
+      markpoints: [
+        { text: "cli uses text commands", marks: 1 },
+        { text: "gui uses icons and windows", marks: 1 },
+        { text: "windows", marks: 1 },
+        { text: "linux", marks: 1 },
+        { text: "macos", marks: 1 },
+        { text: "android", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Perform binary subtraction: 1101₂ - 101₂. (2 marks)\n(b) State three methods of representing signed binary numbers. (3 marks)",
+      marks: 5,
+      topic: "Data Representation",
+      markpoints: [
+        { text: "1000", marks: 1 },
+        { text: "sign and magnitude", marks: 1 },
+        { text: "one's complement", marks: 1 },
+        { text: "two's complement", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) State two forms of software piracy. (2 marks)\n(b) List three preventive measures against software piracy. (3 marks)",
+      marks: 5,
+      topic: "Data Security and Controls",
+      markpoints: [
+        { text: "counterfeiting", marks: 1 },
+        { text: "softlifting", marks: 1 },
+        { text: "renting", marks: 1 },
+        { text: "product keys", marks: 1 },
+        { text: "license agreements", marks: 1 },
+        { text: "activation codes", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Define desktop publishing. (2 marks)\n(b) State three DTP design principles for publications. (3 marks)",
+      marks: 5,
+      topic: "Desktop Publishing",
+      markpoints: [
+        { text: "creation of documents using page layout software", marks: 1 },
+        { text: "combining text and graphics", marks: 1 },
+        { text: "balance", marks: 1 },
+        { text: "contrast", marks: 1 },
+        { text: "alignment", marks: 1 },
+        { text: "proximity", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) State the purpose of the IF function in spreadsheets. (2 marks)\n(b) List three text manipulation functions in spreadsheet software. (3 marks)",
+      marks: 5,
+      topic: "Spreadsheets",
+      markpoints: [
+        { text: "conditional testing", marks: 1 },
+        { text: "returns value based on condition true or false", marks: 1 },
+        { text: "upper", marks: 1 },
+        { text: "lower", marks: 1 },
+        { text: "concatenate", marks: 1 },
+        { text: "left", marks: 1 },
+        { text: "right", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) State two benefits of using document templates in word processing. (2 marks)\n(b) List three types of paragraph alignments in word processors. (3 marks)",
+      marks: 5,
+      topic: "Productivity Tools",
+      markpoints: [
+        { text: "saves time", marks: 1 },
+        { text: "ensures consistency", marks: 1 },
+        { text: "left", marks: 1 },
+        { text: "right", marks: 1 },
+        { text: "center", marks: 1 },
+        { text: "justify", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Distinguish between simplex and half-duplex data transmission. (2 marks)\n(b) State three factors affecting data transmission speed. (3 marks)",
+      marks: 5,
+      topic: "Networking",
+      markpoints: [
+        { text: "simplex is unidirectional", marks: 1 },
+        { text: "half-duplex is bidirectional but not simultaneous", marks: 1 },
+        { text: "bandwidth", marks: 1 },
+        { text: "noise", marks: 1 },
+        { text: "distance", marks: 1 },
+        { text: "medium type", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Differentiate between system software and application software. (2 marks)\n(b) Give three examples of open-source software. (3 marks)",
+      marks: 5,
+      topic: "Software",
+      markpoints: [
+        { text: "system software manages hardware resources", marks: 1 },
+        { text: "application software performs specific user tasks", marks: 1 },
+        { text: "linux", marks: 1 },
+        { text: "libreoffice", marks: 1 },
+        { text: "vlc", marks: 1 },
+        { text: "firefox", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Outline the steps involved in the instruction execution cycle (Fetch-Decode-Execute). (2 marks)\n(b) State three functions of the Control Unit during execution. (3 marks)",
+      marks: 5,
+      topic: "Computer Architecture",
+      markpoints: [
+        { text: "fetch instruction from memory", marks: 1 },
+        { text: "decode instruction and execute", marks: 1 },
+        { text: "directs flow of data", marks: 1 },
+        { text: "interprets instructions", marks: 1 },
+        { text: "controls peripheral devices", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Define 'indexed sequential file organization'. (2 marks)\n(b) State two advantages and one disadvantage of sequential file organization. (3 marks)",
+      marks: 5,
+      topic: "Data Processing",
+      markpoints: [
+        { text: "records stored in sequential order using an index", marks: 1 },
+        { text: "fast access via index", marks: 1 },
+        { text: "simple to understand", marks: 1 },
+        { text: "slow searching for individual records", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) State two positive impacts of ICT on education. (2 marks)\n(b) State three negative social impacts of ICT use. (3 marks)",
+      marks: 5,
+      topic: "ICT and Society",
+      markpoints: [
+        { text: "e-learning", marks: 1 },
+        { text: "access to digital research materials", marks: 1 },
+        { text: "cyberbullying", marks: 1 },
+        { text: "job loss through automation", marks: 1 },
+        { text: "addiction and health issues", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) Define the term 'expert system'. (2 marks)\n(b) State three components of an expert system. (3 marks)",
+      marks: 5,
+      topic: "Artificial Intelligence",
+      markpoints: [
+        { text: "ai program that mimics human expertise", marks: 1 },
+        { text: "solves complex domain problems", marks: 1 },
+        { text: "knowledge base", marks: 1 },
+        { text: "inference engine", marks: 1 },
+        { text: "user interface", marks: 1 },
+      ],
+    },
+    {
+      q: "(a) State two physical security controls for a computer laboratory. (2 marks)\n(b) List three causes of data loss in computer systems. (3 marks)",
+      marks: 5,
+      topic: "Data Security and Controls",
+      markpoints: [
+        { text: "burglar bars", marks: 1 },
+        { text: "security guards", marks: 1 },
+        { text: "biometric locks", marks: 1 },
+        { text: "hardware failure", marks: 1 },
+        { text: "malware infection", marks: 1 },
+        { text: "accidental deletion", marks: 1 },
+        { text: "fire", marks: 1 },
+      ],
+    },
+  ],
 };
