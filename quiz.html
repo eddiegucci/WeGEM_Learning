@@ -10,11 +10,12 @@
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/glass.css">
   <script src="js/core/wallpaper-init.js"></script>
 </head>
-<body>
+<body class="glass-body">
 
-<nav class="top-nav">
+<nav class="top-nav glass-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
       <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
@@ -49,73 +50,71 @@
 <main class="container">
 
   <!-- ============ SETUP ============ -->
-  <section id="setupScreen" class="quiz-hero">
-    <div class="quiz-hero-glow"></div>
-
-    <header class="quiz-hero-head">
-      <span class="quiz-hero-badge">⚡ Practice Mode</span>
-      <h1 class="quiz-hero-title">Take a <span>quiz</span></h1>
-      <p class="quiz-hero-sub">
-        Answer in your own words. You'll be scored against the official mark scheme with a detailed review.
+  <section id="setupScreen" class="glass-hero">
+    <div class="glass-hero-head">
+      <div class="glass-badge">⚡ Practice Mode</div>
+      <h1 class="glass-title">Take a <span>quiz</span></h1>
+      <p class="glass-sub">
+        Answer in your own words. You'll be scored against the official mark scheme.
       </p>
-    </header>
+    </div>
 
-    <div class="quiz-setup-card">
-      <div class="quiz-setup-row">
-        <label class="quiz-field">
-          <span class="quiz-field-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4 H15 L20 9 V20 H4 Z"/>
-              <path d="M15 4 V9 H20"/>
-            </svg>
+    <div class="glass-card glass-card-lg">
+      <div class="glass-row">
+        <div class="glass-field">
+          <div class="glass-label">
+            <span class="glass-label-icon">📘</span>
             Subject
-          </span>
-          <select id="subjectSelect" class="quiz-select"></select>
-        </label>
+          </div>
+          <div class="glass-select-wrap">
+            <select id="subjectSelect" class="glass-select"></select>
+            <span class="glass-select-arrow">▾</span>
+          </div>
+        </div>
 
-        <label class="quiz-field" id="setSelectWrap">
-          <span class="quiz-field-label">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="16" rx="2"/>
-              <path d="M8 4 V20 M16 4 V20"/>
-            </svg>
+        <div class="glass-field" id="setSelectWrap">
+          <div class="glass-label">
+            <span class="glass-label-icon">📚</span>
             Set
-          </span>
-          <select id="setSelect" class="quiz-select"></select>
-        </label>
-      </div>
-
-      <div id="quizPreviewInfo" class="quiz-preview-info hidden">
-        <div class="qpi-item">
-          <div class="qpi-icon">📝</div>
-          <div class="qpi-body">
-            <div class="qpi-label">Total marks</div>
-            <div class="qpi-value" id="qpiMarks">—</div>
           </div>
-        </div>
-        <div class="qpi-item">
-          <div class="qpi-icon">❓</div>
-          <div class="qpi-body">
-            <div class="qpi-label">Questions</div>
-            <div class="qpi-value" id="qpiQuestions">—</div>
-          </div>
-        </div>
-        <div class="qpi-item">
-          <div class="qpi-icon">⏱</div>
-          <div class="qpi-body">
-            <div class="qpi-label">Time allowed</div>
-            <div class="qpi-value" id="qpiTime">—</div>
+          <div class="glass-select-wrap">
+            <select id="setSelect" class="glass-select"></select>
+            <span class="glass-select-arrow">▾</span>
           </div>
         </div>
       </div>
 
-      <div id="comingSoon" class="quiz-coming-soon hidden">
-        <div class="qcs-icon">🛠️</div>
-        <div class="qcs-title">Coming soon</div>
-        <div class="qcs-text">This subject doesn't have a published quiz yet. Check back soon.</div>
+      <div id="quizPreviewInfo" class="glass-preview hidden">
+        <div class="glass-preview-item">
+          <div class="gpi-icon">📝</div>
+          <div class="gpi-body">
+            <div class="gpi-label">Total Marks</div>
+            <div class="gpi-value" id="qpiMarks">—</div>
+          </div>
+        </div>
+        <div class="glass-preview-item">
+          <div class="gpi-icon">❓</div>
+          <div class="gpi-body">
+            <div class="gpi-label">Questions</div>
+            <div class="gpi-value" id="qpiQuestions">—</div>
+          </div>
+        </div>
+        <div class="glass-preview-item">
+          <div class="gpi-icon">⏱</div>
+          <div class="gpi-body">
+            <div class="gpi-label">Time</div>
+            <div class="gpi-value" id="qpiTime">—</div>
+          </div>
+        </div>
       </div>
 
-      <button class="quiz-start-btn" id="startBtn" type="button" disabled>
+      <div id="comingSoon" class="glass-coming hidden">
+        <div class="gc-icon">🛠️</div>
+        <div class="gc-title">Coming Soon</div>
+        <div class="gc-text">This subject doesn't have a published quiz yet.</div>
+      </div>
+
+      <button class="glass-btn glass-btn-primary" id="startBtn" type="button" disabled>
         <span>Start Quiz</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
           <path d="M5 12 H19 M13 6 L19 12 L13 18"/>
@@ -126,91 +125,89 @@
 
   <!-- ============ QUIZ ============ -->
   <section id="quizScreen" class="hidden">
-    <div class="quiz-topbar">
+    <div class="glass-card glass-topbar">
       <div>
-        <div class="quiz-meta" id="quizMeta">KCSE · Mathematics</div>
-        <div class="quiz-counter" id="quizCounter">Question 1 of 10</div>
+        <div class="glass-meta" id="quizMeta">KCSE · Mathematics</div>
+        <div class="glass-counter" id="quizCounter">Question 1 of 10</div>
       </div>
-      <div class="quiz-timer" id="quizTimer">
+      <div class="glass-timer" id="quizTimer">
         <span class="timer-value">45:00</span>
         <span class="timer-label">remaining</span>
       </div>
     </div>
 
-    <div class="progress-bar">
-      <div class="progress-fill" id="quizProgress"></div>
+    <div class="glass-progress-bar">
+      <div class="glass-progress-fill" id="quizProgress"></div>
     </div>
 
-    <div class="question-card">
-      <div class="quiz-topic" id="questionTopic">TOPIC</div>
-      <div class="question-text" id="questionText">Question…</div>
-      <div class="question-marks" id="questionMarks">3 marks</div>
+    <div class="glass-card glass-question">
+      <div class="glass-topic" id="questionTopic">TOPIC</div>
+      <div class="glass-question-text" id="questionText">Question…</div>
+      <div class="glass-marks" id="questionMarks">3 marks</div>
 
-      <div class="answer-area">
-        <label class="answer-label">Type your answer:</label>
-        <textarea id="answerBox" placeholder="Write your answer here. Be specific and use key terms." rows="6"></textarea>
-        <div class="answer-hint">You can move between questions and come back. Answers save automatically.</div>
-      </div>
+      <div class="glass-label" style="margin-bottom: 10px;">Type your answer:</div>
+      <textarea class="glass-textarea" id="answerBox" placeholder="Write your answer here. Be specific and use key terms." rows="6"></textarea>
+      <div class="glass-hint">You can move between questions and come back. Answers save automatically.</div>
     </div>
 
-    <div class="quiz-actions">
-      <button class="btn btn-ghost" id="quitBtn" type="button">Quit</button>
-      <div class="quiz-nav-buttons">
-        <button class="btn btn-ghost" id="prevBtn" type="button">← Previous</button>
-        <button class="btn btn-primary" id="nextBtn" type="button">Next →</button>
+    <div class="glass-actions">
+      <button class="glass-btn glass-btn-ghost" id="quitBtn" type="button">Quit</button>
+      <div class="glass-nav-buttons">
+        <button class="glass-btn glass-btn-ghost" id="prevBtn" type="button">← Previous</button>
+        <button class="glass-btn glass-btn-primary" id="nextBtn" type="button">Next →</button>
       </div>
     </div>
   </section>
 
   <!-- ============ RESULTS ============ -->
   <section id="resultsScreen" class="hidden">
-    <div class="results-card">
-      <div class="section-label">Quiz complete</div>
-      <h1 class="section-title" id="resultsTitle">Well done!</h1>
+    <div class="glass-card glass-results">
+      <div class="glass-badge">Quiz complete</div>
+      <h1 class="glass-title" id="resultsTitle">Well done!</h1>
 
-      <div class="results-score">
-        <div class="score-big" id="finalScore">0%</div>
-        <div class="score-sub" id="finalDetail">0 / 0 marks</div>
+      <div class="glass-score">
+        <div class="glass-score-big" id="finalScore">0%</div>
+        <div class="glass-score-sub" id="finalDetail">0 / 0 marks</div>
       </div>
 
-      <div class="summary">
-        <div class="stat">
-          <div class="stat-label">Marks scored</div>
-          <div class="stat-value" id="statMarks">0</div>
+      <div class="glass-summary">
+        <div class="glass-stat">
+          <div class="gs-label">Marks scored</div>
+          <div class="gs-value" id="statMarks">0</div>
         </div>
-        <div class="stat">
-          <div class="stat-label">Time used</div>
-          <div class="stat-value" id="statTime">0:00</div>
+        <div class="glass-stat">
+          <div class="gs-label">Time used</div>
+          <div class="gs-value" id="statTime">0:00</div>
         </div>
-        <div class="stat">
-          <div class="stat-label">Questions</div>
-          <div class="stat-value" id="statQuestions">0</div>
+        <div class="glass-stat">
+          <div class="gs-label">Questions</div>
+          <div class="gs-value" id="statQuestions">0</div>
         </div>
       </div>
 
-      <div id="syncStatus" class="sync-status"></div>
+      <div id="syncStatus" class="glass-sync"></div>
 
-      <div class="cta-row" style="justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 24px;">
-        <button class="btn btn-primary" id="reviewBtn" type="button">View Marking Scheme</button>
-        <button class="btn btn-ghost" id="retryBtn" type="button">Try Another</button>
-        <a href="home.html" class="btn btn-ghost">Home</a>
+      <div class="glass-cta-row">
+        <button class="glass-btn glass-btn-primary" id="reviewBtn" type="button">View Marking Scheme</button>
+        <button class="glass-btn glass-btn-ghost" id="retryBtn" type="button">Try Another</button>
+        <a href="home.html" class="glass-btn glass-btn-ghost">Home</a>
       </div>
 
-      <div id="reviewSection" class="review-section hidden">
-        <h2 class="review-heading">Detailed Marking Report</h2>
-        <div id="reviewList" class="review-list"></div>
+      <div id="reviewSection" class="glass-review-section hidden">
+        <h2 class="glass-review-heading">Detailed Marking Report</h2>
+        <div id="reviewList" class="glass-review-list"></div>
       </div>
     </div>
   </section>
 
-  <footer class="app-footer">
-    <div class="footer-left">
-      <span class="footer-bulb">💡</span>
+  <footer class="glass-footer">
+    <div class="glass-footer-left">
+      <span>💡</span>
       <span>Better grades. Brighter future.</span>
     </div>
-    <div class="footer-right">
+    <div class="glass-footer-right">
       <span>WeGEM Learning</span>
-      <span class="dot-sep">|</span>
+      <span class="glass-dot">|</span>
       <span>For a smarter Kenya</span>
       <span class="flag-mini"></span>
     </div>
