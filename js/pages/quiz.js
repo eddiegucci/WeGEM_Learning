@@ -1,5 +1,5 @@
 // js/pages/quiz.js
-// Typed-answer quiz engine. Reads from js/quizzes/ per-class folders.
+// Typed-answer quiz engine with beautiful UX and full subject list.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc, saveAttempt, updateLeaderboardEntry } from "../core/db.js";
@@ -8,7 +8,11 @@ import {
   getCachedUser as getCachedUserFromIDB,
   cacheAttempt,
 } from "../core/cache.js";
-import { getQuizzesForUser, getSubjects, getSets } from "../quizzes/index.js";
+import {
+  getQuizzesForUser,
+  getAllSubjectsForUser,
+  getSets,
+} from "../quizzes/index.js";
 import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
@@ -29,6 +33,7 @@ const state = {
   userDoc: null,
   curriculum: "",
   level: "",
+  allSubjects: [],
   availableQuizzes: [],
   subject: "",
   quizId: "",
@@ -53,11 +58,13 @@ const els = {
 
   subjectSelect: document.getElementById("subjectSelect"),
   setSelect: document.getElementById("setSelect"),
+  setSelectWrap: document.getElementById("setSelectWrap"),
   quizPreviewInfo: document.getElementById("quizPreviewInfo"),
   qpiMarks: document.getElementById("qpiMarks"),
   qpiQuestions: document.getElementById("qpiQuestions"),
   qpiTime: document.getElementById("qpiTime"),
   setupError: document.getElementById("setupError"),
+  comingSoon: document.getElementById("comingSoon"),
   startBtn: document.getElementById("startBtn"),
 
   quizMeta: document.getElementById("quizMeta"),
@@ -90,7 +97,7 @@ const els = {
 };
 
 /* =========================================================
-   SETUP USER
+   USER
    ========================================================= */
 
 async function setupUser() {
@@ -135,47 +142,60 @@ async function setupUser() {
 }
 
 /* =========================================================
-   LOAD AVAILABLE QUIZZES FOR USER
+   LOAD DATA
    ========================================================= */
 
-function loadAvailable() {
+function loadAll() {
+  state.allSubjects = getAllSubjectsForUser(state.curriculum, state.level);
   state.availableQuizzes = getQuizzesForUser(state.curriculum, state.level);
+
   log.info(
-    `Available quizzes for ${state.curriculum} / ${state.level}: ${state.availableQuizzes.length}`,
+    `Loaded ${state.allSubjects.length} subjects, ${state.availableQuizzes.length} published quizzes`,
   );
 }
 
 /* =========================================================
-   SUBJECT DROPDOWN
+   POPULATE SUBJECT DROPDOWN
    ========================================================= */
 
 function populateSubjects() {
   if (!els.subjectSelect) return;
 
-  const subjects = getSubjects(state.availableQuizzes);
-
-  if (!subjects.length) {
+  if (!state.allSubjects.length) {
     els.subjectSelect.innerHTML = `<option value="">No subjects</option>`;
-    showError(
-      `No quizzes available for ${state.curriculum || "your curriculum"} — ${state.level || "your level"}. Check back soon.`,
-    );
     els.startBtn.disabled = true;
+    els.setSelectWrap?.classList.add("hidden");
     els.quizPreviewInfo?.classList.add("hidden");
     return;
   }
 
-  clearError();
+  // Build a list: subjects with quizzes first, then empty ones
+  const subjectsWithQuiz = new Set(
+    state.availableQuizzes.map((q) => q.subject),
+  );
 
-  els.subjectSelect.innerHTML = subjects
-    .map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`)
+  const sorted = [...state.allSubjects].sort((a, b) => {
+    const aHas = subjectsWithQuiz.has(a);
+    const bHas = subjectsWithQuiz.has(b);
+    if (aHas && !bHas) return -1;
+    if (!aHas && bHas) return 1;
+    return a.localeCompare(b);
+  });
+
+  els.subjectSelect.innerHTML = sorted
+    .map((s) => {
+      const hasQuiz = subjectsWithQuiz.has(s);
+      const suffix = hasQuiz ? "" : " ·";
+      return `<option value="${escapeHTML(s)}">${escapeHTML(s)}${suffix}</option>`;
+    })
     .join("");
 
-  state.subject = subjects[0];
+  state.subject = sorted[0];
   populateSets();
 }
 
 /* =========================================================
-   SET DROPDOWN
+   POPULATE SETS
    ========================================================= */
 
 function populateSets() {
@@ -184,17 +204,23 @@ function populateSets() {
   const sets = getSets(state.availableQuizzes, state.subject);
 
   if (!sets.length) {
-    els.setSelect.innerHTML = `<option value="">No sets</option>`;
-    els.startBtn.disabled = true;
+    // No published quiz for this subject
+    if (els.setSelectWrap) els.setSelectWrap.classList.add("hidden");
     els.quizPreviewInfo?.classList.add("hidden");
+    els.comingSoon?.classList.remove("hidden");
+    els.startBtn.disabled = true;
     return;
   }
 
+  els.setSelectWrap?.classList.remove("hidden");
+  els.comingSoon?.classList.add("hidden");
+
   els.setSelect.innerHTML = sets
-    .map(
-      (q) =>
-        `<option value="${escapeHTML(q.title)}">${escapeHTML(q.title)}</option>`,
-    )
+    .map((q) => {
+      const marks = q.totalMarks || 0;
+      const questions = q.questions?.length || 0;
+      return `<option value="${escapeHTML(q.title)}">${escapeHTML(q.title)} · ${questions} Qs · ${marks} marks</option>`;
+    })
     .join("");
 
   state.quizId = sets[0].title;
@@ -202,7 +228,7 @@ function populateSets() {
 }
 
 /* =========================================================
-   PREVIEW INFO
+   PREVIEW
    ========================================================= */
 
 function updatePreview() {
@@ -232,29 +258,13 @@ function getMatchingQuiz() {
 }
 
 /* =========================================================
-   ERROR HELPERS
-   ========================================================= */
-
-function showError(msg) {
-  if (!els.setupError) return;
-  els.setupError.textContent = msg;
-  els.setupError.classList.remove("hidden");
-}
-
-function clearError() {
-  if (!els.setupError) return;
-  els.setupError.classList.add("hidden");
-  els.setupError.textContent = "";
-}
-
-/* =========================================================
    START QUIZ
    ========================================================= */
 
 function handleStart() {
   const quiz = getMatchingQuiz();
-  if (!quiz) return showError("Quiz not found.");
-  if (!quiz.questions?.length) return showError("This quiz has no questions.");
+  if (!quiz) return;
+  if (!quiz.questions?.length) return;
 
   state.quiz = quiz;
   state.answers = new Array(quiz.questions.length).fill("");
@@ -331,7 +341,7 @@ function renderQuestion() {
 }
 
 /* =========================================================
-   NAVIGATION
+   NAV
    ========================================================= */
 
 function saveCurrentAnswer() {
@@ -406,7 +416,7 @@ function updateTimerDisplay() {
 }
 
 /* =========================================================
-   SUBMIT + SCORE
+   SUBMIT
    ========================================================= */
 
 async function submitQuiz(timeUp = false) {
@@ -471,7 +481,7 @@ async function submitQuiz(timeUp = false) {
 }
 
 /* =========================================================
-   SCORING ENGINE
+   SCORING
    ========================================================= */
 
 function scoreQuiz(quiz, answers) {
@@ -675,7 +685,7 @@ function renderReview() {
 }
 
 /* =========================================================
-   RETRY / QUIT / USER MENU
+   RETRY / QUIT / MENU
    ========================================================= */
 
 function handleRetry() {
@@ -736,12 +746,9 @@ async function init() {
     if (!ready) return;
 
     initNav();
-
-    // Populate subject + set dropdowns
-    loadAvailable();
+    loadAll();
     populateSubjects();
 
-    // Wire dropdowns
     els.subjectSelect?.addEventListener("change", () => {
       state.subject = els.subjectSelect.value;
       populateSets();
@@ -751,7 +758,6 @@ async function init() {
       updatePreview();
     });
 
-    // Wire quiz controls
     els.startBtn?.addEventListener("click", handleStart);
     els.prevBtn?.addEventListener("click", handlePrev);
     els.nextBtn?.addEventListener("click", handleNext);
@@ -760,7 +766,7 @@ async function init() {
     els.retryBtn?.addEventListener("click", handleRetry);
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
 
-    log.info(`Quiz page ready — ${state.availableQuizzes.length} available`);
+    log.info(`Quiz page ready`);
   } catch (e) {
     log.error("Quiz init failed:", e);
     toastErr("Could not load quiz.");

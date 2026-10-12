@@ -11,11 +11,9 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/main.css">
   <script src="js/core/wallpaper-init.js"></script>
-  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
 </head>
 <body>
 
-<!-- ==================== TOP NAV ==================== -->
 <nav class="top-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
@@ -51,46 +49,77 @@
 <main class="container">
 
   <!-- ============ SETUP ============ -->
-  <section id="setupScreen">
-    <section class="page-head">
-      <div class="section-label">Practice</div>
-      <h1 class="page-title">Pick a quiz</h1>
-      <p class="page-sub">
-        Answer in your own words — you'll be scored against the official mark scheme.
+  <section id="setupScreen" class="quiz-hero">
+    <div class="quiz-hero-glow"></div>
+
+    <header class="quiz-hero-head">
+      <span class="quiz-hero-badge">⚡ Practice Mode</span>
+      <h1 class="quiz-hero-title">Take a <span>quiz</span></h1>
+      <p class="quiz-hero-sub">
+        Answer in your own words. You'll be scored against the official mark scheme with a detailed review.
       </p>
-    </section>
+    </header>
 
     <div class="quiz-setup-card">
-      <div class="setup-grid">
-        <label>
-          <span>Subject</span>
-          <select id="subjectSelect"></select>
+      <div class="quiz-setup-row">
+        <label class="quiz-field">
+          <span class="quiz-field-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4 H15 L20 9 V20 H4 Z"/>
+              <path d="M15 4 V9 H20"/>
+            </svg>
+            Subject
+          </span>
+          <select id="subjectSelect" class="quiz-select"></select>
         </label>
-        <label>
-          <span>Set</span>
-          <select id="setSelect"></select>
+
+        <label class="quiz-field" id="setSelectWrap">
+          <span class="quiz-field-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="16" rx="2"/>
+              <path d="M8 4 V20 M16 4 V20"/>
+            </svg>
+            Set
+          </span>
+          <select id="setSelect" class="quiz-select"></select>
         </label>
       </div>
 
       <div id="quizPreviewInfo" class="quiz-preview-info hidden">
-        <div class="qpi-row">
-          <span class="qpi-label">Total marks</span>
-          <span class="qpi-value" id="qpiMarks">—</span>
+        <div class="qpi-item">
+          <div class="qpi-icon">📝</div>
+          <div class="qpi-body">
+            <div class="qpi-label">Total marks</div>
+            <div class="qpi-value" id="qpiMarks">—</div>
+          </div>
         </div>
-        <div class="qpi-row">
-          <span class="qpi-label">Questions</span>
-          <span class="qpi-value" id="qpiQuestions">—</span>
+        <div class="qpi-item">
+          <div class="qpi-icon">❓</div>
+          <div class="qpi-body">
+            <div class="qpi-label">Questions</div>
+            <div class="qpi-value" id="qpiQuestions">—</div>
+          </div>
         </div>
-        <div class="qpi-row">
-          <span class="qpi-label">Time allowed</span>
-          <span class="qpi-value" id="qpiTime">—</span>
+        <div class="qpi-item">
+          <div class="qpi-icon">⏱</div>
+          <div class="qpi-body">
+            <div class="qpi-label">Time allowed</div>
+            <div class="qpi-value" id="qpiTime">—</div>
+          </div>
         </div>
       </div>
 
-      <div id="setupError" class="alert alert-error hidden"></div>
+      <div id="comingSoon" class="quiz-coming-soon hidden">
+        <div class="qcs-icon">🛠️</div>
+        <div class="qcs-title">Coming soon</div>
+        <div class="qcs-text">This subject doesn't have a published quiz yet. Check back soon.</div>
+      </div>
 
-      <button class="btn btn-primary btn-block" id="startBtn" type="button" disabled>
-        Start Quiz →
+      <button class="quiz-start-btn" id="startBtn" type="button" disabled>
+        <span>Start Quiz</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12 H19 M13 6 L19 12 L13 18"/>
+        </svg>
       </button>
     </div>
   </section>

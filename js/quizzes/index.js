@@ -1,7 +1,13 @@
 ﻿// js/quizzes/index.js
-// Loads quizzes dynamically from the manual publish list.
+// Hybrid quiz registry — reads published quizzes AND exposes
+// every subject slot (so empty ones still appear in dropdowns).
 
 import { PUBLISHED_PATHS } from "./_published.js";
+import { SUBJECTS_BY_CURRICULUM } from "../data/subjects.js";
+
+/* =========================================================
+   LOAD PUBLISHED QUIZZES
+   ========================================================= */
 
 const modules = await Promise.all(
   PUBLISHED_PATHS.map((path) => import(path).catch(() => null)),
@@ -12,7 +18,7 @@ export const QUIZZES = modules
   .map((m) => m.default);
 
 /* =========================================================
-   HELPERS
+   RESOLVE USER CLASS
    ========================================================= */
 
 export function resolveUserClass(curriculum, level) {
@@ -25,7 +31,11 @@ export function resolveUserClass(curriculum, level) {
     if (m) {
       const n = parseInt(m[1], 10);
       if (n >= 6 && n <= 12)
-        return { curriculum: "cbe", classId: `grade-${n}` };
+        return {
+          curriculum: "cbe",
+          classId: `grade-${n}`,
+          level: `Grade ${n}`,
+        };
     }
     return null;
   }
@@ -34,13 +44,51 @@ export function resolveUserClass(curriculum, level) {
     const m = lvl.match(/^form\s*(\d+)$/);
     if (m) {
       const n = parseInt(m[1], 10);
-      if (n >= 1 && n <= 4) return { curriculum: "844", classId: `form-${n}` };
+      if (n >= 1 && n <= 4)
+        return { curriculum: "844", classId: `form-${n}`, level: `Form ${n}` };
     }
     return null;
   }
 
   return null;
 }
+
+/* =========================================================
+   GET ALL SUBJECTS (INCLUDING EMPTY ONES)
+   ========================================================= */
+
+/**
+ * Returns every subject the user's class should study,
+ * whether or not there's a published quiz for it.
+ */
+export function getAllSubjectsForUser(curriculum, level) {
+  const resolved = resolveUserClass(curriculum, level);
+  if (!resolved) return [];
+
+  // For 844 curriculum, subjects.js has keys like "844"
+  // For CBE, keys are "CBE" with grade entries
+  let subjectSource = SUBJECTS_BY_CURRICULUM[resolved.curriculum];
+  if (!subjectSource) return [];
+
+  // subjects.js may use either "Form 4" or "Grade 9" as key
+  const classKey = resolved.level; // e.g., "Form 4" or "Grade 9"
+  let subjects = subjectSource[classKey];
+
+  // If not found directly, try alternative keys
+  if (!subjects) {
+    const keys = Object.keys(subjectSource);
+    const match = keys.find((k) =>
+      k.toLowerCase().includes(classKey.toLowerCase().split(" ")[1]),
+    );
+    if (match) subjects = subjectSource[match];
+  }
+
+  return subjects || [];
+}
+
+/* =========================================================
+   FILTER PUBLISHED QUIZZES
+   ========================================================= */
 
 export function getQuizzesForClass(curriculum, classId) {
   return QUIZZES.filter(
