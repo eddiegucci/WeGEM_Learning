@@ -18,8 +18,11 @@ import {
   subscribeToRoom,
   computeRoomRankings,
 } from "../features/quiz-compete.js";
-import { QUIZZES } from "../quizzes/index.js";
-import { resolveUserClass } from "../quizzes/index.js";
+import {
+  getAllSubjectsWithBankStatus,
+  getBanksForUser,
+} from "../compete/index.js";
+import { SUBJECTS_BY_CURRICULUM } from "../data/subjects.js";
 import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
@@ -39,7 +42,7 @@ const state = {
   isHost: false,
   unsub: null,
   currentQuestion: -1,
-  myAnswers: {}, // questionIndex -> selectedIndex
+  myAnswers: {},
   timerInterval: null,
   timerEndsAt: 0,
   timerSeconds: 20,
@@ -151,33 +154,48 @@ async function setupUser() {
 }
 
 /* =========================================================
-   FIND THE FIRST SET FOR EACH SUBJECT
+   GET SUBJECTS + BANK STATUS
+   Returns: { "Mathematics": <bank|null>, "Biology": <bank|null>, ... }
    ========================================================= */
 
-/**
- * For each subject available to the user, pick the first published quiz.
- * Returns a map: { "Mathematics": <quiz>, "Biology": <quiz>, ... }
- */
-function getFirstSetPerSubject() {
-  const resolved = resolveUserClass(state.curriculum, state.level);
-  if (!resolved) return {};
+function getSubjectBankMap() {
+  if (!state.curriculum || !state.level) return {};
 
-  const userQuizzes = QUIZZES.filter(
-    (q) =>
-      q &&
-      q.status === "published" &&
-      q.curriculum === resolved.curriculum &&
-      q.class === resolved.classId &&
-      Array.isArray(q.questions) &&
-      q.questions.length > 0,
+  // Normalize curriculum key for subjects.js
+  const curriculumKey =
+    state.curriculum === "CBE" || state.curriculum.toLowerCase() === "cbe"
+      ? "CBE"
+      : "844";
+
+  // Get subject list for the user's class
+  const source = SUBJECTS_BY_CURRICULUM[curriculumKey];
+  if (!source) return {};
+
+  let subjects = source[state.level];
+
+  // If direct key not found, try to match by number
+  if (!subjects) {
+    const numMatch = String(state.level).match(/\d+/);
+    if (numMatch) {
+      const matchKey = Object.keys(source).find((k) => k.includes(numMatch[0]));
+      if (matchKey) subjects = source[matchKey];
+    }
+  }
+
+  if (!subjects || !subjects.length) return {};
+
+  // Get bank status for each subject
+  const withStatus = getAllSubjectsWithBankStatus(
+    state.curriculum,
+    state.level,
+    subjects,
   );
 
   const map = {};
-  userQuizzes.forEach((q) => {
-    if (!map[q.subject]) {
-      map[q.subject] = q; // first one found wins
-    }
+  withStatus.forEach(({ subject, bank }) => {
+    map[subject] = bank;
   });
+
   return map;
 }
 
@@ -186,19 +204,39 @@ function getFirstSetPerSubject() {
    ========================================================= */
 
 function populateCreateSubjects() {
-  const subjectsMap = getFirstSetPerSubject();
-  const subjects = Object.keys(subjectsMap).sort();
+  if (!els.createSubject) return;
+
+  const subjectMap = getSubjectBankMap();
+  const subjects = Object.keys(subjectMap);
 
   if (!subjects.length) {
-    els.createSubject.innerHTML = `<option value="">No quizzes available</option>`;
+    els.createSubject.innerHTML = `<option value="">No subjects available</option>`;
     els.confirmCreateBtn.disabled = true;
-    showLobbyError("No published quizzes for your class yet. Check back soon.");
+    showLobbyError(
+      "No subjects found for your class. Check your profile settings.",
+    );
     return;
   }
 
-  els.createSubject.innerHTML = subjects
-    .map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`)
+  // Sort: subjects with a bank first, then empty ones
+  const sorted = [...subjects].sort((a, b) => {
+    const aHas = !!subjectMap[a];
+    const bHas = !!subjectMap[b];
+    if (aHas && !bHas) return -1;
+    if (!aHas && bHas) return 1;
+    return a.localeCompare(b);
+  });
+
+  els.createSubject.innerHTML = sorted
+    .map((s) => {
+      const hasBank = !!subjectMap[s];
+      const label = hasBank ? s : `${s} — coming soon`;
+      return `<option value="${escapeHTML(s)}">${escapeHTML(label)}</option>`;
+    })
     .join("");
+
+  els.confirmCreateBtn.disabled = false;
+  clearLobbyError();
 }
 
 function showLobbyError(msg) {
@@ -212,7 +250,7 @@ function clearLobbyError() {
 }
 
 /* =========================================================
-   LOBBY
+   SCREEN SWITCHING
    ========================================================= */
 
 function showLobby() {
@@ -262,26 +300,31 @@ async function handleCreateRoom() {
 
   if (!subject) return showLobbyError("Please choose a subject.");
 
-  const subjectsMap = getFirstSetPerSubject();
-  const quiz = subjectsMap[subject];
+  const subjectMap = getSubjectBankMap();
+  const bank = subjectMap[subject];
 
-  if (!quiz) {
-    return showLobbyError(`No published quiz for ${subject} yet.`);
+  if (!bank) {
+    return showLobbyError(
+      `${subject} doesn't have a published compete bank yet. Pick another subject.`,
+    );
   }
 
   els.confirmCreateBtn.disabled = true;
   els.confirmCreateBtn.textContent = "Creating…";
 
   try {
-    // Take the first N questions
-    const questions = quiz.questions.slice(0, count).map((q) => ({
+    // Take the first N questions, keep MCQ format
+    const questions = bank.questions.slice(0, count).map((q) => ({
       question: q.q,
       options: q.options || [],
-      correctIndex: q.correctIndex ?? q.answer ?? 0,
+      correctIndex: q.answer ?? q.correctIndex ?? 0,
       topic: q.topic || subject,
+      points: q.points ?? 100,
+      timeLimit: q.timeLimit ?? seconds,
+      explain: q.explain || "",
     }));
 
-    if (!questions.length) throw new Error("Quiz has no questions.");
+    if (!questions.length) throw new Error("Bank has no questions.");
 
     const { roomCode } = await createRoom({
       host: {
@@ -292,7 +335,7 @@ async function handleCreateRoom() {
       questions,
       settings: {
         subject,
-        exam: quiz.exam,
+        exam: bank.exam,
         questionsPerRound: questions.length,
         secondsPerQuestion: seconds,
       },
@@ -387,7 +430,7 @@ function subscribeToCurrentRoom() {
 }
 
 /* =========================================================
-   RENDER WAITING ROOM
+   WAITING ROOM
    ========================================================= */
 
 function renderWaitingRoom(room) {
@@ -413,19 +456,18 @@ function renderWaitingRoom(room) {
           .filter(Boolean)
           .join(" ");
         return `
-        <div class="${classes}">
-          <div class="user-avatar" style="width: 36px; height: 36px; font-size: 14px;">${initials(p.name || "P")}</div>
-          <div style="flex: 1; min-width: 0;">
-            <div class="player-name">${escapeHTML(p.name || "Player")}${isMe ? ' <span class="player-badge">You</span>' : ""}</div>
-            <div class="player-school">${escapeHTML(p.school || "—")}</div>
+          <div class="${classes}">
+            <div class="user-avatar" style="width: 36px; height: 36px; font-size: 14px;">${initials(p.name || "P")}</div>
+            <div style="flex: 1; min-width: 0;">
+              <div class="player-name">${escapeHTML(p.name || "Player")}${isMe ? ' <span class="player-badge">You</span>' : ""}</div>
+              <div class="player-school">${escapeHTML(p.school || "—")}</div>
+            </div>
           </div>
-        </div>
-      `;
+        `;
       })
       .join("");
   }
 
-  // Start button only for host
   if (els.startGameBtn) {
     if (state.isHost) els.startGameBtn.classList.remove("hidden");
     else els.startGameBtn.classList.add("hidden");
@@ -472,7 +514,7 @@ async function handleStartGame() {
 }
 
 /* =========================================================
-   RENDER PLAYING ROOM
+   PLAYING ROOM
    ========================================================= */
 
 function renderPlayingRoom(room) {
@@ -500,7 +542,7 @@ function renderPlayingRoom(room) {
     }
   }
 
-  // Host auto-advances when all answered
+  // Host auto-advances when everyone answered
   if (
     state.isHost &&
     !state.advancing &&
@@ -630,17 +672,17 @@ function renderLiveScoreboard(room) {
         .join(" ");
 
       return `
-      <div class="${classes}">
-        <div class="cp-name">${escapeHTML(p.name || "Player")}${isMe ? " (you)" : ""}</div>
-        <div class="cp-score">${p.score || 0}</div>
-      </div>
-    `;
+        <div class="${classes}">
+          <div class="cp-name">${escapeHTML(p.name || "Player")}${isMe ? " (you)" : ""}</div>
+          <div class="cp-score">${p.score || 0}</div>
+        </div>
+      `;
     })
     .join("");
 }
 
 /* =========================================================
-   QUESTION TIMER
+   TIMER
    ========================================================= */
 
 function startQuestionTimer() {
@@ -727,23 +769,21 @@ function renderFinal() {
                 ? "top-3"
                 : "";
         return `
-        <div class="lb-row ${cls}">
-          <div class="lb-rank">${rank}</div>
-          <div class="lb-user">
-            <div class="user-avatar" style="width: 32px; height: 32px; font-size: 13px;">${initials(p.name || "P")}</div>
-            <div style="min-width: 0;">
-              <div class="lb-name">${escapeHTML(p.name || "Player")}${p.uid === state.user.uid ? " (you)" : ""}</div>
-              <div class="lb-school">${escapeHTML(p.school || "")}</div>
+          <div class="lb-row ${cls}">
+            <div class="lb-rank">${rank}</div>
+            <div class="lb-user">
+              <div class="user-avatar" style="width: 32px; height: 32px; font-size: 13px;">${initials(p.name || "P")}</div>
+              <div style="min-width: 0;">
+                <div class="lb-name">${escapeHTML(p.name || "Player")}${p.uid === state.user.uid ? " (you)" : ""}</div>
+                <div class="lb-school">${escapeHTML(p.school || "")}</div>
+              </div>
             </div>
+            <div class="lb-score">${p.score || 0}</div>
           </div>
-          <div class="lb-score">${p.score || 0}</div>
-        </div>
-      `;
+        `;
       })
       .join("");
   }
-
-  window._roomRankings = rankings;
 }
 
 /* =========================================================
@@ -830,6 +870,7 @@ async function init() {
   els.createRoomBtn?.addEventListener("click", () => {
     els.joinForm?.classList.add("hidden");
     els.createForm?.classList.remove("hidden");
+    clearLobbyError();
   });
 
   els.showJoinBtn?.addEventListener("click", () => {
