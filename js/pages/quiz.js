@@ -87,6 +87,10 @@ const els = {
   userMenuBtn: document.getElementById("userMenuBtn"),
 };
 
+/* =========================================================
+   USER
+   ========================================================= */
+
 async function setupUser() {
   const user = await waitForAuth();
   if (!user) {
@@ -123,14 +127,28 @@ async function setupUser() {
   return true;
 }
 
+/* =========================================================
+   LOAD QUIZZES — CRITICAL: await loadQuizzes before using data
+   ========================================================= */
+
 async function loadAll() {
-  await loadQuizzes(state.curriculum, state.level);
+  try {
+    await loadQuizzes(state.curriculum, state.level);
+  } catch (e) {
+    log.warn("Could not load quizzes:", e);
+  }
+
   state.allSubjects = getAllSubjectsForUser(state.curriculum, state.level);
   state.availableQuizzes = getQuizzesForUser(state.curriculum, state.level);
+
   log.info(
-    `Loaded ${state.allSubjects.length} subjects, ${state.availableQuizzes.length} quizzes`,
+    `Quiz page: ${state.allSubjects.length} subjects, ${state.availableQuizzes.length} published quizzes`,
   );
 }
+
+/* =========================================================
+   POPULATE SUBJECT DROPDOWN
+   ========================================================= */
 
 function populateSubjects() {
   if (!els.subjectSelect) return;
@@ -146,6 +164,7 @@ function populateSubjects() {
   const subjectsWithQuiz = new Set(
     state.availableQuizzes.map((q) => q.subject),
   );
+
   const sorted = [...state.allSubjects].sort((a, b) => {
     const aHas = subjectsWithQuiz.has(a);
     const bHas = subjectsWithQuiz.has(b);
@@ -162,9 +181,17 @@ function populateSubjects() {
     })
     .join("");
 
-  state.subject = sorted[0];
+  // Prefer the first subject WITH a quiz
+  const firstWithQuiz = sorted.find((s) => subjectsWithQuiz.has(s));
+  state.subject = firstWithQuiz || sorted[0];
+
+  els.subjectSelect.value = state.subject;
   populateSets();
 }
+
+/* =========================================================
+   POPULATE SETS
+   ========================================================= */
 
 function populateSets() {
   if (!els.setSelect) return;
@@ -194,8 +221,13 @@ function populateSets() {
   updatePreview();
 }
 
+/* =========================================================
+   PREVIEW
+   ========================================================= */
+
 function updatePreview() {
   const quiz = getMatchingQuiz();
+
   if (!quiz) {
     els.quizPreviewInfo?.classList.add("hidden");
     els.startBtn.disabled = true;
@@ -218,6 +250,10 @@ function getMatchingQuiz() {
   return sets.find((q) => q.title === state.quizId);
 }
 
+/* =========================================================
+   START QUIZ
+   ========================================================= */
+
 function handleStart() {
   const quiz = getMatchingQuiz();
   if (!quiz || !quiz.questions?.length) return;
@@ -229,11 +265,16 @@ function handleStart() {
   state.remaining = state.totalTime;
   state.started = true;
   state.submitted = false;
+  state.result = null;
 
   showQuizScreen();
   renderQuestion();
   startTimer();
 }
+
+/* =========================================================
+   SCREENS
+   ========================================================= */
 
 function showSetupScreen() {
   els.setupScreen?.classList.remove("hidden");
@@ -256,21 +297,32 @@ function showResultsScreen() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+/* =========================================================
+   RENDER QUESTION
+   ========================================================= */
+
 function renderQuestion() {
   const { quiz, currentIndex, answers } = state;
   if (!quiz) return;
   const q = quiz.questions[currentIndex];
 
-  if (els.quizMeta) els.quizMeta.textContent = `${quiz.exam} · ${quiz.subject}`;
-  if (els.quizCounter)
+  if (els.quizMeta)
+    els.quizMeta.textContent = `${quiz.exam || ""} · ${quiz.subject}`;
+  if (els.quizCounter) {
     els.quizCounter.textContent = `Question ${currentIndex + 1} of ${quiz.questions.length}`;
-  if (els.quizProgress)
+  }
+  if (els.quizProgress) {
     els.quizProgress.style.width = `${((currentIndex + 1) / quiz.questions.length) * 100}%`;
-  if (els.questionTopic)
+  }
+
+  if (els.questionTopic) {
     els.questionTopic.textContent = (q.topic || quiz.subject).toUpperCase();
-  if (els.questionText) els.questionText.textContent = q.q;
-  if (els.questionMarks)
-    els.questionMarks.textContent = `${q.marks} mark${q.marks === 1 ? "" : "s"}`;
+  }
+  if (els.questionText) els.questionText.textContent = q.q || q.question || "";
+  if (els.questionMarks) {
+    const marks = q.marks || 1;
+    els.questionMarks.textContent = `${marks} mark${marks === 1 ? "" : "s"}`;
+  }
 
   if (els.answerBox) {
     els.answerBox.value = answers[currentIndex] || "";
@@ -283,6 +335,10 @@ function renderQuestion() {
       currentIndex === quiz.questions.length - 1 ? "Submit Quiz" : "Next →";
   }
 }
+
+/* =========================================================
+   NAV
+   ========================================================= */
 
 function saveCurrentAnswer() {
   if (!els.answerBox) return;
@@ -314,6 +370,10 @@ async function handleNext() {
     renderQuestion();
   }
 }
+
+/* =========================================================
+   TIMER
+   ========================================================= */
 
 function startTimer() {
   clearTimer();
@@ -349,6 +409,10 @@ function updateTimerDisplay() {
   else if (state.remaining <= 180) els.quizTimer.classList.add("warn");
 }
 
+/* =========================================================
+   SUBMIT
+   ========================================================= */
+
 async function submitQuiz(timeUp = false) {
   if (state.submitted) return;
   state.submitted = true;
@@ -362,7 +426,7 @@ async function submitQuiz(timeUp = false) {
 
   const attempt = {
     uid: state.user.uid,
-    exam: quiz.exam,
+    exam: quiz.exam || "",
     subject: quiz.subject,
     correct: result.scored,
     total: result.totalMarks,
@@ -381,7 +445,7 @@ async function submitQuiz(timeUp = false) {
         name: state.userDoc?.name || "",
         school: state.userDoc?.school || "",
         curriculum: quiz.curriculum,
-        level: quiz.grade,
+        level: quiz.grade || state.level,
         scoreDelta: result.percentage,
         quizDelta: 1,
         correctDelta: result.scored,
@@ -407,6 +471,10 @@ async function submitQuiz(timeUp = false) {
   renderResults(result, timeUp, savedToCloud);
   showResultsScreen();
 }
+
+/* =========================================================
+   SCORING
+   ========================================================= */
 
 function scoreQuiz(quiz, answers) {
   let scored = 0;
@@ -456,6 +524,7 @@ function scoreQuiz(quiz, answers) {
     const normalized = normalize(studentAnswer);
     const matched = [];
     let qScore = 0;
+    const qMarks = q.marks || 1;
 
     (q.markpoints || []).forEach((mp, j) => {
       const mpText = typeof mp === "string" ? mp : mp.text;
@@ -466,24 +535,24 @@ function scoreQuiz(quiz, answers) {
       }
     });
 
-    qScore = Math.min(qScore, q.marks);
+    qScore = Math.min(qScore, qMarks);
     scored += qScore;
-    totalMarks += q.marks;
+    totalMarks += qMarks;
 
     details.push({
       qIndex: i,
-      q: q.q,
-      marks: q.marks,
+      q: q.q || q.question || "",
+      marks: qMarks,
       scored: qScore,
       matched,
       studentAnswer,
-      markpoints: q.markpoints,
+      markpoints: q.markpoints || [],
     });
 
     const topic = q.topic || quiz.subject;
     if (!topicResults[topic]) topicResults[topic] = { correct: 0, total: 0 };
     topicResults[topic].correct += qScore;
-    topicResults[topic].total += q.marks;
+    topicResults[topic].total += qMarks;
   });
 
   const percentage = totalMarks ? Math.round((scored / totalMarks) * 100) : 0;
@@ -501,6 +570,7 @@ function normalize(text) {
 function markpointMatches(normalizedAnswer, markpointText, stopWords) {
   if (!normalizedAnswer) return false;
   const normalizedMp = normalize(markpointText);
+  if (!normalizedMp) return false;
   if (normalizedAnswer.includes(normalizedMp)) return true;
 
   const words = normalizedMp
@@ -515,6 +585,10 @@ function markpointMatches(normalizedAnswer, markpointText, stopWords) {
   const threshold = Math.max(1, Math.ceil(words.length * 0.6));
   return hits >= threshold;
 }
+
+/* =========================================================
+   RESULTS
+   ========================================================= */
 
 function renderResults(result, timeUp, savedToCloud) {
   const pct = result.percentage;
@@ -545,6 +619,10 @@ function renderResults(result, timeUp, savedToCloud) {
       : '<span class="sync-warn">Saved locally — will sync when online</span>';
   }
 }
+
+/* =========================================================
+   REVIEW
+   ========================================================= */
 
 function renderReview() {
   const result = state.result;
@@ -591,6 +669,10 @@ function renderReview() {
 
   els.reviewBtn?.classList.add("hidden");
 }
+
+/* =========================================================
+   RETRY / QUIT / MENU
+   ========================================================= */
 
 function handleRetry() {
   clearTimer();
@@ -639,6 +721,10 @@ async function handleUserMenu() {
     }
   }
 }
+
+/* =========================================================
+   INIT
+   ========================================================= */
 
 async function init() {
   try {
