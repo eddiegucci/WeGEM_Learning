@@ -1,21 +1,33 @@
 ﻿// js/quizzes/index.js
-// Hybrid quiz registry — reads published quizzes AND exposes
-// every subject slot (so empty ones still appear in dropdowns).
+// Lazy-loaded quiz registry — does NOT import all quizzes at page load.
 
-import { PUBLISHED_PATHS } from "./_published.js";
 import { SUBJECTS_BY_CURRICULUM } from "../data/subjects.js";
 
 /* =========================================================
-   LOAD PUBLISHED QUIZZES
+   LAZY LOADER
    ========================================================= */
 
-const modules = await Promise.all(
-  PUBLISHED_PATHS.map((path) => import(path).catch(() => null)),
-);
+let _loaded = false;
+let _QUIZZES = [];
 
-export const QUIZZES = modules
-  .filter((m) => m && m.default)
-  .map((m) => m.default);
+export async function loadQuizzes() {
+  if (_loaded) return _QUIZZES;
+
+  const { PUBLISHED_PATHS } = await import("./_published.js");
+
+  const modules = await Promise.all(
+    PUBLISHED_PATHS.map((path) => import(path).catch(() => null)),
+  );
+
+  _QUIZZES = modules.filter((m) => m && m.default).map((m) => m.default);
+
+  _loaded = true;
+  return _QUIZZES;
+}
+
+export function getLoadedQuizzes() {
+  return _QUIZZES;
+}
 
 /* =========================================================
    RESOLVE USER CLASS
@@ -54,58 +66,21 @@ export function resolveUserClass(curriculum, level) {
 }
 
 /* =========================================================
-   GET ALL SUBJECTS (INCLUDING EMPTY ONES)
+   FILTERING
    ========================================================= */
-
-/**
- * Returns every subject the user's class should study,
- * whether or not there's a published quiz for it.
- */
-export function getAllSubjectsForUser(curriculum, level) {
-  const resolved = resolveUserClass(curriculum, level);
-  if (!resolved) return [];
-
-  // For 844 curriculum, subjects.js has keys like "844"
-  // For CBE, keys are "CBE" with grade entries
-  let subjectSource = SUBJECTS_BY_CURRICULUM[resolved.curriculum];
-  if (!subjectSource) return [];
-
-  // subjects.js may use either "Form 4" or "Grade 9" as key
-  const classKey = resolved.level; // e.g., "Form 4" or "Grade 9"
-  let subjects = subjectSource[classKey];
-
-  // If not found directly, try alternative keys
-  if (!subjects) {
-    const keys = Object.keys(subjectSource);
-    const match = keys.find((k) =>
-      k.toLowerCase().includes(classKey.toLowerCase().split(" ")[1]),
-    );
-    if (match) subjects = subjectSource[match];
-  }
-
-  return subjects || [];
-}
-
-/* =========================================================
-   FILTER PUBLISHED QUIZZES
-   ========================================================= */
-
-export function getQuizzesForClass(curriculum, classId) {
-  return QUIZZES.filter(
-    (q) =>
-      q &&
-      q.status === "published" &&
-      q.curriculum === curriculum &&
-      q.class === classId &&
-      Array.isArray(q.questions) &&
-      q.questions.length > 0,
-  );
-}
 
 export function getQuizzesForUser(curriculum, level) {
   const resolved = resolveUserClass(curriculum, level);
   if (!resolved) return [];
-  return getQuizzesForClass(resolved.curriculum, resolved.classId);
+  return _QUIZZES.filter(
+    (q) =>
+      q &&
+      q.status === "published" &&
+      q.curriculum === resolved.curriculum &&
+      q.class === resolved.classId &&
+      Array.isArray(q.questions) &&
+      q.questions.length > 0,
+  );
 }
 
 export function getSubjects(quizzes) {
@@ -114,6 +89,27 @@ export function getSubjects(quizzes) {
 
 export function getSets(quizzes, subject) {
   return quizzes.filter((q) => q.subject === subject);
+}
+
+export function getAllSubjectsForUser(curriculum, level) {
+  const resolved = resolveUserClass(curriculum, level);
+  if (!resolved) return [];
+
+  const source =
+    SUBJECTS_BY_CURRICULUM[resolved.curriculum === "cbe" ? "CBE" : "844"];
+  if (!source) return [];
+
+  const classKey = resolved.level;
+  let subjects = source[classKey];
+
+  if (!subjects) {
+    const numMatch = String(classKey).match(/\d+/);
+    if (numMatch) {
+      const matchKey = Object.keys(source).find((k) => k.includes(numMatch[0]));
+      if (matchKey) subjects = source[matchKey];
+    }
+  }
+  return subjects || [];
 }
 
 export function hasAnyQuiz(curriculum, level) {

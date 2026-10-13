@@ -1,6 +1,5 @@
 // js/features/quiz-compete.js
-// Compete quiz (multiplayer) for WeGEM Learning.
-// Uses Firebase Realtime Database for live state sync.
+// Compete quiz (multiplayer) — real-time sync via Firebase Realtime Database.
 
 import {
   initializeApp,
@@ -12,16 +11,16 @@ import {
   set,
   get,
   update,
+  remove,
   onValue,
   off,
-  remove,
   push,
   serverTimestamp,
   onDisconnect,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 import { firebaseConfig } from "../config/firebase-config.js";
-import { buildQuiz, answerQuestion, getWeakTopics } from "./quiz-engine.js";
+import { buildQuiz } from "./quiz-engine.js";
 import { getQuestionsForSubject } from "../core/db.js";
 import { getCachedQuestions } from "../core/cache.js";
 import { log, shuffle } from "../core/utils.js";
@@ -34,12 +33,16 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const rtdb = getDatabase(app);
 
 /* =========================================================
-   ROOM CODES
+   CONSTANTS
    ========================================================= */
 
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const ROOM_TTL_MS = 60 * 60 * 1000; // 1 hour
+const MAX_ROOM_AGE_MS = 30 * 60 * 1000; // 30 minutes
+
+/* =========================================================
+   ROOM CODE GENERATOR
+   ========================================================= */
 
 export function generateRoomCode() {
   let code = "";
@@ -52,49 +55,67 @@ export function generateRoomCode() {
 }
 
 /* =========================================================
-   ROOM LIFECYCLE
+   CREATE ROOM
    ========================================================= */
 
 export async function createRoom({ host, questions, settings = {} }) {
-  const roomCode = generateRoomCode();
-  const roomRef = ref(rtdb, `rooms/${roomCode}`);
+  let roomCode;
+  let roomRef;
+  let existing;
 
-  // Check collision (rare but possible)
-  const existing = await get(roomRef);
-  if (existing.exists()) {
-    return createRoom({ host, questions, settings });
+  // Try up to 5 times to find a free code
+  for (let attempt = 0; attempt < 5; attempt++) {
+    roomCode = generateRoomCode();
+    roomRef = ref(rtdb, `rooms/${roomCode}`);
+    existing = await get(roomRef);
+    if (!existing.exists()) break;
+    // If a stale room exists with the same code, clean it up
+    if (existing.exists()) {
+      const data = existing.val();
+      const age = Date.now() - (data.createdAt || 0);
+      if (age > MAX_ROOM_AGE_MS) {
+        await remove(roomRef).catch(() => {});
+        break;
+      }
+    }
+  }
+
+  if (existing && existing.exists()) {
+    throw new Error("Could not find a free room code. Please try again.");
   }
 
   const roomData = {
     code: roomCode,
-    status: "waiting", // waiting | starting | playing | finished
-    createdAt: serverTimestamp(),
+    status: "waiting", // waiting | playing | finished
+    createdAt: Date.now(),
     hostUid: host.uid,
     settings: {
+      subject: settings.subject || "",
+      exam: settings.exam || "",
       questionsPerRound: settings.questionsPerRound || 10,
       secondsPerQuestion: settings.secondsPerQuestion || 20,
-      showExplanation: settings.showExplanation !== false,
     },
     players: {
       [host.uid]: {
         uid: host.uid,
         name: host.name || "Player",
         school: host.school || "",
-        avatar: host.avatar || "",
         ready: true,
         score: 0,
         correct: 0,
         answers: {},
-        joinedAt: serverTimestamp(),
+        joinedAt: Date.now(),
       },
     },
     questions: questions.map((q, i) => ({
       index: i,
       topic: q.topic || "General",
-      question: q.question,
-      options: q.options,
-      correctIndex: q.correctIndex,
+      question: q.question || q.q,
+      options: q.options || [],
+      correctIndex: q.correctIndex ?? q.answer ?? 0,
       explain: q.explain || "",
+      points: q.points || 100,
+      timeLimit: q.timeLimit || settings.secondsPerQuestion || 20,
     })),
     currentQuestionIndex: -1,
     startedAt: null,
@@ -103,55 +124,91 @@ export async function createRoom({ host, questions, settings = {} }) {
 
   await set(roomRef, roomData);
 
-  // Auto-remove room on disconnect (host)
-  const hostConnRef = ref(rtdb, `rooms/${roomCode}/players/${host.uid}`);
+  // Auto-remove the ENTIRE room when the host disconnects
+  const hostConnRef = ref(rtdb, `rooms/${roomCode}`);
   onDisconnect(hostConnRef).remove();
 
   return { roomCode, room: roomData };
 }
 
+/* =========================================================
+   JOIN ROOM
+   ========================================================= */
+
 export async function joinRoom(roomCode, player) {
-  const roomRef = ref(rtdb, `rooms/${roomCode}`);
+  const normalized = String(roomCode).toUpperCase().trim();
+  const roomRef = ref(rtdb, `rooms/${normalized}`);
   const snap = await get(roomRef);
 
-  if (!snap.exists()) throw new Error("Room not found. Check the code.");
+  if (!snap.exists()) {
+    throw new Error("Room not found. Check the code.");
+  }
+
   const room = snap.val();
 
-  if (room.status === "finished") throw new Error("This game is already over.");
-  if (room.status === "playing")
-    throw new Error("This game has already started.");
+  // Check age — expire stale rooms
+  const age = Date.now() - (room.createdAt || 0);
+  if (age > MAX_ROOM_AGE_MS) {
+    await remove(roomRef).catch(() => {});
+    throw new Error("This room has expired. Ask the host to create a new one.");
+  }
 
-  const playerRef = ref(rtdb, `rooms/${roomCode}/players/${player.uid}`);
+  if (room.status === "finished") {
+    throw new Error("This game is already over.");
+  }
+  if (room.status === "playing") {
+    throw new Error("This game has already started.");
+  }
+
+  // Check if player is already in
+  const existingPlayer = room.players?.[player.uid];
+  if (existingPlayer) {
+    return room; // already joined
+  }
+
+  const playerRef = ref(rtdb, `rooms/${normalized}/players/${player.uid}`);
   await set(playerRef, {
     uid: player.uid,
     name: player.name || "Player",
     school: player.school || "",
-    avatar: player.avatar || "",
     ready: false,
     score: 0,
     correct: 0,
     answers: {},
-    joinedAt: serverTimestamp(),
+    joinedAt: Date.now(),
   });
 
+  // Auto-remove player on disconnect (but NOT the room — only the host removes the room)
   onDisconnect(playerRef).remove();
 
   return room;
 }
+
+/* =========================================================
+   SET PLAYER READY
+   ========================================================= */
 
 export async function setPlayerReady(roomCode, uid, ready) {
   const playerRef = ref(rtdb, `rooms/${roomCode}/players/${uid}/ready`);
   await set(playerRef, ready);
 }
 
+/* =========================================================
+   START GAME (host only)
+   ========================================================= */
+
 export async function startGame(roomCode) {
   const roomRef = ref(rtdb, `rooms/${roomCode}`);
   await update(roomRef, {
     status: "playing",
     currentQuestionIndex: 0,
-    startedAt: serverTimestamp(),
+    startedAt: Date.now(),
   });
 }
+
+/* =========================================================
+   SUBMIT ANSWER
+   ========================================================= */
 
 export async function submitAnswerRtdb(
   roomCode,
@@ -164,10 +221,11 @@ export async function submitAnswerRtdb(
     rtdb,
     `rooms/${roomCode}/players/${uid}/answers/${questionIndex}`,
   );
+
   await set(answerRef, {
     selected: selectedIndex,
     correct,
-    answeredAt: serverTimestamp(),
+    answeredAt: Date.now(),
   });
 
   if (correct) {
@@ -181,18 +239,27 @@ export async function submitAnswerRtdb(
   }
 }
 
+/* =========================================================
+   ADVANCE QUESTION (host only)
+   ========================================================= */
+
 export async function advanceQuestion(roomCode, newIndex, totalQuestions) {
   const roomRef = ref(rtdb, `rooms/${roomCode}`);
+
   if (newIndex >= totalQuestions) {
     await update(roomRef, {
       status: "finished",
-      finishedAt: serverTimestamp(),
+      finishedAt: Date.now(),
       currentQuestionIndex: totalQuestions,
     });
   } else {
     await update(roomRef, { currentQuestionIndex: newIndex });
   }
 }
+
+/* =========================================================
+   LEAVE / DELETE
+   ========================================================= */
 
 export async function leaveRoom(roomCode, uid) {
   const playerRef = ref(rtdb, `rooms/${roomCode}/players/${uid}`);
@@ -205,7 +272,7 @@ export async function deleteRoom(roomCode) {
 }
 
 /* =========================================================
-   LIVE SUBSCRIPTIONS
+   LIVE SUBSCRIPTION
    ========================================================= */
 
 export function subscribeToRoom(roomCode, callback) {
@@ -218,7 +285,7 @@ export function subscribeToRoom(roomCode, callback) {
 }
 
 /* =========================================================
-   COMPUTE LEADERBOARD FOR ROOM
+   COMPUTE ROOM RANKINGS
    ========================================================= */
 
 export function computeRoomRankings(room) {
@@ -232,17 +299,20 @@ export function computeRoomRankings(room) {
 }
 
 /* =========================================================
-   FETCH QUESTIONS FOR COMPETE
+   LOAD QUESTIONS FOR COMPETE (from quiz folder)
    ========================================================= */
 
 export async function loadCompeteQuestions({ exam, subject, count = 10 }) {
   let questions = [];
+
+  // Try cache first
   try {
     questions = await getCachedQuestions(exam, subject);
   } catch (e) {
     log.warn("Cache read failed:", e);
   }
 
+  // If empty, fetch from Firestore
   if (!questions.length) {
     questions = await getQuestionsForSubject(exam, subject);
     if (questions.length) {
