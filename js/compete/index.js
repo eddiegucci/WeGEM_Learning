@@ -1,33 +1,15 @@
 // js/compete/index.js
-// Lazy-loaded compete registry — does NOT import all banks at page load.
+// Lazy-loaded compete registry. Only loads current user's curriculum.
 
 import { SUBJECTS_BY_CURRICULUM } from "../data/subjects.js";
 
 /* =========================================================
-   LAZY LOADER
+   STATE
    ========================================================= */
 
-let _loaded = false;
+let _loadedCurriculum = null;
 let _BANKS = [];
-
-export async function loadBanks() {
-  if (_loaded) return _BANKS;
-
-  const { COMPETE_PATHS } = await import("./_compete.js");
-
-  const modules = await Promise.all(
-    COMPETE_PATHS.map((path) => import(path).catch(() => null)),
-  );
-
-  _BANKS = modules.filter((m) => m && m.default).map((m) => m.default);
-
-  _loaded = true;
-  return _BANKS;
-}
-
-export function getLoadedBanks() {
-  return _BANKS;
-}
+let _loadingPromise = null;
 
 /* =========================================================
    RESOLVE USER CLASS
@@ -42,12 +24,13 @@ export function resolveUserClass(curriculum, level) {
     const m = lvl.match(/^grade\s*(\d+)$/);
     if (m) {
       const n = parseInt(m[1], 10);
-      if (n >= 6 && n <= 12)
+      if (n >= 7 && n <= 9) {
         return {
           curriculum: "cbe",
           classId: `grade-${n}`,
           level: `Grade ${n}`,
         };
+      }
     }
     return null;
   }
@@ -56,13 +39,76 @@ export function resolveUserClass(curriculum, level) {
     const m = lvl.match(/^form\s*(\d+)$/);
     if (m) {
       const n = parseInt(m[1], 10);
-      if (n >= 1 && n <= 4)
-        return { curriculum: "844", classId: `form-${n}`, level: `Form ${n}` };
+      if (n >= 1 && n <= 4) {
+        return {
+          curriculum: "844",
+          classId: `form-${n}`,
+          level: `Form ${n}`,
+        };
+      }
     }
     return null;
   }
 
   return null;
+}
+
+/* =========================================================
+   LAZY LOADER
+   ========================================================= */
+
+async function loadModulesForCurriculum(curriculumKey) {
+  const { COMPETE_PATHS } = await import("./_compete.js");
+
+  const prefix = curriculumKey === "cbe" ? "./cbe/" : "./844/";
+  const paths = COMPETE_PATHS.filter((p) => p.startsWith(prefix));
+
+  const modules = await Promise.all(
+    paths.map((p) =>
+      import(/* @vite-ignore */ p).catch((err) => {
+        console.warn("[compete] Failed to load:", p, err);
+        return null;
+      }),
+    ),
+  );
+
+  return modules.filter((m) => m && m.default).map((m) => m.default);
+}
+
+export async function loadBanks(curriculum, level) {
+  const resolved = resolveUserClass(curriculum, level);
+  if (!resolved) {
+    _BANKS = [];
+    _loadedCurriculum = null;
+    return _BANKS;
+  }
+
+  if (_loadedCurriculum === resolved.curriculum && _BANKS.length) {
+    return _BANKS;
+  }
+
+  if (_loadingPromise && _loadedCurriculum === resolved.curriculum) {
+    await _loadingPromise;
+    return _BANKS;
+  }
+
+  _loadedCurriculum = resolved.curriculum;
+  _loadingPromise = loadModulesForCurriculum(resolved.curriculum);
+
+  try {
+    _BANKS = await _loadingPromise;
+  } catch (e) {
+    console.warn("[compete] Failed to load banks:", e);
+    _BANKS = [];
+  } finally {
+    _loadingPromise = null;
+  }
+
+  return _BANKS;
+}
+
+export function getLoadedBanks() {
+  return _BANKS;
 }
 
 /* =========================================================

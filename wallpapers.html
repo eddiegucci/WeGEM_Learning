@@ -10,22 +10,33 @@
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
-  <link rel="stylesheet" href="css/main.css">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/mobile.css">
+
   <script src="js/core/wallpaper-init.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+      });
+    }
+  </script>
 </head>
 <body>
 
-<!-- ==================== TOP NAV ==================== -->
 <nav class="top-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
-      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
-            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
       <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
-      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
-      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
     </svg>
     <span>WeGEM Learning</span>
   </a>
@@ -53,15 +64,11 @@
   <section class="page-head">
     <div class="section-label">Personalize</div>
     <h1 class="page-title">Wallpapers</h1>
-    <p class="page-sub">
-      Pick a background theme that fits your mood. Your choice is saved to this device.
-    </p>
+    <p class="page-sub">Pick a background theme that fits your mood. Your choice is saved to this device.</p>
   </section>
 
-  <!-- Category filter chips -->
   <div id="categoryBar" class="filter-bar"></div>
 
-  <!-- Wallpaper grid -->
   <div id="wallpaperGrid" class="wallpaper-grid">
     <div class="loading-wrap" style="grid-column: 1 / -1;">
       <div class="spinner spinner-lg"></div>
@@ -69,8 +76,7 @@
     </div>
   </div>
 
-  <!-- Reset button -->
-  <div style="margin-top: 32px; text-align: center;">
+  <div style="margin-top: var(--sp-6); text-align: center;">
     <button class="btn btn-ghost" id="resetWallpaperBtn" type="button">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
         <path d="M3 12 A9 9 0 1 1 12 21"/>
@@ -80,7 +86,6 @@
     </button>
   </div>
 
-  <!-- Footer -->
   <footer class="app-footer">
     <div class="footer-left">
       <span class="footer-bulb">💡</span>

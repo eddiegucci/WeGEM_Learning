@@ -1,24 +1,32 @@
 // js/ui/shortcuts.js
-// Keyboard + tap shortcuts for WeGEM Learning.
+// Keyboard + tap shortcuts.
 
 import { isTouchDevice } from "../core/utils.js";
 
 /* =========================================================
-   KEYBOARD SHORTCUTS (desktop)
+   KEYBOARD
    ========================================================= */
 
 const keyboardBindings = new Map();
 
 export function bindShortcut(combo, handler) {
-  // combo format: "ctrl+shift+alt+v" or "ctrl+k" or "escape"
   const key = combo.toLowerCase().trim();
   if (!keyboardBindings.has(key)) keyboardBindings.set(key, new Set());
   keyboardBindings.get(key).add(handler);
   return () => keyboardBindings.get(key)?.delete(handler);
 }
 
+function isTypingTarget(target) {
+  if (!target) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (target.isContentEditable) return true;
+  return false;
+}
+
 function installKeyboard() {
   document.addEventListener("keydown", (e) => {
+    // Build combo from modifier keys
     const parts = [];
     if (e.ctrlKey || e.metaKey) parts.push("ctrl");
     if (e.shiftKey) parts.push("shift");
@@ -40,6 +48,10 @@ function installKeyboard() {
     const handlers = keyboardBindings.get(combo);
 
     if (handlers && handlers.size) {
+      // Skip if typing in a form field — UNLESS the combo has modifiers.
+      const hasModifier = e.ctrlKey || e.metaKey || e.altKey;
+      if (!hasModifier && isTypingTarget(e.target)) return;
+
       e.preventDefault();
       handlers.forEach((fn) => {
         try {
@@ -53,7 +65,7 @@ function installKeyboard() {
 }
 
 /* =========================================================
-   TAP SHORTCUTS (mobile)
+   TAP SHORTCUTS
    ========================================================= */
 
 const TAP_WINDOW_MS = 2500;
@@ -66,7 +78,6 @@ export function installTapShortcuts(handlers = {}) {
     "touchstart",
     (e) => {
       const t = e.target;
-      // Ignore taps on interactive elements
       if (
         t.closest(
           "button, a, input, textarea, select, .link-tray, .tray-backdrop, .modal-backdrop",
@@ -95,7 +106,7 @@ export function installTapShortcuts(handlers = {}) {
 }
 
 /* =========================================================
-   LOGO DOUBLE-TAP
+   LOGO TAP
    ========================================================= */
 
 export function installLogoTap(handler) {
@@ -105,12 +116,10 @@ export function installLogoTap(handler) {
   if (!brand) return;
 
   let lastTap = 0;
-
   brand.addEventListener("click", (e) => {
     const now = Date.now();
     const delta = now - lastTap;
     lastTap = now;
-
     if (delta < 400) {
       e.preventDefault();
       handler();
@@ -119,7 +128,7 @@ export function installLogoTap(handler) {
 }
 
 /* =========================================================
-   SWIPE GESTURES
+   SWIPE
    ========================================================= */
 
 export function installSwipe(
@@ -159,9 +168,5 @@ export function installSwipe(
     { passive: true },
   );
 }
-
-/* =========================================================
-   AUTO-INSTALL KEYBOARD LISTENER
-   ========================================================= */
 
 installKeyboard();

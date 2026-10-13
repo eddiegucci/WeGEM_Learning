@@ -1,5 +1,5 @@
 // js/pages/exams.js
-// Controller for exams.html.
+// Exams page controller.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc, getQuestionsForSubject } from "../core/db.js";
@@ -35,10 +35,6 @@ import {
   isOnline,
 } from "../core/utils.js";
 
-/* =========================================================
-   STATE
-   ========================================================= */
-
 const state = {
   user: null,
   userDoc: null,
@@ -46,24 +42,17 @@ const state = {
   filtered: [],
   activeFilter: "all",
   query: "",
-  subjectQuestionCounts: {}, // { "Mathematics": 12, ... }
+  subjectQuestionCounts: {},
 };
-
-/* =========================================================
-   DOM REFS
-   ========================================================= */
 
 const els = {
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
   userMenuBtn: document.getElementById("userMenuBtn"),
-
   searchInput: document.getElementById("examSearch"),
   examLinksGrid: document.getElementById("examLinksGrid"),
   subjectPapersGrid: document.getElementById("subjectPapersGrid"),
   paperCount: document.getElementById("paperCount"),
-
-  // Tray
   tray: document.getElementById("linkTray"),
   trayBackdrop: document.getElementById("linkTrayBackdrop"),
   trayBadge: document.getElementById("trayBadge"),
@@ -77,17 +66,12 @@ const els = {
   trayError: document.getElementById("trayError"),
 };
 
-/* =========================================================
-   SETUP USER
-   ========================================================= */
-
 async function setupUser() {
   const user = await waitForAuth();
   if (!user) {
     window.location.replace("login.html");
     return false;
   }
-
   state.user = user;
 
   const cached = getCachedUser();
@@ -96,7 +80,6 @@ async function setupUser() {
     user.displayName ||
     user.email?.split("@")[0] ||
     "Student";
-
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
 
@@ -107,7 +90,6 @@ async function setupUser() {
       if (doc) await cacheUser(doc);
     }
     state.userDoc = doc;
-
     if (doc?.name) {
       if (els.userAvatar) els.userAvatar.textContent = initials(doc.name);
       if (els.userNameTop) els.userNameTop.textContent = firstName(doc.name);
@@ -115,23 +97,14 @@ async function setupUser() {
   } catch (e) {
     log.warn("Could not load user doc:", e);
   }
-
   return true;
 }
-
-/* =========================================================
-   TRAY BADGE
-   ========================================================= */
 
 function updateTrayBadge() {
   if (!els.trayBadge) return;
   const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
   els.trayBadge.textContent = isTouch ? "Tap 5× to open" : "Ctrl+Shift+Alt+V";
 }
-
-/* =========================================================
-   LOAD LINKS
-   ========================================================= */
 
 async function loadLinks() {
   try {
@@ -143,10 +116,6 @@ async function loadLinks() {
   applyFilters();
 }
 
-/* =========================================================
-   FILTERS
-   ========================================================= */
-
 function applyFilters() {
   state.filtered = filterExamLinks(state.links, {
     type: state.activeFilter,
@@ -154,10 +123,6 @@ function applyFilters() {
   });
   renderLinks();
 }
-
-/* =========================================================
-   RENDER LINKS
-   ========================================================= */
 
 function renderLinks() {
   if (!els.examLinksGrid) return;
@@ -169,11 +134,7 @@ function renderLinks() {
         <div class="empty-icon">📄</div>
         <div class="empty-title">${hasLinks ? "No links match your filter" : "No exam resources yet"}</div>
         <div class="empty-sub">
-          ${
-            hasLinks
-              ? "Try clearing the search or choosing a different type."
-              : `On desktop press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd> · On mobile tap this page 5 times`
-          }
+          ${hasLinks ? "Try clearing the search or choosing a different type." : `On desktop press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd> · On mobile tap this page 5 times`}
         </div>
       </div>
     `;
@@ -184,7 +145,6 @@ function renderLinks() {
     .map((link) => renderLinkButton(link))
     .join("");
 
-  // Attach delete handlers
   els.examLinksGrid.querySelectorAll("[data-link-delete]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -196,39 +156,27 @@ function renderLinks() {
 
 function renderLinkButton(link) {
   const meta = getLinkMeta(link.type);
-  const safeTitle = escapeHTML(link.title || "Untitled");
-  const safeSubject = escapeHTML(link.subject || "");
-  const safeUrl = escapeHTML(link.url || "#");
-
   return `
-    <a class="exam-link-btn" href="${safeUrl}" target="_blank" rel="noopener noreferrer"
-       style="--accent: ${meta.color};" data-link-id="${link.id || ""}">
+    <a class="exam-link-btn" href="${escapeHTML(link.url || "#")}" target="_blank" rel="noopener noreferrer" style="--accent: ${meta.color};" data-link-id="${link.id || ""}">
       <div class="elb-top">
         <div class="elb-icon">${meta.icon}</div>
         <button class="elb-remove" type="button" data-link-delete="${link.id}" title="Remove">×</button>
       </div>
-      <div class="elb-title">${safeTitle}</div>
+      <div class="elb-title">${escapeHTML(link.title || "Untitled")}</div>
       <div class="elb-meta">
         <span class="elb-type">${meta.label}</span>
-        <span class="elb-subject">${safeSubject}</span>
+        <span class="elb-subject">${escapeHTML(link.subject || "")}</span>
       </div>
       <div class="elb-open">
         Open
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <path d="M7 17 L17 7 M9 7 H17 V15"/>
-        </svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
       </div>
     </a>
   `;
 }
 
-/* =========================================================
-   DELETE LINK
-   ========================================================= */
-
 async function handleDeleteLink(id) {
   if (!id) return;
-
   const ok = await confirmDialog({
     title: "Delete resource?",
     message: "This link will be removed for everyone.",
@@ -236,7 +184,6 @@ async function handleDeleteLink(id) {
     cancelLabel: "Cancel",
     danger: true,
   });
-
   if (!ok) return;
 
   try {
@@ -253,10 +200,6 @@ async function handleDeleteLink(id) {
     toastErr("Could not remove resource");
   }
 }
-
-/* =========================================================
-   RENDER SUBJECT PAPERS
-   ========================================================= */
 
 async function loadSubjectQuestionCounts() {
   if (!state.userDoc) return;
@@ -276,17 +219,14 @@ async function loadSubjectQuestionCounts() {
   const examKey =
     exam === "KPSEA" ? "KPSEA" : exam === "KJSEA" ? "KJSEA" : "KCSE";
 
-  // Try cache first
   await Promise.all(
     uniqueSubjects.map(async (subjectName) => {
       let count = 0;
-
       try {
         const cached = await getCachedQuestions(examKey, subjectName);
         count = cached.length;
       } catch {}
 
-      // If empty, fetch from cloud
       if (!count && isOnline()) {
         try {
           const fresh = await getQuestionsForSubject(examKey, subjectName);
@@ -324,24 +264,17 @@ function renderSubjectPapers(examKey, subjects) {
       const count = state.subjectQuestionCounts[subjName] || 0;
       const icon = getSubjectIcon(subjName);
       const hasQuestions = count > 0;
-
       return `
       <a class="paper-card${hasQuestions ? "" : " is-empty"}" href="quiz.html?exam=${encodeURIComponent(examKey)}&subject=${encodeURIComponent(subjName)}">
         <div class="paper-icon">${icon}</div>
         <div class="paper-body">
           <div class="paper-name">${escapeHTML(subjName)}</div>
           <div class="paper-meta">
-            ${
-              hasQuestions
-                ? `${count} ${count === 1 ? "question" : "questions"} available`
-                : "Coming soon"
-            }
+            ${hasQuestions ? `${count} ${count === 1 ? "question" : "questions"} available` : "Coming soon"}
           </div>
         </div>
         <div class="paper-arrow">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-            <path d="M9 6 L15 12 L9 18"/>
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6 L15 12 L9 18"/></svg>
         </div>
       </a>
     `;
@@ -357,17 +290,11 @@ function renderSubjectPapers(examKey, subjects) {
   }
 }
 
-/* =========================================================
-   TRAY
-   ========================================================= */
-
 function populateSubjectDropdown() {
   if (!els.traySubject) return;
-
   const curriculum = state.userDoc?.curriculum === "CBE" ? "CBE" : "844";
   const level =
     state.userDoc?.level || (curriculum === "CBE" ? "Grade 9" : "Form 4");
-
   let subjects = state.userDoc?.subjects || [];
   if (!subjects.length) subjects = getSubjects(curriculum, level);
 
@@ -380,20 +307,15 @@ function populateSubjectDropdown() {
 
 function openTray() {
   if (!els.tray || !els.trayBackdrop) return;
-
   populateSubjectDropdown();
-
   els.trayBackdrop.classList.add("open");
   els.tray.classList.add("open");
   els.tray.setAttribute("aria-hidden", "false");
-
-  // Reset
   if (els.trayTitle) els.trayTitle.value = "";
   if (els.trayUrl) els.trayUrl.value = "";
   if (els.traySubject) els.traySubject.value = "";
   if (els.trayType) els.trayType.value = "papers";
   clearTrayError();
-
   setTimeout(() => els.trayTitle?.focus(), 300);
 }
 
@@ -415,10 +337,6 @@ function clearTrayError() {
   els.trayError.classList.add("hidden");
   els.trayError.textContent = "";
 }
-
-/* =========================================================
-   SAVE LINK
-   ========================================================= */
 
 async function saveLink() {
   clearTrayError();
@@ -469,10 +387,6 @@ async function saveLink() {
   }
 }
 
-/* =========================================================
-   USER MENU
-   ========================================================= */
-
 async function handleUserMenu() {
   const ok = await confirmDialog({
     title: "Sign out?",
@@ -481,7 +395,6 @@ async function handleUserMenu() {
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (ok) {
     try {
       await signOutNow();
@@ -493,18 +406,10 @@ async function handleUserMenu() {
   }
 }
 
-/* =========================================================
-   SEARCH
-   ========================================================= */
-
 const debouncedSearch = debounce((value) => {
   state.query = value;
   applyFilters();
 }, 200);
-
-/* =========================================================
-   FILTER CHIPS
-   ========================================================= */
 
 function wireFilterChips() {
   document.querySelectorAll(".filter-bar .chip").forEach((chip) => {
@@ -519,10 +424,6 @@ function wireFilterChips() {
   });
 }
 
-/* =========================================================
-   INIT
-   ========================================================= */
-
 async function init() {
   try {
     const ready = await setupUser();
@@ -532,44 +433,35 @@ async function init() {
     updateTrayBadge();
     wireFilterChips();
 
-    // Search
     els.searchInput?.addEventListener("input", (e) => {
       debouncedSearch(e.target.value.trim());
     });
 
-    // Tray controls
     els.trayCloseBtn?.addEventListener("click", closeTray);
     els.trayCancelBtn?.addEventListener("click", closeTray);
     els.trayBackdrop?.addEventListener("click", closeTray);
     els.traySaveBtn?.addEventListener("click", saveLink);
 
-    // Keyboard shortcut
     bindShortcut("ctrl+shift+alt+v", () => {
       if (els.tray.classList.contains("open")) closeTray();
       else openTray();
     });
 
-    // Mobile tap shortcut — 5 taps
     installTapShortcuts({
       5: () => {
         if (!els.tray.classList.contains("open")) openTray();
       },
     });
 
-    // Escape closes tray
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && els.tray.classList.contains("open"))
         closeTray();
     });
 
-    // User menu
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
 
-    // Load data
     await loadLinks();
     await loadSubjectQuestionCounts();
-
-    log.info(`Exams page ready: ${state.links.length} links`);
   } catch (e) {
     log.error("Exams init failed:", e);
     toastErr("Could not load exams page. Please refresh.");

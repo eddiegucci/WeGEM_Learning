@@ -1,5 +1,6 @@
 // js/core/cache.js
-// IndexedDB caching for WeGEM Learning. Fast offline-first storage.
+// IndexedDB caching for WeGEM Learning.
+// Same DB name, same stores, same version — no migration needed.
 
 import { log } from "./utils.js";
 
@@ -10,13 +11,13 @@ import { log } from "./utils.js";
 const DB_NAME = "wegem_learning";
 const DB_VERSION = 1;
 
-const STORES = {
-  CONTENT: "content", // questions, notes, exam links
-  USER: "user", // user profile
-  ATTEMPTS: "attempts", // quiz attempts
+export const STORES = {
+  CONTENT: "content",
+  USER: "user",
+  ATTEMPTS: "attempts",
   LEADERBOARD: "leaderboard",
-  META: "meta", // sync versions, timestamps
-  WALLPAPER: "wallpaper", // current wallpaper choice
+  META: "meta",
+  WALLPAPER: "wallpaper",
 };
 
 let dbPromise = null;
@@ -32,7 +33,11 @@ function openDB() {
 
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
-    req.onerror = () => reject(req.error);
+    req.onerror = () => {
+      log.warn("IndexedDB open failed:", req.error);
+      reject(req.error);
+    };
+
     req.onsuccess = () => resolve(req.result);
 
     req.onupgradeneeded = (event) => {
@@ -74,12 +79,13 @@ function openDB() {
 }
 
 /* =========================================================
-   GENERIC OPERATIONS
+   LOW-LEVEL OPERATIONS
    ========================================================= */
 
-async function tx(storeName, mode = "readonly") {
+async function getStore(storeName, mode = "readonly") {
   const db = await openDB();
-  return db.transaction(storeName, mode).objectStore(storeName);
+  const transaction = db.transaction(storeName, mode);
+  return transaction.objectStore(storeName);
 }
 
 function reqToPromise(req) {
@@ -89,9 +95,13 @@ function reqToPromise(req) {
   });
 }
 
+/* =========================================================
+   GENERIC CRUD
+   ========================================================= */
+
 export async function put(storeName, value) {
   try {
-    const store = await tx(storeName, "readwrite");
+    const store = await getStore(storeName, "readwrite");
     await reqToPromise(store.put(value));
     return true;
   } catch (e) {
@@ -101,15 +111,17 @@ export async function put(storeName, value) {
 }
 
 export async function putMany(storeName, values) {
-  if (!values?.length) return true;
+  if (!Array.isArray(values) || !values.length) return true;
   try {
     const db = await openDB();
     const transaction = db.transaction(storeName, "readwrite");
     const store = transaction.objectStore(storeName);
     values.forEach((v) => store.put(v));
+
     return await new Promise((resolve, reject) => {
       transaction.oncomplete = () => resolve(true);
       transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
     });
   } catch (e) {
     log.warn(`Cache bulk put failed for ${storeName}:`, e);
@@ -119,7 +131,7 @@ export async function putMany(storeName, values) {
 
 export async function get(storeName, key) {
   try {
-    const store = await tx(storeName);
+    const store = await getStore(storeName);
     return await reqToPromise(store.get(key));
   } catch (e) {
     log.warn(`Cache get failed for ${storeName}:`, e);
@@ -129,7 +141,7 @@ export async function get(storeName, key) {
 
 export async function getAll(storeName) {
   try {
-    const store = await tx(storeName);
+    const store = await getStore(storeName);
     return await reqToPromise(store.getAll());
   } catch (e) {
     log.warn(`Cache getAll failed for ${storeName}:`, e);
@@ -139,7 +151,7 @@ export async function getAll(storeName) {
 
 export async function getAllByIndex(storeName, indexName, value) {
   try {
-    const store = await tx(storeName);
+    const store = await getStore(storeName);
     const index = store.index(indexName);
     return await reqToPromise(index.getAll(value));
   } catch (e) {
@@ -150,7 +162,7 @@ export async function getAllByIndex(storeName, indexName, value) {
 
 export async function remove(storeName, key) {
   try {
-    const store = await tx(storeName, "readwrite");
+    const store = await getStore(storeName, "readwrite");
     await reqToPromise(store.delete(key));
     return true;
   } catch (e) {
@@ -161,7 +173,7 @@ export async function remove(storeName, key) {
 
 export async function clear(storeName) {
   try {
-    const store = await tx(storeName, "readwrite");
+    const store = await getStore(storeName, "readwrite");
     await reqToPromise(store.clear());
     return true;
   } catch (e) {
@@ -171,12 +183,11 @@ export async function clear(storeName) {
 }
 
 /* =========================================================
-   DOMAIN-SPECIFIC HELPERS
+   CONTENT HELPERS
    ========================================================= */
 
-/* --- Content (questions + notes) --- */
-
 export async function cacheQuestions(questions) {
+  if (!Array.isArray(questions) || !questions.length) return true;
   return putMany(
     STORES.CONTENT,
     questions.map((q) => ({ ...q, type: "question" })),
@@ -184,6 +195,7 @@ export async function cacheQuestions(questions) {
 }
 
 export async function cacheNotes(notes) {
+  if (!Array.isArray(notes) || !notes.length) return true;
   return putMany(
     STORES.CONTENT,
     notes.map((n) => ({ ...n, type: "note" })),
@@ -191,34 +203,48 @@ export async function cacheNotes(notes) {
 }
 
 export async function getCachedQuestions(exam, subject) {
-  const all = await getAllByIndex(STORES.CONTENT, "type", "question");
-  return all.filter((q) => q.exam === exam && q.subject === subject);
+  try {
+    const all = await getAllByIndex(STORES.CONTENT, "type", "question");
+    return all.filter((q) => q.exam === exam && q.subject === subject);
+  } catch {
+    return [];
+  }
 }
 
 export async function getCachedNotes(curriculum, level) {
-  const all = await getAllByIndex(STORES.CONTENT, "type", "note");
-  return all.filter((n) => n.curriculum === curriculum && n.level === level);
+  try {
+    const all = await getAllByIndex(STORES.CONTENT, "type", "note");
+    return all.filter((n) => n.curriculum === curriculum && n.level === level);
+  } catch {
+    return [];
+  }
 }
 
-/* --- User --- */
+/* =========================================================
+   USER HELPERS
+   ========================================================= */
 
 export async function cacheUser(user) {
-  if (!user?.uid) return false;
+  if (!user || !user.uid) return false;
   return put(STORES.USER, { ...user, cachedAt: Date.now() });
 }
 
 export async function getCachedUser(uid) {
-  return uid ? get(STORES.USER, uid) : null;
+  if (!uid) return null;
+  return get(STORES.USER, uid);
 }
 
-/* --- Attempts --- */
+/* =========================================================
+   ATTEMPT HELPERS
+   ========================================================= */
 
 export async function cacheAttempt(attempt) {
-  if (!attempt?.id) return false;
+  if (!attempt || !attempt.id) return false;
   return put(STORES.ATTEMPTS, attempt);
 }
 
 export async function cacheAttempts(attempts) {
+  if (!Array.isArray(attempts) || !attempts.length) return true;
   return putMany(STORES.ATTEMPTS, attempts);
 }
 
@@ -226,18 +252,38 @@ export async function getCachedAttempts() {
   return getAll(STORES.ATTEMPTS);
 }
 
-/* --- Leaderboard --- */
+export async function getPendingAttempts() {
+  try {
+    const all = await getAll(STORES.ATTEMPTS);
+    return all.filter(
+      (a) => typeof a.id === "string" && a.id.startsWith("local_"),
+    );
+  } catch {
+    return [];
+  }
+}
+
+/* =========================================================
+   LEADERBOARD HELPERS
+   ========================================================= */
 
 export async function cacheLeaderboard(entries) {
+  if (!Array.isArray(entries) || !entries.length) return true;
   return putMany(STORES.LEADERBOARD, entries);
 }
 
 export async function getCachedLeaderboard() {
-  const all = await getAll(STORES.LEADERBOARD);
-  return all.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+  try {
+    const all = await getAll(STORES.LEADERBOARD);
+    return all.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+  } catch {
+    return [];
+  }
 }
 
-/* --- Meta (sync versions) --- */
+/* =========================================================
+   META HELPERS
+   ========================================================= */
 
 export async function setMeta(key, value) {
   return put(STORES.META, { key, value, updatedAt: Date.now() });
@@ -248,7 +294,9 @@ export async function getMeta(key) {
   return row ? row.value : null;
 }
 
-/* --- Wallpaper --- */
+/* =========================================================
+   WALLPAPER HELPERS
+   ========================================================= */
 
 export async function setWallpaperCache(wallpaper) {
   return put(STORES.WALLPAPER, {
@@ -261,6 +309,27 @@ export async function setWallpaperCache(wallpaper) {
 export async function getWallpaperCache() {
   const row = await get(STORES.WALLPAPER, "current");
   return row ? row.value : null;
+}
+
+/* =========================================================
+   CLEAR
+   ========================================================= */
+
+export async function clearAllCache() {
+  await Promise.all([
+    clear(STORES.CONTENT),
+    clear(STORES.USER),
+    clear(STORES.ATTEMPTS),
+    clear(STORES.LEADERBOARD),
+    clear(STORES.META),
+  ]);
+}
+
+export async function clearUserCache(uid) {
+  if (!uid) return;
+  try {
+    await remove(STORES.USER, uid);
+  } catch {}
 }
 
 /* =========================================================
@@ -289,15 +358,3 @@ export async function getCacheStats() {
     };
   }
 }
-
-export async function clearAllCache() {
-  await Promise.all([
-    clear(STORES.CONTENT),
-    clear(STORES.USER),
-    clear(STORES.ATTEMPTS),
-    clear(STORES.LEADERBOARD),
-    clear(STORES.META),
-  ]);
-}
-
-export { STORES };

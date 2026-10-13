@@ -1,13 +1,52 @@
 {
+  "id": "/",
   "name": "WeGEM Learning",
   "short_name": "WeGEM",
   "description": "Interactive exam prep for Kenyan students — KCSE, KJSEA, and KPSEA.",
-  "start_url": "/home.html",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#060a15",
   "theme_color": "#060a15",
   "lang": "en",
-  "dir": "ltr"
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Take a Quiz",
+      "short_name": "Quiz",
+      "url": "/quiz.html"
+    },
+    {
+      "name": "Compete",
+      "short_name": "Compete",
+      "url": "/compete.html"
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Ranks",
+      "url": "/leaderboard.html"
+    }
+  ]
 }

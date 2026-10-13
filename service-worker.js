@@ -1,5 +1,6 @@
 // service-worker.js
 // WeGEM Learning offline service worker.
+// ⚠️ BUMP CACHE_VERSION ON EVERY DEPLOY or users get stale assets.
 
 const CACHE_VERSION = "wegem-v1";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
@@ -20,7 +21,8 @@ const STATIC_ASSETS = [
   "/progress.html",
   "/wallpapers.html",
   "/settings.html",
-  "/css/main.css",
+  "/admin.html",
+  "/css/tokens.css",
   "/css/base.css",
   "/css/layout.css",
   "/css/components.css",
@@ -39,21 +41,21 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(STATIC_CACHE)
-      .then((cache) => {
-        return Promise.all(
+      .then((cache) =>
+        Promise.all(
           STATIC_ASSETS.map((url) =>
             cache.add(url).catch((err) => {
               console.warn("[SW] Failed to cache:", url, err);
             }),
           ),
-        );
-      })
+        ),
+      )
       .then(() => self.skipWaiting()),
   );
 });
 
 /* =========================================================
-   ACTIVATE — clean old caches
+   ACTIVATE
    ========================================================= */
 
 self.addEventListener("activate", (event) => {
@@ -72,18 +74,16 @@ self.addEventListener("activate", (event) => {
 });
 
 /* =========================================================
-   FETCH STRATEGY
+   FETCH
    ========================================================= */
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-
-  // Only handle GET
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
 
-  // Skip Firebase, Unsplash, and other 3rd-party
+  // Skip Firebase, Unsplash, and 3rd-party
   if (
     url.hostname.includes("firebase") ||
     url.hostname.includes("googleapis") ||
@@ -94,7 +94,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML pages — network first, fallback to cache
+  // HTML — network first, fallback to cache
   if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(networkFirst(request));
     return;
@@ -119,7 +119,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else — network with cache fallback
   event.respondWith(networkFirst(request));
 });
 
@@ -151,7 +150,6 @@ async function networkFirst(request) {
     const cached = await cache.match(request);
     if (cached) return cached;
 
-    // For navigate requests, fall back to cached home
     if (request.mode === "navigate") {
       const fallback = await caches.match("/home.html");
       if (fallback) return fallback;
@@ -181,10 +179,6 @@ async function staleWhileRevalidate(request) {
   return cached || fetchPromise;
 }
 
-/* =========================================================
-   TRIM CACHE
-   ========================================================= */
-
 async function trimCache(cacheName, maxItems) {
   const cache = await caches.open(cacheName);
   const keys = await cache.keys();
@@ -195,7 +189,7 @@ async function trimCache(cacheName, maxItems) {
 }
 
 /* =========================================================
-   MESSAGING (for updates)
+   MESSAGING
    ========================================================= */
 
 self.addEventListener("message", (event) => {

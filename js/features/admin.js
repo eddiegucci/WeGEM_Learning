@@ -1,12 +1,7 @@
 // js/features/admin.js
-// Admin features for WeGEM Learning.
+// Admin features.
 
-import {
-  db,
-  COLLECTIONS,
-  getQuestionsForSubject,
-  getUserDoc,
-} from "../core/db.js";
+import { db, COLLECTIONS } from "../core/db.js";
 import {
   collection,
   getDocs,
@@ -19,10 +14,10 @@ import {
   orderBy,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { log, isOnline } from "../core/utils.js";
+import { log, isOnline, withTimeout } from "../core/utils.js";
 
 /* =========================================================
-   USER MANAGEMENT
+   USERS
    ========================================================= */
 
 export async function listUsers({ limitCount = 100 } = {}) {
@@ -57,7 +52,7 @@ export async function deleteUserProfile(uid) {
 }
 
 /* =========================================================
-   CONTENT — QUESTIONS
+   QUESTIONS
    ========================================================= */
 
 export async function addQuestion(question) {
@@ -111,7 +106,7 @@ export async function listQuestions({ exam, subject, limitCount = 200 } = {}) {
 }
 
 /* =========================================================
-   CONTENT — NOTES
+   NOTES
    ========================================================= */
 
 export async function addNote(note) {
@@ -149,9 +144,13 @@ export async function listNotes({ curriculum, level, limitCount = 500 } = {}) {
 }
 
 /* =========================================================
-   CONTENT MANIFEST (for delta sync)
+   CONTENT MANIFEST
    ========================================================= */
 
+/**
+ * Writes the manifest with per-key timestamps — sync.js expects
+ * keys like "KCSE::Mathematics" and "844::Form 4".
+ */
 export async function updateContentManifest(manifest) {
   const ref = doc(db, COLLECTIONS.CONTENT_META, "manifest");
   await setDoc(

@@ -1,6 +1,5 @@
 // js/data/seed.js
-// One-time Firebase content seeder for WeGEM Learning.
-// Called from admin.html. Requires admin role.
+// One-time Firebase content seeder. Called from admin.html. Requires admin role.
 
 import {
   addQuestion,
@@ -14,7 +13,7 @@ import { log } from "../core/utils.js";
    ========================================================= */
 
 export const SEED_QUESTIONS = [
-  // ==================== KCSE Mathematics ====================
+  // KCSE Mathematics
   {
     exam: "KCSE",
     subject: "Mathematics",
@@ -90,7 +89,7 @@ export const SEED_QUESTIONS = [
     explain: "det = (2)(4) − (3)(1) = 8 − 3 = 5.",
   },
 
-  // ==================== KCSE Biology ====================
+  // KCSE Biology
   {
     exam: "KCSE",
     subject: "Biology",
@@ -141,7 +140,7 @@ export const SEED_QUESTIONS = [
       "The aorta carries oxygenated blood from the left ventricle to the body.",
   },
 
-  // ==================== KCSE Chemistry ====================
+  // KCSE Chemistry
   {
     exam: "KCSE",
     subject: "Chemistry",
@@ -179,7 +178,7 @@ export const SEED_QUESTIONS = [
     explain: "Na donates an electron to Cl — an ionic bond.",
   },
 
-  // ==================== KCSE Physics ====================
+  // KCSE Physics
   {
     exam: "KCSE",
     subject: "Physics",
@@ -218,7 +217,7 @@ export const SEED_QUESTIONS = [
     explain: "Work = force × distance. Unit = Newton-metre = Joule.",
   },
 
-  // ==================== KCSE English ====================
+  // KCSE English
   {
     exam: "KCSE",
     subject: "English",
@@ -238,7 +237,7 @@ export const SEED_QUESTIONS = [
     explain: '"Benevolent" means well-meaning and kind.',
   },
 
-  // ==================== KCSE Kiswahili ====================
+  // KCSE Kiswahili
   {
     exam: "KCSE",
     subject: "Kiswahili",
@@ -258,7 +257,7 @@ export const SEED_QUESTIONS = [
     explain: '"Furaha" ni hali ya kuwa na shangwe au raha.',
   },
 
-  // ==================== KCSE History ====================
+  // KCSE History
   {
     exam: "KCSE",
     subject: "History",
@@ -278,7 +277,7 @@ export const SEED_QUESTIONS = [
     explain: "Jomo Kenyatta was the first president (1964–1978).",
   },
 
-  // ==================== KCSE Geography ====================
+  // KCSE Geography
   {
     exam: "KCSE",
     subject: "Geography",
@@ -289,7 +288,7 @@ export const SEED_QUESTIONS = [
     explain: "The Tana River is the longest river entirely within Kenya.",
   },
 
-  // ==================== KCSE CRE ====================
+  // KCSE CRE
   {
     exam: "KCSE",
     subject: "CRE",
@@ -300,7 +299,7 @@ export const SEED_QUESTIONS = [
     explain: "Moses led the Exodus from Egypt.",
   },
 
-  // ==================== KPSEA Science ====================
+  // KPSEA Science
   {
     exam: "KPSEA",
     subject: "Science",
@@ -321,7 +320,7 @@ export const SEED_QUESTIONS = [
     explain: "An adult human has 206 bones. Babies are born with about 270.",
   },
 
-  // ==================== KPSEA Mathematics ====================
+  // KPSEA Mathematics
   {
     exam: "KPSEA",
     subject: "Mathematics",
@@ -342,7 +341,7 @@ export const SEED_QUESTIONS = [
     explain: "7 × 8 = 56.",
   },
 
-  // ==================== KJSEA Integrated Science ====================
+  // KJSEA Integrated Science
   {
     exam: "KJSEA",
     subject: "Integrated Science",
@@ -363,7 +362,7 @@ export const SEED_QUESTIONS = [
       "Rusting creates a new substance (iron oxide). The others are physical changes.",
   },
 
-  // ==================== KJSEA Mathematics ====================
+  // KJSEA Mathematics
   {
     exam: "KJSEA",
     subject: "Mathematics",
@@ -520,14 +519,35 @@ export async function seedNotes() {
   return results;
 }
 
+/**
+ * Builds manifest with per-exam-subject keys that sync.js expects.
+ * Example: { "KCSE::Mathematics": "<iso>", "844::Form 4": "<iso>" }
+ */
+function buildManifestFromSeed() {
+  const now = new Date().toISOString();
+
+  const questions = {};
+  SEED_QUESTIONS.forEach((q) => {
+    questions[`${q.exam}::${q.subject}`] = now;
+  });
+
+  const notes = {};
+  SEED_NOTES.forEach((n) => {
+    notes[`${n.curriculum}::${n.level}`] = now;
+  });
+
+  return {
+    version: now,
+    questions,
+    notes,
+    examLinks: now,
+    leaderboard: now,
+  };
+}
+
 export async function seedEverything() {
   const q = await seedQuestions();
   const n = await seedNotes();
-  await updateContentManifest({
-    questions: { all: new Date().toISOString() },
-    notes: { all: new Date().toISOString() },
-    examLinks: new Date().toISOString(),
-    leaderboard: new Date().toISOString(),
-  });
+  await updateContentManifest(buildManifestFromSeed());
   return { questions: q, notes: n };
 }

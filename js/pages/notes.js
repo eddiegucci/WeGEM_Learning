@@ -1,5 +1,5 @@
 // js/pages/notes.js
-// Controller for notes.html.
+// Notes page controller.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -31,10 +31,6 @@ import {
   debounce,
 } from "../core/utils.js";
 
-/* =========================================================
-   STATE
-   ========================================================= */
-
 const state = {
   user: null,
   userDoc: null,
@@ -44,10 +40,6 @@ const state = {
   query: "",
 };
 
-/* =========================================================
-   DOM REFS
-   ========================================================= */
-
 const els = {
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
@@ -56,8 +48,6 @@ const els = {
   subjectFilterBar: document.getElementById("subjectFilterBar"),
   searchInput: document.getElementById("notesSearch"),
   openAddBtn: document.getElementById("openAddBtn"),
-
-  // Tray
   tray: document.getElementById("noteTray"),
   trayBackdrop: document.getElementById("noteTrayBackdrop"),
   trayCloseBtn: document.getElementById("noteTrayCloseBtn"),
@@ -70,17 +60,12 @@ const els = {
   trayError: document.getElementById("noteTrayError"),
 };
 
-/* =========================================================
-   SETUP USER
-   ========================================================= */
-
 async function setupUser() {
   const user = await waitForAuth();
   if (!user) {
     window.location.replace("login.html");
     return false;
   }
-
   state.user = user;
 
   const cached = getCachedUser();
@@ -89,7 +74,6 @@ async function setupUser() {
     user.displayName ||
     user.email?.split("@")[0] ||
     "Student";
-
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
 
@@ -100,7 +84,6 @@ async function setupUser() {
       if (doc) await cacheUser(doc);
     }
     state.userDoc = doc;
-
     if (doc?.name) {
       if (els.userAvatar) els.userAvatar.textContent = initials(doc.name);
       if (els.userNameTop) els.userNameTop.textContent = firstName(doc.name);
@@ -108,13 +91,8 @@ async function setupUser() {
   } catch (e) {
     log.warn("Could not load user doc:", e);
   }
-
   return true;
 }
-
-/* =========================================================
-   LOAD NOTES
-   ========================================================= */
 
 async function loadNotes() {
   const curriculum = state.userDoc?.curriculum === "CBE" ? "CBE" : "844";
@@ -127,13 +105,8 @@ async function loadNotes() {
     log.warn("Could not load notes:", e);
     state.notes = [];
   }
-
   applyFilters();
 }
-
-/* =========================================================
-   FILTERS
-   ========================================================= */
 
 function applyFilters() {
   state.filtered = filterNotes(state.notes, {
@@ -142,10 +115,6 @@ function applyFilters() {
   });
   renderNotes();
 }
-
-/* =========================================================
-   SUBJECT FILTER BAR
-   ========================================================= */
 
 function renderFilterBar() {
   if (!els.subjectFilterBar) return;
@@ -161,9 +130,7 @@ function renderFilterBar() {
   const combined = Array.from(new Set([...subjects, ...noteSubjects]));
 
   const html = `
-    <button class="chip${state.activeSubject === "all" ? " active" : ""}" data-subject="all" type="button">
-      All Subjects
-    </button>
+    <button class="chip${state.activeSubject === "all" ? " active" : ""}" data-subject="all" type="button">All Subjects</button>
     ${combined
       .map(
         (s) => `
@@ -174,7 +141,6 @@ function renderFilterBar() {
       )
       .join("")}
   `;
-
   els.subjectFilterBar.innerHTML = html;
 
   els.subjectFilterBar.querySelectorAll(".chip").forEach((chip) => {
@@ -186,29 +152,16 @@ function renderFilterBar() {
   });
 }
 
-/* =========================================================
-   RENDER NOTES
-   ========================================================= */
-
 function renderNotes() {
   if (!els.notesList) return;
 
   if (!state.filtered.length) {
     const hasAny = state.notes.length > 0;
-
     els.notesList.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1;">
         <div class="empty-icon">📖</div>
-        <div class="empty-title">
-          ${hasAny ? "No notes match your filter" : "No notes yet"}
-        </div>
-        <div class="empty-sub">
-          ${
-            hasAny
-              ? "Try clearing the search or choosing a different subject."
-              : 'Tap "Add Note" to create your first study note.'
-          }
-        </div>
+        <div class="empty-title">${hasAny ? "No notes match your filter" : "No notes yet"}</div>
+        <div class="empty-sub">${hasAny ? "Try clearing the search or choosing a different subject." : 'Tap "Add Note" to create your first study note.'}</div>
       </div>
     `;
     return;
@@ -245,40 +198,27 @@ function renderNoteCard(note) {
   return `
     <article class="note-card-v2" data-note-id="${note.id || ""}">
       <header class="note-v2-head">
-        <div class="note-v2-icon" style="background: ${color}22; color: ${color};">
-          ${icon}
-        </div>
+        <div class="note-v2-icon" style="background: ${color}22; color: ${color};">${icon}</div>
         <div class="note-v2-meta">
           <div class="note-v2-subject">${escapeHTML(note.subject || "General")}</div>
           <div class="note-v2-topic">${escapeHTML(note.topic || "Untitled")}</div>
         </div>
-        ${
-          canDelete
-            ? `<button class="note-v2-remove" type="button" data-note-delete="${note.id}" title="Delete" aria-label="Delete note">×</button>`
-            : ""
-        }
+        ${canDelete ? `<button class="note-v2-remove" type="button" data-note-delete="${note.id}" title="Delete" aria-label="Delete note">×</button>` : ""}
       </header>
       ${note.summary ? `<p class="note-v2-summary">${escapeHTML(note.summary)}</p>` : ""}
       ${keyPointsHtml}
       <div class="note-v2-actions">
         <a class="note-v2-link" href="${quizUrl}">
           Test yourself
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-            <path d="M5 12 H19 M13 6 L19 12 L13 18"/>
-          </svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12 H19 M13 6 L19 12 L13 18"/></svg>
         </a>
       </div>
     </article>
   `;
 }
 
-/* =========================================================
-   DELETE NOTE
-   ========================================================= */
-
 async function handleDeleteNote(id) {
   if (!id) return;
-
   const ok = await confirmDialog({
     title: "Delete note?",
     message: "This note will be removed from your device.",
@@ -286,7 +226,6 @@ async function handleDeleteNote(id) {
     cancelLabel: "Cancel",
     danger: true,
   });
-
   if (!ok) return;
 
   try {
@@ -305,24 +244,16 @@ async function handleDeleteNote(id) {
   }
 }
 
-/* =========================================================
-   TRAY
-   ========================================================= */
-
 function openTray() {
   if (!els.tray || !els.trayBackdrop) return;
-
   populateSubjectDropdown();
-
   els.trayBackdrop.classList.add("open");
   els.tray.classList.add("open");
   els.tray.setAttribute("aria-hidden", "false");
-
   if (els.noteTopic) els.noteTopic.value = "";
   if (els.noteSummary) els.noteSummary.value = "";
   if (els.noteKeyPoints) els.noteKeyPoints.value = "";
   clearTrayError();
-
   setTimeout(() => els.noteTopic?.focus(), 300);
 }
 
@@ -335,11 +266,9 @@ function closeTray() {
 
 function populateSubjectDropdown() {
   if (!els.noteSubject) return;
-
   const curriculum = state.userDoc?.curriculum === "CBE" ? "CBE" : "844";
   const level =
     state.userDoc?.level || (curriculum === "CBE" ? "Grade 9" : "Form 4");
-
   let subjects = state.userDoc?.subjects || [];
   if (!subjects.length) subjects = getSubjects(curriculum, level);
 
@@ -349,10 +278,6 @@ function populateSubjectDropdown() {
       .map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`)
       .join("");
 }
-
-/* =========================================================
-   TRAY ERROR
-   ========================================================= */
 
 function showTrayError(msg) {
   if (!els.trayError) return;
@@ -365,10 +290,6 @@ function clearTrayError() {
   els.trayError.classList.add("hidden");
   els.trayError.textContent = "";
 }
-
-/* =========================================================
-   SAVE NOTE
-   ========================================================= */
 
 async function saveNote() {
   clearTrayError();
@@ -402,7 +323,6 @@ async function saveNote() {
     });
 
     state.notes.unshift({ ...note, source: "user" });
-
     toastOk("✓ Note saved");
     closeTray();
     applyFilters();
@@ -418,10 +338,6 @@ async function saveNote() {
   }
 }
 
-/* =========================================================
-   USER MENU
-   ========================================================= */
-
 async function handleUserMenu() {
   const ok = await confirmDialog({
     title: "Sign out?",
@@ -430,7 +346,6 @@ async function handleUserMenu() {
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (ok) {
     try {
       await signOutNow();
@@ -442,18 +357,10 @@ async function handleUserMenu() {
   }
 }
 
-/* =========================================================
-   SEARCH
-   ========================================================= */
-
 const debouncedSearch = debounce((value) => {
   state.query = value;
   applyFilters();
 }, 200);
-
-/* =========================================================
-   INIT
-   ========================================================= */
 
 async function init() {
   try {
@@ -462,45 +369,36 @@ async function init() {
 
     initNav();
 
-    // Search
     els.searchInput?.addEventListener("input", (e) => {
       debouncedSearch(e.target.value.trim());
     });
 
-    // Tray controls
     els.openAddBtn?.addEventListener("click", openTray);
     els.trayCloseBtn?.addEventListener("click", closeTray);
     els.trayCancelBtn?.addEventListener("click", closeTray);
     els.trayBackdrop?.addEventListener("click", closeTray);
     els.traySaveBtn?.addEventListener("click", saveNote);
 
-    // Hidden keyboard shortcut (still works, just not advertised)
     bindShortcut("ctrl+shift+alt+n", () => {
       if (els.tray.classList.contains("open")) closeTray();
       else openTray();
     });
 
-    // Hidden mobile tap shortcut (6 taps)
     installTapShortcuts({
       6: () => {
         if (!els.tray.classList.contains("open")) openTray();
       },
     });
 
-    // Escape closes tray
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && els.tray.classList.contains("open"))
         closeTray();
     });
 
-    // User menu
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
 
-    // Load content
     await loadNotes();
     renderFilterBar();
-
-    log.info(`Notes ready: ${state.notes.length} notes`);
   } catch (e) {
     log.error("Notes init failed:", e);
     toastErr("Could not load notes. Please refresh.");

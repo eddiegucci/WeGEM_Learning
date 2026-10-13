@@ -1,5 +1,5 @@
 // js/data/wallpapers.js
-// Wallpaper library for WeGEM Learning.
+// Wallpaper library. Every entry uses a unique Unsplash photo ID.
 
 function wp(id, name, unsplashId, category) {
   return {
@@ -12,7 +12,7 @@ function wp(id, name, unsplashId, category) {
 }
 
 export const WALLPAPERS = [
-  /* ==================== NATURE (10) ==================== */
+  /* NATURE */
   wp("nature-1", "Forest Path", "photo-1441974231531-c6227db76b6e", "nature"),
   wp(
     "nature-2",
@@ -44,7 +44,7 @@ export const WALLPAPERS = [
     "nature",
   ),
 
-  /* ==================== SPACE (8) ==================== */
+  /* SPACE */
   wp("space-1", "Starry Night", "photo-1419242902214-272b3f66ee7a", "space"),
   wp("space-2", "Milky Way", "photo-1462331940025-496dfbfc7564", "space"),
   wp("space-3", "Nebula", "photo-1543722530-d2c3201371e7", "space"),
@@ -59,7 +59,7 @@ export const WALLPAPERS = [
   wp("space-7", "Galaxy", "photo-1502134249126-9f3755a50d78", "space"),
   wp("space-8", "Constellation", "photo-1516339901601-2e1b62dc0c45", "space"),
 
-  /* ==================== ABSTRACT (10) ==================== */
+  /* ABSTRACT */
   wp("abs-1", "Color Gradient", "photo-1557672172-298e090bd0f1", "abstract"),
   wp("abs-2", "Wave Pattern", "photo-1550859492-d5da9d8e45f3", "abstract"),
   wp("abs-3", "Neon Lights", "photo-1541701494587-cb58502866ab", "abstract"),
@@ -67,11 +67,11 @@ export const WALLPAPERS = [
   wp("abs-5", "Paint Splash", "photo-1550745165-9bc0b252726f", "abstract"),
   wp("abs-6", "Fluid Art", "photo-1550684376-efcbd6e3f031", "abstract"),
   wp("abs-7", "Soft Gradient", "photo-1553356084-58ef4a67b2a7", "abstract"),
-  wp("abs-8", "Blur Bokeh", "photo-1541701494587-cb58502866ab", "abstract"),
-  wp("abs-9", "Purple Haze", "photo-1557682250-33bd709cbe85", "abstract"),
-  wp("abs-10", "Deep Blue", "photo-1550745165-9bc0b252726f", "abstract"),
+  wp("abs-8", "Blur Bokeh", "photo-1557683316-973673baf926", "abstract"),
+  wp("abs-9", "Purple Haze", "photo-1557682224-5b8590cd9ec5", "abstract"),
+  wp("abs-10", "Deep Blue", "photo-1557743861-0e8d6bcb1ff0", "abstract"),
 
-  /* ==================== STUDY (8) ==================== */
+  /* STUDY */
   wp("study-1", "Library Books", "photo-1507842217343-583bb7270b66", "study"),
   wp("study-2", "Open Book", "photo-1544716278-ca5e3f4abd8c", "study"),
   wp("study-3", "Notebook Desk", "photo-1456513080510-7bf3a84b82f8", "study"),
@@ -81,54 +81,26 @@ export const WALLPAPERS = [
   wp("study-7", "Books Stack", "photo-1495446815901-a7297e633e8d", "study"),
   wp("study-8", "Vintage Library", "photo-1521587760476-6c12a4b040da", "study"),
 
-  /* ==================== KENYA (30) ==================== */
+  /* KENYA */
   wp("ke-1", "Maasai Mara Sunset", "photo-1516026672322-bc52d61a55d5", "kenya"),
   wp("ke-2", "Acacia Silhouette", "photo-1547471080-7cc2caa01a7e", "kenya"),
   wp("ke-3", "African Savannah", "photo-1523805009345-7448845a9e53", "kenya"),
   wp("ke-4", "Lion on Rock", "photo-1546182990-dffeafbe841d", "kenya"),
   wp("ke-5", "Mount Kenya Peak", "photo-1519681393784-d120267933ba", "kenya"),
   wp("ke-6", "Maasai Warriors", "photo-1489392191049-fc10c97e64b6", "kenya"),
-  wp("ke-7", "Baobab Tree", "photo-1523805009345-7448845a9e53", "kenya"),
   wp("ke-8", "Elephant Herd", "photo-1564760055775-d63b17a55c44", "kenya"),
   wp("ke-9", "Giraffe at Sunset", "photo-1534567153574-2b12153a87f0", "kenya"),
   wp("ke-10", "Zebra Crossing", "photo-1518709766631-a6a7f45921c3", "kenya"),
   wp("ke-11", "Cheetah Portrait", "photo-1456926631375-92c8ce872def", "kenya"),
   wp("ke-12", "Rhino in Grass", "photo-1547721064-da6cfb341d50", "kenya"),
-  wp("ke-13", "Flamingos at Lake", "photo-1518709766631-a6a7f45921c3", "kenya"),
-  wp(
-    "ke-14",
-    "Nairobi National Park",
-    "photo-1516026672322-bc52d61a55d5",
-    "kenya",
-  ),
-  wp(
-    "ke-15",
-    "Amboseli Elephants",
-    "photo-1519681393784-d120267933ba",
-    "kenya",
-  ),
-  wp("ke-16", "Diani Beach", "photo-1507525428034-b723cf961d3e", "kenya"),
   wp("ke-17", "Watamu Coast", "photo-1544551763-46a013bb70d5", "kenya"),
   wp("ke-18", "Lamu Old Town", "photo-1505142468610-359e7d316be0", "kenya"),
   wp("ke-19", "Lake Victoria", "photo-1439066615861-d1af74d74000", "kenya"),
-  wp("ke-20", "Lake Nakuru", "photo-1432405972618-c60b0225b8f9", "kenya"),
-  wp("ke-21", "Rift Valley View", "photo-1470071459604-3b5ec3a7fe05", "kenya"),
-  wp("ke-22", "Aberdare Forest", "photo-1454496522488-7a8e488e8606", "kenya"),
-  wp("ke-23", "Hell's Gate", "photo-1441974231531-c6227db76b6e", "kenya"),
-  wp("ke-24", "Tsavo Plains", "photo-1509316785289-025f5b846b35", "kenya"),
-  wp(
-    "ke-25",
-    "Kericho Tea Fields",
-    "photo-1500382017468-9049fed747ef",
-    "kenya",
-  ),
   wp("ke-26", "Nairobi Skyline", "photo-1611348586804-61bf6c080437", "kenya"),
   wp("ke-27", "Nairobi at Night", "photo-1519501025264-65ba15a82390", "kenya"),
   wp("ke-28", "Mombasa Old Port", "photo-1518709268805-4e9042af9f23", "kenya"),
-  wp("ke-29", "Kisumu Sunset", "photo-1439066615861-d1af74d74000", "kenya"),
-  wp("ke-30", "Nakuru Flamingos", "photo-1522383225653-ed111181a951", "kenya"),
 
-  /* ==================== FOOD (20) ==================== */
+  /* FOOD */
   wp("food-1", "Nyama Choma", "photo-1544025162-d76694265947", "food"),
   wp("food-2", "Fresh Fruit Bowl", "photo-1610832958506-aa56368176cf", "food"),
   wp("food-3", "Pizza Slice", "photo-1565299624946-b28f40a0ae38", "food"),
@@ -150,35 +122,26 @@ export const WALLPAPERS = [
   wp("food-19", "Ramen Bowl", "photo-1569718212165-3a8278d5f624", "food"),
   wp("food-20", "Indian Curry", "photo-1585937421612-70a008356fbe", "food"),
 
-  /* ==================== CITIES (8) ==================== */
-  wp("city-1", "City Lights", "photo-1519501025264-65ba15a82390", "city"),
+  /* CITY */
   wp("city-2", "New York", "photo-1496442226666-8d4d0e62e6e9", "city"),
   wp("city-3", "Street Lights", "photo-1449824913935-59a10b8d2000", "city"),
   wp("city-4", "Night Skyline", "photo-1444723121867-7a241cacace9", "city"),
   wp("city-5", "Bridge at Night", "photo-1449034446853-66c86144b0ad", "city"),
   wp("city-6", "Modern Buildings", "photo-1486406146926-c627a92ad1ab", "city"),
   wp("city-7", "Sunset Cityscape", "photo-1477959858617-67f85cf4f1df", "city"),
-  wp("city-8", "Neon Street", "photo-1518709268805-4e9042af9f23", "city"),
 
-  /* ==================== OCEAN (8) ==================== */
-  wp("ocean-1", "Ocean Calm", "photo-1505142468610-359e7d316be0", "ocean"),
+  /* OCEAN */
   wp("ocean-2", "Wave Crash", "photo-1502680390469-be75c86b636f", "ocean"),
-  wp("ocean-3", "Underwater", "photo-1544551763-46a013bb70d5", "ocean"),
-  wp("ocean-4", "Beach Sunset", "photo-1507525428034-b723cf961d3e", "ocean"),
   wp("ocean-5", "Blue Lagoon", "photo-1544551763-77ef2d0cfc6c", "ocean"),
-  wp("ocean-6", "Waterfall Flow", "photo-1432405972618-c60b0225b8f9", "ocean"),
-  wp("ocean-7", "Lake Reflection", "photo-1439066615861-d1af74d74000", "ocean"),
-  wp("ocean-8", "Coastal Cliffs", "photo-1505142468610-359e7d316be0", "ocean"),
 
-  /* ==================== SPORTS (6) ==================== */
+  /* SPORTS */
   wp("sport-1", "Running Track", "photo-1552674605-db6ffd4facb5", "sport"),
   wp("sport-2", "Basketball Court", "photo-1546519638-68e109498ffc", "sport"),
   wp("sport-3", "Football Field", "photo-1508098682722-e99c43a406b2", "sport"),
   wp("sport-4", "Gym", "photo-1534438327276-14e5300c3a48", "sport"),
   wp("sport-5", "Swimming Pool", "photo-1530549387789-4c1017266635", "sport"),
-  wp("sport-6", "Mountain Bike", "photo-1544191696-15693072e0b5", "sport"),
 
-  /* ==================== TECH (6) ==================== */
+  /* TECH */
   wp("tech-1", "Circuit Board", "photo-1518770660439-4636190af475", "tech"),
   wp("tech-2", "Code Screen", "photo-1461749280684-dccba630e2f6", "tech"),
   wp("tech-3", "Laptop Desk", "photo-1517694712202-14dd9538aa97", "tech"),

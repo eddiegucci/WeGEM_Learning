@@ -24,9 +24,8 @@ export function buildQuiz(questions, options = {}) {
   const prepared = pool.map((q) => {
     const originalAnswer = q.answer ?? q.correctIndex ?? 0;
     const opts = Array.isArray(q.options) ? [...q.options] : [];
-    const correctText = opts[originalAnswer];
 
-    if (!shuffleOptions) {
+    if (!shuffleOptions || !opts.length) {
       return {
         id: q.id || null,
         topic: q.topic || "General",
@@ -37,7 +36,6 @@ export function buildQuiz(questions, options = {}) {
       };
     }
 
-    // Shuffle options while tracking correct index
     const indices = opts.map((_, i) => i);
     const shuffled = shuffle(indices);
     const newOptions = shuffled.map((i) => opts[i]);
@@ -50,8 +48,6 @@ export function buildQuiz(questions, options = {}) {
       options: newOptions,
       correctIndex: newCorrectIndex,
       explain: q.explain || "",
-      // Keep original in case we need it
-      _original: { options: opts, correctText },
     };
   });
 
@@ -76,7 +72,7 @@ export function createQuizState(quiz) {
 }
 
 /* =========================================================
-   ANSWER A QUESTION
+   ANSWER
    ========================================================= */
 
 export function answerQuestion(state, selectedIndex) {
@@ -86,7 +82,6 @@ export function answerQuestion(state, selectedIndex) {
   const isCorrect = selectedIndex === q.correctIndex;
   const topic = q.topic || "General";
 
-  // Track topic results
   if (!state.topicResults[topic]) {
     state.topicResults[topic] = { correct: 0, total: 0 };
   }
@@ -98,7 +93,6 @@ export function answerQuestion(state, selectedIndex) {
     state.incorrect += 1;
   }
 
-  // Save answer
   state.answers.push({
     index: state.index,
     selected: selectedIndex,
@@ -128,7 +122,7 @@ export function isFinished(state) {
 }
 
 /* =========================================================
-   FINISH AND SCORE
+   FINISH
    ========================================================= */
 
 export function finishQuiz(state) {
@@ -160,7 +154,7 @@ export function getWeakTopics(topicResults, threshold = 0.7) {
       total: s.total,
       score: s.total ? s.correct / s.total : 0,
     }))
-    .filter((t) => t.score < threshold)
+    .filter((t) => t.total > 0 && t.score < threshold)
     .sort((a, b) => a.score - b.score);
 }
 
@@ -172,12 +166,12 @@ export function getStrongTopics(topicResults, threshold = 0.8) {
       total: s.total,
       score: s.total ? s.correct / s.total : 0,
     }))
-    .filter((t) => t.score >= threshold)
+    .filter((t) => t.total > 0 && t.score >= threshold)
     .sort((a, b) => b.score - a.score);
 }
 
 /* =========================================================
-   AGGREGATE ATTEMPTS
+   AGGREGATE
    ========================================================= */
 
 export function aggregateAttempts(attempts = []) {
@@ -212,17 +206,20 @@ export function aggregateAttempts(attempts = []) {
 }
 
 /* =========================================================
-   STREAK CALCULATION
+   STREAK
    ========================================================= */
 
 export function computeStreak(attempts = []) {
   if (!attempts.length) return 0;
 
   const days = new Set(
-    attempts.map((a) => {
-      const d = a.createdAt ? new Date(a.createdAt) : new Date(a.date);
-      return d.toDateString();
-    }),
+    attempts
+      .map((a) => {
+        const d = a.createdAt ? new Date(a.createdAt) : new Date(a.date);
+        if (Number.isNaN(d.getTime())) return null;
+        return d.toDateString();
+      })
+      .filter(Boolean),
   );
 
   let streak = 0;

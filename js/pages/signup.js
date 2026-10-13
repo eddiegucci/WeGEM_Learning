@@ -1,5 +1,5 @@
 // js/pages/signup.js
-// Controller for signup.html — 4-step account creation flow.
+// Signup controller.
 
 import { signUp, onAuthChange } from "../core/auth.js";
 import { createUserDoc, updateLeaderboardEntry } from "../core/db.js";
@@ -15,15 +15,11 @@ import {
   sleep,
 } from "../core/utils.js";
 
-/* =========================================================
-   STATE
-   ========================================================= */
-
 const state = {
   step: 1,
-  curriculum: null, // '844' or 'CBE'
-  level: null, // 'Form 1'..'Form 4' OR 'Grade 7'..'Grade 9'
-  subjects: [], // selected subject names
+  curriculum: null,
+  level: null,
+  subjects: [],
   name: "",
   school: "",
   adm: "",
@@ -32,10 +28,6 @@ const state = {
   password: "",
   submitting: false,
 };
-
-/* =========================================================
-   DOM REFS
-   ========================================================= */
 
 const els = {
   step1: document.getElementById("step1"),
@@ -46,16 +38,13 @@ const els = {
   backBtn: document.getElementById("backBtn"),
   nextBtn: document.getElementById("nextBtn"),
   errorBox: document.getElementById("signupError"),
-
   levelGrid: document.getElementById("levelGrid"),
   levelTitle: document.getElementById("levelTitle"),
   levelSub: document.getElementById("levelSub"),
-
   subjectsGrid: document.getElementById("subjectsGrid"),
   subjectCount: document.getElementById("subjectCount"),
   selectAllBtn: document.getElementById("selectAllBtn"),
   clearAllBtn: document.getElementById("clearAllBtn"),
-
   fullName: document.getElementById("fullName"),
   school: document.getElementById("school"),
   adm: document.getElementById("adm"),
@@ -64,24 +53,13 @@ const els = {
   password: document.getElementById("password"),
 };
 
-/* =========================================================
-   INITIAL REDIRECT — if already signed in, go home
-   ========================================================= */
-
 let redirected = false;
 onAuthChange((user) => {
   if (user && !redirected && !state.submitting) {
     redirected = true;
-    // Small delay so user sees the page before redirect (only for existing sessions)
-    setTimeout(() => {
-      window.location.replace("home.html");
-    }, 100);
+    setTimeout(() => window.location.replace("home.html"), 100);
   }
 });
-
-/* =========================================================
-   ERROR HELPERS
-   ========================================================= */
 
 function showError(msg) {
   if (!els.errorBox) return;
@@ -96,45 +74,31 @@ function clearError() {
   els.errorBox.textContent = "";
 }
 
-/* =========================================================
-   STEP NAVIGATION
-   ========================================================= */
-
 function setStep(n) {
   if (n < 1 || n > 4) return;
   state.step = n;
 
-  // Toggle step visibility
   [els.step1, els.step2, els.step3, els.step4].forEach((section, i) => {
     if (!section) return;
     section.classList.toggle("hidden", i + 1 !== n);
   });
 
-  // Update progress dots
   els.stepDots.forEach((dot) => {
     const dotStep = parseInt(dot.dataset.step, 10);
     dot.classList.toggle("active", dotStep === n);
     dot.classList.toggle("done", dotStep < n);
   });
 
-  // Update buttons
   els.backBtn.disabled = n === 1;
   els.nextBtn.textContent = n === 4 ? "Create Account →" : "Continue →";
 
-  // Recompute next enabled state
   updateNextEnabled();
-
-  // Clear any previous error
   clearError();
 
-  // Scroll card into view
   const card = document.querySelector(".signup-card");
   if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  // Focus first input on step 4
-  if (n === 4) {
-    setTimeout(() => els.fullName?.focus(), 200);
-  }
+  if (n === 4) setTimeout(() => els.fullName?.focus(), 200);
 }
 
 function updateNextEnabled() {
@@ -156,24 +120,17 @@ function updateNextEnabled() {
   els.nextBtn.disabled = !enabled;
 }
 
-/* =========================================================
-   STEP 1 — CURRICULUM
-   ========================================================= */
-
 document.querySelectorAll(".curriculum-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     const value = btn.dataset.curriculum;
-
-    document.querySelectorAll(".curriculum-btn").forEach((b) => {
-      b.classList.remove("selected");
-    });
+    document
+      .querySelectorAll(".curriculum-btn")
+      .forEach((b) => b.classList.remove("selected"));
     btn.classList.add("selected");
-
     state.curriculum = value;
     state.level = null;
     state.subjects = [];
 
-    // Update labels for step 2
     if (value === "844") {
       els.levelTitle.textContent = "Which form are you in?";
       els.levelSub.textContent =
@@ -186,7 +143,6 @@ document.querySelectorAll(".curriculum-btn").forEach((btn) => {
 
     updateNextEnabled();
 
-    // Auto-advance for smooth UX
     setTimeout(() => {
       renderLevelGrid();
       setStep(2);
@@ -194,13 +150,8 @@ document.querySelectorAll(".curriculum-btn").forEach((btn) => {
   });
 });
 
-/* =========================================================
-   STEP 2 — LEVEL
-   ========================================================= */
-
 function renderLevelGrid() {
   if (!els.levelGrid) return;
-
   const options =
     state.curriculum === "844"
       ? ["Form 1", "Form 2", "Form 3", "Form 4"]
@@ -218,14 +169,12 @@ function renderLevelGrid() {
 
   els.levelGrid.querySelectorAll(".level-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      els.levelGrid.querySelectorAll(".level-btn").forEach((b) => {
-        b.classList.remove("selected");
-      });
+      els.levelGrid
+        .querySelectorAll(".level-btn")
+        .forEach((b) => b.classList.remove("selected"));
       btn.classList.add("selected");
-
       state.level = btn.dataset.level;
       state.subjects = [];
-
       updateNextEnabled();
 
       setTimeout(() => {
@@ -236,21 +185,12 @@ function renderLevelGrid() {
   });
 }
 
-/* =========================================================
-   STEP 3 — SUBJECTS
-   ========================================================= */
-
 function renderSubjectsGrid() {
   if (!els.subjectsGrid) return;
-
   const subjects = getSubjects(state.curriculum, state.level);
 
   if (!subjects.length) {
-    els.subjectsGrid.innerHTML = `
-      <div style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--text-mute);">
-        No subjects available for this combination.
-      </div>
-    `;
+    els.subjectsGrid.innerHTML = `<div style="grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--text-mute);">No subjects available.</div>`;
     return;
   }
 
@@ -266,14 +206,12 @@ function renderSubjectsGrid() {
     .join("");
 
   els.subjectsGrid.querySelectorAll(".subject-toggle").forEach((btn) => {
-    if (state.subjects.includes(btn.dataset.subject)) {
+    if (state.subjects.includes(btn.dataset.subject))
       btn.classList.add("selected");
-    }
 
     btn.addEventListener("click", () => {
       const name = btn.dataset.subject;
       const idx = state.subjects.indexOf(name);
-
       if (idx === -1) {
         state.subjects.push(name);
         btn.classList.add("selected");
@@ -281,7 +219,6 @@ function renderSubjectsGrid() {
         state.subjects.splice(idx, 1);
         btn.classList.remove("selected");
       }
-
       updateSubjectCount();
       updateNextEnabled();
     });
@@ -297,25 +234,21 @@ function updateSubjectCount() {
 els.selectAllBtn?.addEventListener("click", () => {
   const subjects = getSubjects(state.curriculum, state.level);
   state.subjects = [...subjects];
-  els.subjectsGrid.querySelectorAll(".subject-toggle").forEach((btn) => {
-    btn.classList.add("selected");
-  });
+  els.subjectsGrid
+    .querySelectorAll(".subject-toggle")
+    .forEach((btn) => btn.classList.add("selected"));
   updateSubjectCount();
   updateNextEnabled();
 });
 
 els.clearAllBtn?.addEventListener("click", () => {
   state.subjects = [];
-  els.subjectsGrid.querySelectorAll(".subject-toggle").forEach((btn) => {
-    btn.classList.remove("selected");
-  });
+  els.subjectsGrid
+    .querySelectorAll(".subject-toggle")
+    .forEach((btn) => btn.classList.remove("selected"));
   updateSubjectCount();
   updateNextEnabled();
 });
-
-/* =========================================================
-   STEP 4 — DETAILS
-   ========================================================= */
 
 function readDetailsForm() {
   return {
@@ -340,14 +273,8 @@ function validateDetails(details) {
   return null;
 }
 
-/* =========================================================
-   BACK / NEXT
-   ========================================================= */
-
 els.backBtn?.addEventListener("click", () => {
-  if (state.step > 1) {
-    setStep(state.step - 1);
-  }
+  if (state.step > 1) setStep(state.step - 1);
 });
 
 els.nextBtn?.addEventListener("click", handleNext);
@@ -355,44 +282,27 @@ els.nextBtn?.addEventListener("click", handleNext);
 async function handleNext() {
   clearError();
 
-  // Step 1
   if (state.step === 1) {
-    if (!state.curriculum) {
+    if (!state.curriculum)
       return showError("Please choose a curriculum to continue.");
-    }
     renderLevelGrid();
     setStep(2);
     return;
   }
-
-  // Step 2
   if (state.step === 2) {
-    if (!state.level) {
-      return showError("Please pick your form or grade.");
-    }
+    if (!state.level) return showError("Please pick your form or grade.");
     renderSubjectsGrid();
     setStep(3);
     return;
   }
-
-  // Step 3
   if (state.step === 3) {
-    if (!state.subjects.length) {
+    if (!state.subjects.length)
       return showError("Please select at least one subject.");
-    }
     setStep(4);
     return;
   }
-
-  // Step 4 — submit
-  if (state.step === 4) {
-    await submitSignup();
-  }
+  if (state.step === 4) await submitSignup();
 }
-
-/* =========================================================
-   SUBMIT
-   ========================================================= */
 
 async function submitSignup() {
   if (state.submitting) return;
@@ -409,11 +319,9 @@ async function submitSignup() {
   Object.assign(state, details);
 
   try {
-    // 1. Create Firebase Auth user
     const user = await signUp(details.email, details.password, details.name);
     if (!user) throw new Error("Account creation failed.");
 
-    // 2. Create Firestore user document
     const userData = {
       email: details.email,
       name: details.name,
@@ -428,34 +336,26 @@ async function submitSignup() {
 
     await createUserDoc(user.uid, userData);
 
-    // 3. Cache locally
     try {
       await cacheUser({ uid: user.uid, ...userData });
     } catch (e) {
       log.warn("Could not cache user:", e);
     }
 
-    // 4. Initialize leaderboard entry
     try {
       await updateLeaderboardEntry(user.uid, {
         name: details.name,
         school: details.school,
         curriculum: state.curriculum,
         level: state.level,
-        scoreDelta: 0,
-        quizDelta: 0,
-        correctDelta: 0,
-        totalDelta: 0,
       });
     } catch (e) {
       log.warn("Could not initialize leaderboard:", e);
     }
 
-    // 5. Success
     els.nextBtn.textContent = "✓ Welcome!";
     toastOk("Account created. Redirecting…");
 
-    // Give the auth state a moment to settle
     await sleep(500);
     window.location.replace("home.html");
   } catch (error) {
@@ -469,30 +369,14 @@ async function submitSignup() {
   }
 }
 
-/* =========================================================
-   ENTER KEY
-   ========================================================= */
-
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
   if (state.submitting) return;
-
-  // Only submit on step 4
   if (state.step === 4) {
     e.preventDefault();
     submitSignup();
   }
 });
-
-/* =========================================================
-   PASTE PREVENTION on password (optional — remove if annoying)
-   ========================================================= */
-
-// Nothing here — we allow pasting for password managers.
-
-/* =========================================================
-   INIT
-   ========================================================= */
 
 function init() {
   setStep(1);

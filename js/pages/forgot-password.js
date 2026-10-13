@@ -1,18 +1,9 @@
 // js/pages/forgot-password.js
-// Controller for forgot-password.html.
+// Password reset controller.
 
 import { sendPasswordReset, onAuthChange } from "../core/auth.js";
 import { toastOk, toastErr } from "../ui/toast.js";
-import {
-  friendlyFirebaseError,
-  isValidEmail,
-  log,
-  sleep,
-} from "../core/utils.js";
-
-/* =========================================================
-   DOM REFS
-   ========================================================= */
+import { friendlyFirebaseError, isValidEmail, log } from "../core/utils.js";
 
 const els = {
   formView: document.getElementById("formView"),
@@ -24,31 +15,12 @@ const els = {
   retryBtn: document.getElementById("retryBtn"),
 };
 
-/* =========================================================
-   STATE
-   ========================================================= */
-
-const state = {
-  submitting: false,
-  cooldownUntil: 0, // prevents spamming — 60 second cooldown
-  lastEmail: "",
-};
-
+const state = { submitting: false, cooldownUntil: 0, lastEmail: "" };
 const COOLDOWN_MS = 60 * 1000;
 
-/* =========================================================
-   IF ALREADY SIGNED IN — go home
-   ========================================================= */
-
 onAuthChange((user) => {
-  if (user) {
-    window.location.replace("home.html");
-  }
+  if (user) window.location.replace("home.html");
 });
-
-/* =========================================================
-   ERROR HELPERS
-   ========================================================= */
 
 function showError(msg) {
   if (!els.errorBox) return;
@@ -61,10 +33,6 @@ function clearError() {
   els.errorBox.classList.add("hidden");
   els.errorBox.textContent = "";
 }
-
-/* =========================================================
-   VIEW SWITCHING
-   ========================================================= */
 
 function showFormView() {
   els.formView?.classList.remove("hidden");
@@ -79,10 +47,6 @@ function showSuccessView(email) {
   els.successView?.classList.remove("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
-
-/* =========================================================
-   BUTTON STATE
-   ========================================================= */
 
 function setButtonLoading(loading, text = null) {
   if (!els.resetBtn) return;
@@ -103,29 +67,20 @@ function startCooldown() {
   }, 1000);
 }
 
-/* =========================================================
-   SUBMIT
-   ========================================================= */
-
 async function handleReset() {
   if (state.submitting) return;
 
-  // Cooldown check
   if (Date.now() < state.cooldownUntil) {
     const remaining = Math.ceil((state.cooldownUntil - Date.now()) / 1000);
     return showError(`Please wait ${remaining}s before trying again.`);
   }
 
   clearError();
-
   const email = (els.emailInput?.value || "").trim().toLowerCase();
 
-  if (!email) {
-    return showError("Please enter your email address.");
-  }
-  if (!isValidEmail(email)) {
+  if (!email) return showError("Please enter your email address.");
+  if (!isValidEmail(email))
     return showError("Please enter a valid email address.");
-  }
 
   state.submitting = true;
   state.lastEmail = email;
@@ -133,7 +88,6 @@ async function handleReset() {
 
   try {
     await sendPasswordReset(email);
-
     toastOk("Reset email sent. Check your inbox.");
     state.submitting = false;
     startCooldown();
@@ -148,20 +102,10 @@ async function handleReset() {
   }
 }
 
-/* =========================================================
-   RETRY
-   ========================================================= */
-
 function handleRetry() {
   showFormView();
-  if (state.lastEmail && els.emailInput) {
-    els.emailInput.value = state.lastEmail;
-  }
+  if (state.lastEmail && els.emailInput) els.emailInput.value = state.lastEmail;
 }
-
-/* =========================================================
-   EVENT WIRING
-   ========================================================= */
 
 els.resetBtn?.addEventListener("click", handleReset);
 els.retryBtn?.addEventListener("click", handleRetry);
@@ -173,21 +117,14 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// Clear error on typing
 els.emailInput?.addEventListener("input", clearError);
 
-/* =========================================================
-   INIT
-   ========================================================= */
-
 function init() {
-  // If URL has ?email=..., prefill
   try {
     const params = new URLSearchParams(window.location.search);
     const prefEmail = params.get("email");
     if (prefEmail && els.emailInput) els.emailInput.value = prefEmail;
   } catch {}
-
   log.info("Forgot password page ready");
 }
 

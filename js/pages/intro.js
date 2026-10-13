@@ -1,30 +1,18 @@
 // js/pages/intro.js
-// Controller for index.html — the WeGEM Learning intro slideshow.
-// Loads a rotating slideshow of subject images, then redirects to signup.
+// Intro slideshow controller for index.html.
 
 import { getCachedUser, waitForAuth } from "../core/auth.js";
 import { log, sleep } from "../core/utils.js";
 
-/* =========================================================
-   CONFIG
-   ========================================================= */
-
-const SLIDE_DURATION = 1700; // ms visible per slide
-const REDIRECT_URL = "signup.html"; // where to go after slideshow
-const REDIRECT_AFTER_LAST = 700; // ms delay after last slide
-const SKIP_REDIRECT_DELAY = 400; // ms delay when user skips
-const AUTH_CHECK_TIMEOUT = 900; // ms max wait for Firebase Auth
-const FIRST_IMAGE_TIMEOUT = 4000; // ms max wait for first slide image
-const MAX_SESSION_CACHE_AGE = 1000 * 60 * 60 * 24; // 24 hours
+const SLIDE_DURATION = 1700;
+const REDIRECT_URL = "signup.html";
+const REDIRECT_AFTER_LAST = 700;
+const SKIP_REDIRECT_DELAY = 400;
+const AUTH_CHECK_TIMEOUT = 900;
+const FIRST_IMAGE_TIMEOUT = 4000;
 
 const STORAGE_KEY_INTRO_SEEN = "wegem_intro_seen";
 const STORAGE_KEY_INTRO_TIMESTAMP = "wegem_intro_last";
-
-/* =========================================================
-   SLIDES
-   Each slide shows a subject name and a background image.
-   Images are 1400px wide (fast load, still crisp on retina).
-   ========================================================= */
 
 const SLIDES = [
   {
@@ -76,14 +64,6 @@ const SLIDES = [
     img: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1400&q=60&auto=format",
   },
   {
-    subject: "Woodwork",
-    img: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1400&q=60&auto=format",
-  },
-  {
-    subject: "Metalwork",
-    img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1400&q=60&auto=format",
-  },
-  {
     subject: "Music",
     img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1400&q=60&auto=format",
   },
@@ -91,43 +71,7 @@ const SLIDES = [
     subject: "Fine Art",
     img: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1400&q=60&auto=format",
   },
-  {
-    subject: "Home Science",
-    img: "https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=1400&q=60&auto=format",
-  },
-  {
-    subject: "Physical Education",
-    img: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1400&q=60&auto=format",
-  },
-  {
-    subject: "French",
-    img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=60&auto=format",
-  },
-  {
-    subject: "German",
-    img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1400&q=60&auto=format",
-  },
-  {
-    subject: "Spanish",
-    img: "https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=1400&q=60&auto=format",
-  },
-  {
-    subject: "Chinese",
-    img: "https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=1400&q=60&auto=format",
-  },
-  {
-    subject: "Indian",
-    img: "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=1400&q=60&auto=format",
-  },
-  {
-    subject: "Life Skills",
-    img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1400&q=60&auto=format",
-  },
 ];
-
-/* =========================================================
-   STATE
-   ========================================================= */
 
 const state = {
   slideEls: [],
@@ -137,12 +81,7 @@ const state = {
   isDone: false,
   hasStarted: false,
   isPaused: false,
-  lastUserInteraction: Date.now(),
 };
-
-/* =========================================================
-   DOM REFERENCES
-   ========================================================= */
 
 const els = {
   slideshow: document.getElementById("slideshow"),
@@ -150,19 +89,12 @@ const els = {
   dots: document.getElementById("dots"),
   skipBtn: document.getElementById("skipBtn"),
   loading: document.getElementById("introLoading"),
-  wrap: document.getElementById("introWrap"),
 };
 
-/* =========================================================
-   EARLY SESSION REDIRECT
-   ========================================================= */
-
 async function checkExistingSession() {
-  // Fast path: check local cache first
   try {
     const cached = getCachedUser();
     if (cached) {
-      log.info("Session found in cache, redirecting to home");
       window.location.replace("home.html");
       return true;
     }
@@ -170,15 +102,12 @@ async function checkExistingSession() {
     log.warn("Cache check failed:", e);
   }
 
-  // Slow path: wait for Firebase Auth, but cap the wait time
   try {
     const user = await Promise.race([
       waitForAuth(),
       sleep(AUTH_CHECK_TIMEOUT).then(() => null),
     ]);
-
     if (user) {
-      log.info("Firebase session found, redirecting to home");
       window.location.replace("home.html");
       return true;
     }
@@ -189,35 +118,26 @@ async function checkExistingSession() {
   return false;
 }
 
-/* =========================================================
-   IMAGE PRELOADING
-   ========================================================= */
-
 function preloadImage(url, timeoutMs = FIRST_IMAGE_TIMEOUT) {
   return new Promise((resolve) => {
     const img = new Image();
     let settled = false;
-
-    const finish = (status) => {
+    const finish = (s) => {
       if (settled) return;
       settled = true;
       img.onload = null;
       img.onerror = null;
-      resolve(status);
+      resolve(s);
     };
-
     const timer = setTimeout(() => finish("timeout"), timeoutMs);
-
     img.onload = () => {
       clearTimeout(timer);
       finish("loaded");
     };
-
     img.onerror = () => {
       clearTimeout(timer);
       finish("error");
     };
-
     img.src = url;
   });
 }
@@ -228,7 +148,6 @@ async function preloadFirstImage() {
 }
 
 function preloadRemainingImages() {
-  // Background preloading — staggered to avoid saturating the network
   SLIDES.slice(1).forEach((slide, i) => {
     setTimeout(() => {
       const img = new Image();
@@ -244,18 +163,12 @@ function preloadNextImage(index) {
   img.src = SLIDES[nextIdx].img;
 }
 
-/* =========================================================
-   BUILD SLIDES
-   ========================================================= */
-
 function buildSlides() {
   if (!els.slideshow) return;
-
   els.slideshow.innerHTML = "";
   state.slideEls = [];
 
   const fragment = document.createDocumentFragment();
-
   SLIDES.forEach((slide, i) => {
     const el = document.createElement("div");
     el.className = "slide";
@@ -265,18 +178,15 @@ function buildSlides() {
     fragment.appendChild(el);
     state.slideEls.push(el);
   });
-
   els.slideshow.appendChild(fragment);
 }
 
 function buildDots() {
   if (!els.dots) return;
-
   els.dots.innerHTML = "";
   state.dotEls = [];
 
   const fragment = document.createDocumentFragment();
-
   SLIDES.forEach((_, i) => {
     const dot = document.createElement("span");
     dot.className = "dot";
@@ -285,46 +195,32 @@ function buildDots() {
     fragment.appendChild(dot);
     state.dotEls.push(dot);
   });
-
   els.dots.appendChild(fragment);
 }
-
-/* =========================================================
-   SHOW SLIDE
-   ========================================================= */
 
 function showSlide(index) {
   if (!state.slideEls.length) return;
   if (index < 0 || index >= state.slideEls.length) return;
 
-  // Toggle slides
   state.slideEls.forEach((el, i) => {
     const isActive = i === index;
     el.classList.toggle("active", isActive);
     el.setAttribute("aria-hidden", isActive ? "false" : "true");
   });
 
-  // Toggle dots
   state.dotEls.forEach((dot, i) => {
     dot.classList.toggle("active", i === index);
   });
 
-  // Subject label with fade animation
   if (els.subjectLabel) {
     els.subjectLabel.textContent = SLIDES[index].subject;
     els.subjectLabel.classList.remove("fade-in");
-    // Force reflow to restart animation
     void els.subjectLabel.offsetWidth;
     els.subjectLabel.classList.add("fade-in");
   }
 
-  // Preload the next image
   preloadNextImage(index);
 }
-
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
 
 function scheduleNext() {
   if (state.isDone || state.isPaused) return;
@@ -341,14 +237,11 @@ function clearTimer() {
 
 function advance() {
   if (state.isDone) return;
-
   state.currentIndex += 1;
-
   if (state.currentIndex >= SLIDES.length) {
     finish();
     return;
   }
-
   showSlide(state.currentIndex);
   scheduleNext();
 }
@@ -357,12 +250,10 @@ function finish() {
   if (state.isDone) return;
   state.isDone = true;
   clearTimer();
-
   try {
     localStorage.setItem(STORAGE_KEY_INTRO_SEEN, "1");
     localStorage.setItem(STORAGE_KEY_INTRO_TIMESTAMP, String(Date.now()));
   } catch {}
-
   setTimeout(() => {
     window.location.href = REDIRECT_URL;
   }, REDIRECT_AFTER_LAST);
@@ -372,20 +263,14 @@ function skip() {
   if (state.isDone) return;
   state.isDone = true;
   clearTimer();
-
   try {
     localStorage.setItem(STORAGE_KEY_INTRO_SEEN, "1");
     localStorage.setItem(STORAGE_KEY_INTRO_TIMESTAMP, String(Date.now()));
   } catch {}
-
   setTimeout(() => {
     window.location.href = REDIRECT_URL;
   }, SKIP_REDIRECT_DELAY);
 }
-
-/* =========================================================
-   PAUSE / RESUME
-   ========================================================= */
 
 function pause() {
   state.isPaused = true;
@@ -398,10 +283,6 @@ function resume() {
   if (!state.timerId) scheduleNext();
 }
 
-/* =========================================================
-   LOADING SCREEN
-   ========================================================= */
-
 function hideLoading() {
   if (!els.loading) return;
   els.loading.style.opacity = "0";
@@ -410,19 +291,13 @@ function hideLoading() {
   }, 300);
 }
 
-/* =========================================================
-   EVENT WIRING
-   ========================================================= */
-
 function wireEvents() {
-  // Skip button
   els.skipBtn?.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
     skip();
   });
 
-  // Keyboard
   document.addEventListener("keydown", (e) => {
     if (state.isDone) return;
     if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
@@ -431,81 +306,48 @@ function wireEvents() {
     }
   });
 
-  // Tap anywhere to skip (once)
   document.addEventListener(
     "touchstart",
     (e) => {
       if (state.isDone) return;
       if (e.target.closest("button")) return;
-      state.lastUserInteraction = Date.now();
       skip();
     },
     { passive: true },
   );
 
-  // Click anywhere to skip (desktop)
   document.addEventListener("click", (e) => {
     if (state.isDone) return;
     if (e.target.closest("button")) return;
     skip();
   });
 
-  // Pause when tab hidden
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) pause();
     else resume();
   });
 
-  // Pause on window blur (another app opened)
   window.addEventListener("blur", pause);
   window.addEventListener("focus", resume);
-
-  // Handle page unload gracefully
-  window.addEventListener("beforeunload", () => {
-    clearTimer();
-  });
+  window.addEventListener("beforeunload", clearTimer);
 }
-
-/* =========================================================
-   START
-   ========================================================= */
 
 async function start() {
   if (state.hasStarted) return;
   state.hasStarted = true;
 
-  log.info("Intro starting");
-
-  // Check if user is already signed in
   const hasSession = await checkExistingSession();
   if (hasSession) return;
 
-  // Wait for the first image so the slideshow doesn't flash
   await preloadFirstImage();
-
-  // Build the DOM
   buildSlides();
   buildDots();
-
-  // Show the first slide
   showSlide(0);
   hideLoading();
-
-  // Begin autoplay
   scheduleNext();
-
-  // Preload the rest in the background
   preloadRemainingImages();
-
-  // Wire up events
   wireEvents();
-
-  log.info(`Intro running with ${SLIDES.length} slides`);
 }
-
-/* =========================================================
-   BOOT
-   ========================================================= */
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", start);

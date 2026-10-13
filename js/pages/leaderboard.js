@@ -1,5 +1,5 @@
 // js/pages/leaderboard.js
-// Leaderboard — premium redesign with podium + full list.
+// Leaderboard page controller.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -11,11 +11,13 @@ import { fetchLeaderboard, fetchMyRank } from "../features/leaderboard.js";
 import { initNav } from "../ui/nav.js";
 import { toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
-import { escapeHTML, firstName, initials, log } from "../core/utils.js";
-
-/* =========================================================
-   STATE
-   ========================================================= */
+import {
+  escapeHTML,
+  firstName,
+  initials,
+  log,
+  formatNumber,
+} from "../core/utils.js";
 
 const state = {
   user: null,
@@ -27,24 +29,17 @@ const state = {
   loading: false,
 };
 
-/* =========================================================
-   DOM REFS
-   ========================================================= */
-
 const els = {
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
   userMenuBtn: document.getElementById("userMenuBtn"),
-
   myRankCard: document.getElementById("myRankCard"),
   myRankAvatar: document.getElementById("myRankAvatar"),
   myRankName: document.getElementById("myRankName"),
   myRankValue: document.getElementById("myRankValue"),
   myRankScore: document.getElementById("myRankScore"),
-
   podiumSection: document.getElementById("podiumSection"),
   podiumInner: document.getElementById("podiumInner"),
-
   lbList: document.getElementById("lbList"),
   lbCount: document.getElementById("lbCount"),
 };
@@ -59,7 +54,6 @@ async function setupUser() {
     window.location.replace("login.html");
     return false;
   }
-
   state.user = user;
 
   const cached = getCachedUser();
@@ -87,18 +81,16 @@ async function setupUser() {
   } catch (e) {
     log.warn("Could not load user doc:", e);
   }
-
   return true;
 }
 
 /* =========================================================
-   LOAD LEADERBOARD
+   LOAD
    ========================================================= */
 
 async function loadLeaderboard() {
   if (state.loading) return;
   state.loading = true;
-
   renderLoading();
 
   try {
@@ -157,23 +149,16 @@ function renderError() {
   }
 }
 
-/* =========================================================
-   PODIUM — Top 3
-   ========================================================= */
-
 function renderPodium() {
   if (!els.podiumSection || !els.podiumInner) return;
 
   const top3 = state.entries.slice(0, 3);
-
   if (top3.length === 0) {
     els.podiumSection.classList.add("hidden");
     return;
   }
-
   els.podiumSection.classList.remove("hidden");
 
-  // Arrange visually: 2nd, 1st, 3rd
   const arrangement = [];
   if (top3[1]) arrangement.push({ ...top3[1], rank: 2 });
   if (top3[0]) arrangement.push({ ...top3[0], rank: 1 });
@@ -200,14 +185,10 @@ function renderPodium() {
     .join("");
 }
 
-/* =========================================================
-   FULL LIST — Ranks 4+
-   ========================================================= */
-
 function renderList() {
   if (!els.lbList) return;
 
-  const rest = state.entries.slice(3); // ranks 4+
+  const rest = state.entries.slice(3);
 
   if (rest.length === 0) {
     if (state.entries.length === 0) {
@@ -227,8 +208,9 @@ function renderList() {
         </div>
       `;
     }
-    if (els.lbCount)
+    if (els.lbCount) {
       els.lbCount.textContent = `${state.entries.length} learner${state.entries.length === 1 ? "" : "s"}`;
+    }
     return;
   }
 
@@ -269,10 +251,6 @@ function renderList() {
   }
 }
 
-/* =========================================================
-   MY RANK CARD
-   ========================================================= */
-
 function renderMyRank() {
   if (!els.myRankCard) return;
 
@@ -295,23 +273,13 @@ function renderMyRank() {
 
   if (els.myRankAvatar) els.myRankAvatar.textContent = initials(displayName);
   if (els.myRankName) els.myRankName.textContent = displayName;
-  if (els.myRankValue)
-    els.myRankValue.textContent = rank <= 3 ? `#${rank}` : `#${rank}`;
+  if (els.myRankValue) els.myRankValue.textContent = `#${rank}`;
   if (els.myRankScore)
     els.myRankScore.textContent = `${formatNumber(totalScore)} points`;
 }
 
 /* =========================================================
-   HELPERS
-   ========================================================= */
-
-function formatNumber(n) {
-  if (n === null || n === undefined) return "0";
-  return Number(n).toLocaleString();
-}
-
-/* =========================================================
-   TABS + CHIPS
+   TABS
    ========================================================= */
 
 function wireTimeframeTabs() {

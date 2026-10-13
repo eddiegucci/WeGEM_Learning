@@ -1,5 +1,5 @@
 // js/pages/admin.js
-// Controller for admin.html.
+// Admin panel controller.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -19,7 +19,6 @@ import {
 import {
   SEED_QUESTIONS,
   SEED_NOTES,
-  seedEverything,
   seedQuestions,
   seedNotes,
 } from "../data/seed.js";
@@ -35,10 +34,6 @@ import {
   debounce,
 } from "../core/utils.js";
 
-/* =========================================================
-   STATE
-   ========================================================= */
-
 const state = {
   user: null,
   userDoc: null,
@@ -48,26 +43,18 @@ const state = {
   seeding: false,
 };
 
-/* =========================================================
-   DOM REFS
-   ========================================================= */
-
 const els = {
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
   userMenuBtn: document.getElementById("userMenuBtn"),
-
   statQuestions: document.getElementById("statQuestions"),
   statNotes: document.getElementById("statNotes"),
   statUsers: document.getElementById("statUsers"),
   statLinks: document.getElementById("statLinks"),
-
   tabContent: document.getElementById("tabContent"),
   tabUsers: document.getElementById("tabUsers"),
   tabBulk: document.getElementById("tabBulk"),
   tabSeed: document.getElementById("tabSeed"),
-
-  // Add question
   addQuestionForm: document.getElementById("addQuestionForm"),
   toggleAddQuestion: document.getElementById("toggleAddQuestion"),
   qExam: document.getElementById("qExam"),
@@ -78,14 +65,10 @@ const els = {
   qExplain: document.getElementById("qExplain"),
   qError: document.getElementById("qError"),
   addQuestionBtn: document.getElementById("addQuestionBtn"),
-
   questionsList: document.getElementById("questionsList"),
   refreshQuestions: document.getElementById("refreshQuestions"),
-
   usersList: document.getElementById("usersList"),
   refreshUsers: document.getElementById("refreshUsers"),
-
-  // Bulk add
   bulkText: document.getElementById("bulkText"),
   bulkPreview: document.getElementById("bulkPreview"),
   bulkPreviewTitle: document.getElementById("bulkPreviewTitle"),
@@ -98,8 +81,6 @@ const els = {
   bulkClearBtn: document.getElementById("bulkClearBtn"),
   showBulkFormat: document.getElementById("showBulkFormat"),
   bulkFormat: document.getElementById("bulkFormat"),
-
-  // Seed
   seedAllBtn: document.getElementById("seedAllBtn"),
   seedQuestionsBtn: document.getElementById("seedQuestionsBtn"),
   seedNotesBtn: document.getElementById("seedNotesBtn"),
@@ -109,7 +90,7 @@ const els = {
 };
 
 /* =========================================================
-   SETUP — REQUIRES ADMIN ROLE
+   SETUP
    ========================================================= */
 
 async function setupUser() {
@@ -118,7 +99,6 @@ async function setupUser() {
     window.location.replace("login.html");
     return false;
   }
-
   state.user = user;
 
   const cached = getCachedUser();
@@ -127,7 +107,6 @@ async function setupUser() {
     user.displayName ||
     user.email?.split("@")[0] ||
     "Admin";
-
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
 
@@ -154,12 +133,11 @@ async function setupUser() {
     toastErr("Could not verify admin access.");
     return false;
   }
-
   return true;
 }
 
 /* =========================================================
-   TAB SWITCHING
+   TABS
    ========================================================= */
 
 function switchTab(tabId) {
@@ -208,12 +186,11 @@ async function loadStats() {
 }
 
 /* =========================================================
-   QUESTIONS LIST
+   QUESTIONS
    ========================================================= */
 
 async function loadQuestions() {
   if (!els.questionsList) return;
-
   els.questionsList.innerHTML = `<div class="spinner"></div>`;
 
   try {
@@ -279,7 +256,6 @@ async function handleDeleteQuestion(id) {
     cancelLabel: "Cancel",
     danger: true,
   });
-
   if (!ok) return;
 
   try {
@@ -294,7 +270,7 @@ async function handleDeleteQuestion(id) {
 }
 
 /* =========================================================
-   ADD QUESTION (single form)
+   ADD QUESTION
    ========================================================= */
 
 function showQuestionError(msg) {
@@ -389,7 +365,6 @@ async function loadUsers() {
       .map((u) => {
         const isAdmin = u.role === "admin";
         const isMe = u.uid === state.user.uid;
-
         return `
         <div style="padding: 14px 0; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: center;">
           <div class="user-avatar" style="width: 34px; height: 34px; font-size: 13px;">${initials(u.name || u.email || "?")}</div>
@@ -433,7 +408,6 @@ async function handleToggleAdmin(uid, currentRole) {
     okLabel: isAdmin ? "Demote" : "Promote",
     cancelLabel: "Cancel",
   });
-
   if (!ok) return;
 
   try {
@@ -448,7 +422,7 @@ async function handleToggleAdmin(uid, currentRole) {
 }
 
 /* =========================================================
-   BULK ADD — parse pasted text
+   BULK ADD
    ========================================================= */
 
 function parseBulkText(text) {
@@ -531,11 +505,7 @@ function parseBulkText(text) {
     if (blockErrors.length) {
       errors.push(`Question #${blockIdx + 1}: ${blockErrors.join(", ")}`);
     } else {
-      questions.push({
-        ...q,
-        totalMarks: q.markpoints.length,
-        type: "open",
-      });
+      questions.push({ ...q, totalMarks: q.markpoints.length, type: "open" });
     }
   });
 
@@ -553,7 +523,6 @@ function previewBulk() {
   }
 
   const { questions, errors } = parseBulkText(text);
-
   els.bulkPreview.classList.remove("hidden");
 
   if (errors.length) {
@@ -590,18 +559,11 @@ async function uploadBulk() {
   const text = els.bulkText.value.trim();
   const { questions, errors } = parseBulkText(text);
 
-  if (errors.length) {
-    toastErr("Fix the errors before uploading.");
-    return;
-  }
-  if (!questions.length) {
-    toastErr("Nothing to upload.");
-    return;
-  }
+  if (errors.length) return toastErr("Fix the errors before uploading.");
+  if (!questions.length) return toastErr("Nothing to upload.");
 
   els.bulkUploadBtn.disabled = true;
   els.bulkUploadBtn.textContent = "Uploading…";
-
   if (els.bulkProgress) els.bulkProgress.classList.remove("hidden");
 
   let success = 0;
@@ -612,9 +574,8 @@ async function uploadBulk() {
     const pct = Math.round(((i + 1) / questions.length) * 100);
 
     if (els.bulkBar) els.bulkBar.style.width = pct + "%";
-    if (els.bulkStatus) {
+    if (els.bulkStatus)
       els.bulkStatus.textContent = `Uploading ${i + 1} of ${questions.length}…`;
-    }
 
     try {
       await addQuestion({
@@ -637,7 +598,6 @@ async function uploadBulk() {
   if (els.bulkStatus) {
     els.bulkStatus.textContent = `Done. ${success} added, ${failed} failed.`;
   }
-
   toastOk(`✓ ${success} questions added${failed ? `, ${failed} failed` : ""}`);
 
   if (success > 0) {
@@ -659,12 +619,10 @@ async function uploadBulk() {
 function wireBulk() {
   els.bulkText?.addEventListener("input", debounce(previewBulk, 300));
   els.bulkUploadBtn?.addEventListener("click", uploadBulk);
-
   els.bulkClearBtn?.addEventListener("click", () => {
     if (els.bulkText) els.bulkText.value = "";
     previewBulk();
   });
-
   els.showBulkFormat?.addEventListener("click", () => {
     els.bulkFormat?.classList.toggle("hidden");
   });
@@ -684,7 +642,6 @@ function setSeedProgress(pct, message) {
 async function handleSeedQuestions() {
   if (state.seeding) return;
   state.seeding = true;
-
   setSeedProgress(10, `Seeding ${SEED_QUESTIONS.length} questions…`);
 
   try {
@@ -708,7 +665,6 @@ async function handleSeedQuestions() {
 async function handleSeedNotes() {
   if (state.seeding) return;
   state.seeding = true;
-
   setSeedProgress(10, `Seeding ${SEED_NOTES.length} notes…`);
 
   try {
@@ -737,7 +693,6 @@ async function handleSeedAll() {
     okLabel: "Seed Everything",
     cancelLabel: "Cancel",
   });
-
   if (!ok) return;
 
   state.seeding = true;
@@ -778,7 +733,6 @@ async function handleUserMenu() {
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (ok) {
     try {
       await signOutNow();
@@ -801,12 +755,10 @@ async function init() {
 
     initNav();
 
-    // Tab switching
     document.querySelectorAll(".admin-tabs .lb-tab").forEach((tab) => {
       tab.addEventListener("click", () => switchTab(tab.dataset.tab));
     });
 
-    // Content tab
     els.toggleAddQuestion?.addEventListener("click", () => {
       els.addQuestionForm?.classList.toggle("hidden");
     });
@@ -814,18 +766,14 @@ async function init() {
     els.refreshQuestions?.addEventListener("click", loadQuestions);
     els.refreshUsers?.addEventListener("click", loadUsers);
 
-    // Bulk add
     wireBulk();
 
-    // Seed tab
     els.seedAllBtn?.addEventListener("click", handleSeedAll);
     els.seedQuestionsBtn?.addEventListener("click", handleSeedQuestions);
     els.seedNotesBtn?.addEventListener("click", handleSeedNotes);
 
-    // User menu
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
 
-    // Initial load
     await loadStats();
     await loadQuestions();
 

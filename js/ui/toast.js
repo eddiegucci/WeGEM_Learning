@@ -1,12 +1,9 @@
 // js/ui/toast.js
-// Toast notifications for WeGEM Learning.
-
-/* =========================================================
-   TOAST CONTAINER
-   ========================================================= */
+// Toast notifications.
 
 let container = null;
-let activeToasts = new Set();
+const activeToasts = new Set();
+const MAX_TOASTS = 3;
 
 function ensureContainer() {
   if (container && document.body.contains(container)) return container;
@@ -27,17 +24,19 @@ function ensureContainer() {
     width: calc(100vw - 40px);
     max-width: 500px;
   `;
-
   document.body.appendChild(container);
   return container;
 }
 
-/* =========================================================
-   SHOW TOAST
-   ========================================================= */
-
 export function toast(message, kind = "info", duration = 2600) {
   const root = ensureContainer();
+
+  // Cap stack — remove oldest if over limit.
+  if (activeToasts.size >= MAX_TOASTS) {
+    const oldest = activeToasts.values().next().value;
+    if (oldest && oldest.parentNode) oldest.remove();
+    activeToasts.delete(oldest);
+  }
 
   const el = document.createElement("div");
   el.className = `toast toast-${kind}`;
@@ -99,18 +98,10 @@ export function toast(message, kind = "info", duration = 2600) {
   return remove;
 }
 
-/* =========================================================
-   SHORTCUTS
-   ========================================================= */
-
 export const toastOk = (msg, d) => toast(msg, "ok", d);
 export const toastErr = (msg, d) => toast(msg, "err", d);
 export const toastInfo = (msg, d) => toast(msg, "info", d);
 export const toastWarn = (msg, d) => toast(msg, "warn", d);
-
-/* =========================================================
-   CLEAR
-   ========================================================= */
 
 export function clearToasts() {
   activeToasts.forEach((el) => el.remove());

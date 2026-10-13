@@ -10,22 +10,34 @@
   <title>Admin — WeGEM Learning</title>
 
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="css/main.css">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/mobile.css">
+
   <script src="js/core/wallpaper-init.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+      });
+    }
+  </script>
 </head>
 <body>
 
-<!-- ==================== TOP NAV ==================== -->
 <nav class="top-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
-      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
-            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
       <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
-      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
-      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
     </svg>
     <span>WeGEM Admin</span>
   </a>
@@ -49,8 +61,7 @@
     <p class="page-sub">Manage content, users, and the app.</p>
   </section>
 
-  <!-- Stats overview -->
-  <section id="statsOverview" class="stats-grid-4" style="margin-bottom: 24px;">
+  <section id="statsOverview" class="stats-grid-4" style="margin-bottom: var(--sp-5);">
     <div class="stat-tile st-fire">
       <div class="st-icon">📝</div>
       <div class="st-value" id="statQuestions">—</div>
@@ -77,7 +88,6 @@
     </div>
   </section>
 
-  <!-- Tabs -->
   <div class="admin-tabs">
     <button class="lb-tab active" data-tab="content" type="button">📚 Content</button>
     <button class="lb-tab" data-tab="users" type="button">👥 Users</button>
@@ -85,9 +95,8 @@
     <button class="lb-tab" data-tab="seed" type="button">🌱 Seed</button>
   </div>
 
-  <!-- ============ CONTENT TAB ============ -->
   <section id="tabContent" class="admin-tab-panel">
-    <div class="panel" style="margin-bottom: 20px;">
+    <div class="panel" style="margin-bottom: var(--sp-5);">
       <div class="panel-head-inline">
         <div class="panel-title-lg">➕ Add Question</div>
         <button class="link-sm" id="toggleAddQuestion" type="button">Show / Hide</button>
@@ -142,26 +151,24 @@
         <div class="panel-title-lg">📋 Recent Questions</div>
         <button class="link-sm" id="refreshQuestions" type="button">Refresh</button>
       </div>
-      <div id="questionsList" class="loading-wrap" style="padding: 20px;">
+      <div id="questionsList" class="loading-wrap" style="padding: var(--sp-5);">
         <div class="spinner"></div>
       </div>
     </div>
   </section>
 
-  <!-- ============ USERS TAB ============ -->
   <section id="tabUsers" class="admin-tab-panel hidden">
     <div class="panel">
       <div class="panel-head-inline">
         <div class="panel-title-lg">👥 Users</div>
         <button class="link-sm" id="refreshUsers" type="button">Refresh</button>
       </div>
-      <div id="usersList" class="loading-wrap" style="padding: 20px;">
+      <div id="usersList" class="loading-wrap" style="padding: var(--sp-5);">
         <div class="spinner"></div>
       </div>
     </div>
   </section>
 
-  <!-- ============ BULK ADD TAB ============ -->
   <section id="tabBulk" class="admin-tab-panel hidden">
     <div class="panel">
       <div class="panel-head-inline">
@@ -202,7 +209,7 @@ Rules:
 </pre>
       </div>
 
-      <label class="field" style="margin-top: 16px;">
+      <label class="field" style="margin-top: var(--sp-4);">
         <span>Paste questions here</span>
         <textarea id="bulkText" rows="14" placeholder="EXAM: KCSE&#10;SUBJECT: Biology&#10;TOPIC: Cell Structure&#10;QUESTION: State three functions of the cell membrane.&#10;MARKPOINT: Controls what enters and leaves the cell&#10;MARKPOINT: Selectively permeable&#10;MARKPOINT: Protects the cell contents&#10;EXPLAIN: The cell membrane is the selectively permeable boundary of the cell.&#10;---"></textarea>
       </label>
@@ -216,16 +223,14 @@ Rules:
 
       <div id="bulkError" class="alert alert-error hidden"></div>
 
-      <div id="bulkProgress" class="hidden" style="margin-top: 16px;">
-        <div class="progress-bar">
-          <div class="progress-fill" id="bulkBar" style="width: 0%;"></div>
+      <div id="bulkProgress" class="hidden" style="margin-top: var(--sp-4);">
+        <div class="glass-progress-bar">
+          <div class="glass-progress-fill" id="bulkBar" style="width: 0%;"></div>
         </div>
-        <p style="font-size: 12.5px; color: var(--text-mute); margin-top: 8px; text-align: center;" id="bulkStatus">
-          Ready
-        </p>
+        <p style="font-size: var(--text-sm); color: var(--text-mute); margin-top: var(--sp-2); text-align: center;" id="bulkStatus">Ready</p>
       </div>
 
-      <div class="tray-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+      <div class="tray-actions" style="margin-top: var(--sp-5); padding-top: var(--sp-5); border-top: 1px solid var(--border);">
         <button class="btn btn-ghost" id="bulkClearBtn" type="button">Clear</button>
         <button class="btn btn-primary" id="bulkUploadBtn" type="button" disabled>
           Add All to Firestore →
@@ -234,35 +239,32 @@ Rules:
     </div>
   </section>
 
-  <!-- ============ SEED TAB ============ -->
   <section id="tabSeed" class="admin-tab-panel hidden">
     <div class="panel">
       <div class="panel-head-inline">
         <div class="panel-title-lg">🌱 Seed Starter Content</div>
       </div>
-      <p style="color: var(--text-dim); font-size: 13.5px; line-height: 1.6; margin-bottom: 20px;">
+      <p style="color: var(--text-dim); font-size: var(--text-sm); line-height: 1.6; margin-bottom: var(--sp-5);">
         Adds the built-in starter questions and notes to Firestore.
         Safe to run again, but duplicates may occur.
       </p>
 
-      <div class="alert alert-warn" style="margin-bottom: 16px;">
+      <div class="alert alert-warn" style="margin-bottom: var(--sp-4);">
         ⚠️ Only run on a fresh database, or when you want to add more sample content.
       </div>
 
-      <div id="seedProgress" class="hidden" style="margin-bottom: 16px;">
-        <div class="progress-bar">
-          <div class="progress-fill" id="seedBar" style="width: 0%;"></div>
+      <div id="seedProgress" class="hidden" style="margin-bottom: var(--sp-4);">
+        <div class="glass-progress-bar">
+          <div class="glass-progress-fill" id="seedBar" style="width: 0%;"></div>
         </div>
-        <p style="font-size: 12.5px; color: var(--text-mute); margin-top: 8px; text-align: center;" id="seedStatus">
-          Preparing…
-        </p>
+        <p style="font-size: var(--text-sm); color: var(--text-mute); margin-top: var(--sp-2); text-align: center;" id="seedStatus">Preparing…</p>
       </div>
 
-      <button class="btn btn-primary" id="seedAllBtn" type="button" style="width: 100%; margin-bottom: 10px;">
+      <button class="btn btn-primary" id="seedAllBtn" type="button" style="width: 100%; margin-bottom: var(--sp-2);">
         🌱 Seed Everything
       </button>
 
-      <button class="btn btn-ghost" id="seedQuestionsBtn" type="button" style="width: 100%; margin-bottom: 10px;">
+      <button class="btn btn-ghost" id="seedQuestionsBtn" type="button" style="width: 100%; margin-bottom: var(--sp-2);">
         📝 Seed Questions Only
       </button>
 

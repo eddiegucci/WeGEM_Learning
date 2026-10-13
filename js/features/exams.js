@@ -1,38 +1,41 @@
 // js/features/exams.js
-// Exams feature logic for WeGEM Learning.
+// Exam links feature.
 
 import { addExamLink, getExamLinks, deleteExamLink } from "../core/db.js";
 import { put, remove, getAllByIndex, STORES } from "../core/cache.js";
 import { log, isOnline, isValidURL } from "../core/utils.js";
 
 /* =========================================================
-   FETCH EXAM LINKS
+   FETCH
    ========================================================= */
 
 export async function fetchExamLinks() {
-  let links = [];
+  let cached = [];
 
   try {
-    const cached = await getAllByIndex(STORES.CONTENT, "type", "examLink");
-    links = cached || [];
+    cached = (await getAllByIndex(STORES.CONTENT, "type", "examLink")) || [];
   } catch (e) {
-    log.warn("Could not read cached exam links:", e);
+    log.warn("Cache read failed for exam links:", e);
   }
 
-  if (isOnline()) {
-    try {
-      const fresh = await getExamLinks();
-      if (fresh.length) {
-        await Promise.all(
-          fresh.map((l) => put(STORES.CONTENT, { ...l, type: "examLink" })),
-        );
-        links = fresh;
-      }
-    } catch (e) {
-      log.warn("Could not fetch exam links:", e);
+  if (!isOnline()) return sortByDate(cached);
+
+  try {
+    const fresh = await getExamLinks();
+    // Always refresh — even if empty (fixes stale cache).
+    if (fresh.length) {
+      await Promise.all(
+        fresh.map((l) => put(STORES.CONTENT, { ...l, type: "examLink" })),
+      );
     }
+    return sortByDate(fresh);
+  } catch (e) {
+    log.warn("Cloud fetch failed, using cache:", e);
+    return sortByDate(cached);
   }
+}
 
+function sortByDate(links) {
   return links.sort((a, b) => {
     const at = new Date(a.createdAt || 0).getTime();
     const bt = new Date(b.createdAt || 0).getTime();
@@ -41,7 +44,7 @@ export async function fetchExamLinks() {
 }
 
 /* =========================================================
-   FILTER LINKS
+   FILTER
    ========================================================= */
 
 export function filterExamLinks(links, { type = "all", query = "" } = {}) {
@@ -64,7 +67,7 @@ export function filterExamLinks(links, { type = "all", query = "" } = {}) {
 }
 
 /* =========================================================
-   CREATE EXAM LINK
+   CREATE
    ========================================================= */
 
 export async function createExamLink(link) {
@@ -90,18 +93,18 @@ export async function createExamLink(link) {
     try {
       cloudId = await addExamLink(prepared);
     } catch (e) {
-      log.warn("Could not save link to cloud:", e);
+      log.warn("Cloud save failed for exam link:", e);
     }
   }
 
   const id = cloudId || "link_" + Date.now();
-  const stored = { ...prepared, id };
+  const stored = { ...prepared, id, pending: !cloudId };
   await put(STORES.CONTENT, { ...stored, type: "examLink" });
   return stored;
 }
 
 /* =========================================================
-   DELETE EXAM LINK
+   DELETE
    ========================================================= */
 
 export async function removeExamLink(linkId) {
@@ -113,13 +116,13 @@ export async function removeExamLink(linkId) {
     await remove(STORES.CONTENT, linkId);
     return true;
   } catch (e) {
-    log.warn("Could not delete link:", e);
+    log.warn("Delete failed:", e);
     return false;
   }
 }
 
 /* =========================================================
-   TYPE METADATA
+   TYPE META
    ========================================================= */
 
 export const LINK_TYPES = {

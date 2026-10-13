@@ -10,22 +10,33 @@
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
-  <link rel="stylesheet" href="css/main.css">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/mobile.css">
+
   <script src="js/core/wallpaper-init.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+      });
+    }
+  </script>
 </head>
 <body>
 
-<!-- ==================== TOP NAV ==================== -->
 <nav class="top-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
-      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
-            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
       <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
-      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
-      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
     </svg>
     <span>WeGEM Learning</span>
   </a>
@@ -50,7 +61,6 @@
 
 <main class="container">
 
-  <!-- ============ HERO ============ -->
   <section class="hero-banner">
     <div class="hero-globe" aria-hidden="true"></div>
     <div class="hero-content">
@@ -95,7 +105,6 @@
     </div>
   </section>
 
-  <!-- ============ ROW 2 ============ -->
   <section class="row-2">
     <div class="action-cards">
       <a href="notes.html" class="action-card ac-blue">
@@ -127,7 +136,7 @@
         </div>
       </div>
       <div id="reviseList" class="revise-list">
-        <div class="loading-wrap" style="padding: 20px;">
+        <div class="loading-wrap" style="padding: var(--sp-5);">
           <div class="spinner"></div>
         </div>
       </div>
@@ -135,7 +144,6 @@
     </aside>
   </section>
 
-  <!-- ============ ROW 3 ============ -->
   <section class="row-3">
     <div class="panel subject-panel">
       <div class="panel-head-inline">
@@ -143,7 +151,7 @@
         <div class="pill-tag">Overall Average <span id="overallAvg">0%</span></div>
       </div>
       <div id="subjectList" class="subject-list">
-        <div class="loading-wrap" style="padding: 20px;">
+        <div class="loading-wrap" style="padding: var(--sp-5);">
           <div class="spinner"></div>
         </div>
       </div>
@@ -154,14 +162,7 @@
         <div class="panel-title-lg">📈 Your Progress</div>
         <div class="panel-sub-sm">Last 7 days</div>
         <div class="chart-wrap">
-          <svg viewBox="0 0 300 120" class="chart-svg" preserveAspectRatio="none" id="miniChart">
-            <defs>
-              <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.35"/>
-                <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-          </svg>
+          <svg viewBox="0 0 300 120" class="chart-svg" preserveAspectRatio="none" id="miniChart"></svg>
           <div class="chart-xaxis" id="chartXAxis"></div>
           <div class="chart-total">
             <div class="ct-label">Total Score</div>
@@ -177,14 +178,14 @@
           <a href="progress.html" class="link-sm">View all →</a>
         </div>
         <div id="activityList" class="activity-list">
-          <div class="loading-wrap" style="padding: 20px;">
+          <div class="loading-wrap" style="padding: var(--sp-5);">
             <div class="spinner"></div>
           </div>
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-title-lg" style="margin-bottom: 16px;">🔗 Quick Links</div>
+        <div class="panel-title-lg" style="margin-bottom: var(--sp-4);">🔗 Quick Links</div>
         <div class="quicklinks">
           <a href="notes.html" class="ql">
             <span class="ql-icon">📖</span>
@@ -211,7 +212,6 @@
     </div>
   </section>
 
-  <!-- ============ FOOTER ============ -->
   <footer class="app-footer">
     <div class="footer-left">
       <span class="footer-bulb">💡</span>

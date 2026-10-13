@@ -1,5 +1,5 @@
 // js/pages/quiz.js
-// Typed-answer quiz engine with beautiful UX and full subject list.
+// Quiz page controller. Typed-answer engine with real Firestore sync.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc, saveAttempt, updateLeaderboardEntry } from "../core/db.js";
@@ -9,6 +9,7 @@ import {
   cacheAttempt,
 } from "../core/cache.js";
 import {
+  loadQuizzes,
   getQuizzesForUser,
   getAllSubjectsForUser,
   getSets,
@@ -22,11 +23,8 @@ import {
   initials,
   log,
   isOnline,
+  formatDuration,
 } from "../core/utils.js";
-
-/* =========================================================
-   STATE
-   ========================================================= */
 
 const state = {
   user: null,
@@ -45,17 +43,13 @@ const state = {
   timerId: null,
   started: false,
   submitted: false,
+  result: null,
 };
-
-/* =========================================================
-   DOM REFS
-   ========================================================= */
 
 const els = {
   setupScreen: document.getElementById("setupScreen"),
   quizScreen: document.getElementById("quizScreen"),
   resultsScreen: document.getElementById("resultsScreen"),
-
   subjectSelect: document.getElementById("subjectSelect"),
   setSelect: document.getElementById("setSelect"),
   setSelectWrap: document.getElementById("setSelectWrap"),
@@ -66,7 +60,6 @@ const els = {
   setupError: document.getElementById("setupError"),
   comingSoon: document.getElementById("comingSoon"),
   startBtn: document.getElementById("startBtn"),
-
   quizMeta: document.getElementById("quizMeta"),
   quizCounter: document.getElementById("quizCounter"),
   quizTimer: document.getElementById("quizTimer"),
@@ -78,7 +71,6 @@ const els = {
   quitBtn: document.getElementById("quitBtn"),
   prevBtn: document.getElementById("prevBtn"),
   nextBtn: document.getElementById("nextBtn"),
-
   resultsTitle: document.getElementById("resultsTitle"),
   finalScore: document.getElementById("finalScore"),
   finalDetail: document.getElementById("finalDetail"),
@@ -90,15 +82,10 @@ const els = {
   reviewSection: document.getElementById("reviewSection"),
   reviewList: document.getElementById("reviewList"),
   retryBtn: document.getElementById("retryBtn"),
-
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
   userMenuBtn: document.getElementById("userMenuBtn"),
 };
-
-/* =========================================================
-   USER
-   ========================================================= */
 
 async function setupUser() {
   const user = await waitForAuth();
@@ -106,7 +93,6 @@ async function setupUser() {
     window.location.replace("login.html");
     return false;
   }
-
   state.user = user;
 
   const cached = getCachedUser();
@@ -115,7 +101,6 @@ async function setupUser() {
     user.displayName ||
     user.email?.split("@")[0] ||
     "Student";
-
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
 
@@ -126,37 +111,26 @@ async function setupUser() {
       if (doc) await cacheUser(doc);
     }
     state.userDoc = doc;
-
     if (doc?.name) {
       if (els.userAvatar) els.userAvatar.textContent = initials(doc.name);
       if (els.userNameTop) els.userNameTop.textContent = firstName(doc.name);
     }
-
     state.curriculum = doc?.curriculum || "";
     state.level = doc?.level || "";
   } catch (e) {
     log.warn("Could not load user doc:", e);
   }
-
   return true;
 }
 
-/* =========================================================
-   LOAD DATA
-   ========================================================= */
-
-function loadAll() {
+async function loadAll() {
+  await loadQuizzes(state.curriculum, state.level);
   state.allSubjects = getAllSubjectsForUser(state.curriculum, state.level);
   state.availableQuizzes = getQuizzesForUser(state.curriculum, state.level);
-
   log.info(
-    `Loaded ${state.allSubjects.length} subjects, ${state.availableQuizzes.length} published quizzes`,
+    `Loaded ${state.allSubjects.length} subjects, ${state.availableQuizzes.length} quizzes`,
   );
 }
-
-/* =========================================================
-   POPULATE SUBJECT DROPDOWN
-   ========================================================= */
 
 function populateSubjects() {
   if (!els.subjectSelect) return;
@@ -169,11 +143,9 @@ function populateSubjects() {
     return;
   }
 
-  // Build a list: subjects with quizzes first, then empty ones
   const subjectsWithQuiz = new Set(
     state.availableQuizzes.map((q) => q.subject),
   );
-
   const sorted = [...state.allSubjects].sort((a, b) => {
     const aHas = subjectsWithQuiz.has(a);
     const bHas = subjectsWithQuiz.has(b);
@@ -194,17 +166,12 @@ function populateSubjects() {
   populateSets();
 }
 
-/* =========================================================
-   POPULATE SETS
-   ========================================================= */
-
 function populateSets() {
   if (!els.setSelect) return;
 
   const sets = getSets(state.availableQuizzes, state.subject);
 
   if (!sets.length) {
-    // No published quiz for this subject
     if (els.setSelectWrap) els.setSelectWrap.classList.add("hidden");
     els.quizPreviewInfo?.classList.add("hidden");
     els.comingSoon?.classList.remove("hidden");
@@ -227,13 +194,8 @@ function populateSets() {
   updatePreview();
 }
 
-/* =========================================================
-   PREVIEW
-   ========================================================= */
-
 function updatePreview() {
   const quiz = getMatchingQuiz();
-
   if (!quiz) {
     els.quizPreviewInfo?.classList.add("hidden");
     els.startBtn.disabled = true;
@@ -248,7 +210,6 @@ function updatePreview() {
     const mins = Math.round((quiz.duration || 1800) / 60);
     els.qpiTime.textContent = `${mins} min`;
   }
-
   els.startBtn.disabled = false;
 }
 
@@ -257,14 +218,9 @@ function getMatchingQuiz() {
   return sets.find((q) => q.title === state.quizId);
 }
 
-/* =========================================================
-   START QUIZ
-   ========================================================= */
-
 function handleStart() {
   const quiz = getMatchingQuiz();
-  if (!quiz) return;
-  if (!quiz.questions?.length) return;
+  if (!quiz || !quiz.questions?.length) return;
 
   state.quiz = quiz;
   state.answers = new Array(quiz.questions.length).fill("");
@@ -278,10 +234,6 @@ function handleStart() {
   renderQuestion();
   startTimer();
 }
-
-/* =========================================================
-   SCREENS
-   ========================================================= */
 
 function showSetupScreen() {
   els.setupScreen?.classList.remove("hidden");
@@ -304,29 +256,21 @@ function showResultsScreen() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-/* =========================================================
-   RENDER QUESTION
-   ========================================================= */
-
 function renderQuestion() {
   const { quiz, currentIndex, answers } = state;
   if (!quiz) return;
   const q = quiz.questions[currentIndex];
 
   if (els.quizMeta) els.quizMeta.textContent = `${quiz.exam} · ${quiz.subject}`;
-  if (els.quizCounter) {
+  if (els.quizCounter)
     els.quizCounter.textContent = `Question ${currentIndex + 1} of ${quiz.questions.length}`;
-  }
-  if (els.quizProgress) {
+  if (els.quizProgress)
     els.quizProgress.style.width = `${((currentIndex + 1) / quiz.questions.length) * 100}%`;
-  }
-
   if (els.questionTopic)
     els.questionTopic.textContent = (q.topic || quiz.subject).toUpperCase();
   if (els.questionText) els.questionText.textContent = q.q;
-  if (els.questionMarks) {
+  if (els.questionMarks)
     els.questionMarks.textContent = `${q.marks} mark${q.marks === 1 ? "" : "s"}`;
-  }
 
   if (els.answerBox) {
     els.answerBox.value = answers[currentIndex] || "";
@@ -339,10 +283,6 @@ function renderQuestion() {
       currentIndex === quiz.questions.length - 1 ? "Submit Quiz" : "Next →";
   }
 }
-
-/* =========================================================
-   NAV
-   ========================================================= */
 
 function saveCurrentAnswer() {
   if (!els.answerBox) return;
@@ -359,7 +299,6 @@ function handlePrev() {
 async function handleNext() {
   const { quiz, currentIndex } = state;
   if (!quiz) return;
-
   saveCurrentAnswer();
 
   if (currentIndex === quiz.questions.length - 1) {
@@ -375,10 +314,6 @@ async function handleNext() {
     renderQuestion();
   }
 }
-
-/* =========================================================
-   TIMER
-   ========================================================= */
 
 function startTimer() {
   clearTimer();
@@ -409,15 +344,10 @@ function updateTimerDisplay() {
   if (valueEl) {
     valueEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
-
   els.quizTimer.classList.remove("warn", "danger");
   if (state.remaining <= 60) els.quizTimer.classList.add("danger");
   else if (state.remaining <= 180) els.quizTimer.classList.add("warn");
 }
-
-/* =========================================================
-   SUBMIT
-   ========================================================= */
 
 async function submitQuiz(timeUp = false) {
   if (state.submitted) return;
@@ -431,19 +361,15 @@ async function submitQuiz(timeUp = false) {
   const timeUsed = state.totalTime - Math.max(0, state.remaining);
 
   const attempt = {
+    uid: state.user.uid,
     exam: quiz.exam,
     subject: quiz.subject,
-    grade: quiz.grade,
-    class: quiz.class,
-    curriculum: quiz.curriculum,
-    quizTitle: quiz.title,
     correct: result.scored,
     total: result.totalMarks,
     score: result.percentage,
     duration: timeUsed,
     topicResults: result.topicResults,
     mode: "typed",
-    answers: state.answers,
   };
 
   let savedToCloud = false;
@@ -471,18 +397,16 @@ async function submitQuiz(timeUp = false) {
       ...attempt,
       id: "local_" + Date.now(),
       createdAt: new Date().toISOString(),
+      pending: !savedToCloud,
     });
   } catch (e) {
     log.warn("Cache failed:", e);
   }
 
+  state.result = { ...result, timeUp, savedToCloud };
   renderResults(result, timeUp, savedToCloud);
   showResultsScreen();
 }
-
-/* =========================================================
-   SCORING
-   ========================================================= */
 
 function scoreQuiz(quiz, answers) {
   let scored = 0;
@@ -536,7 +460,6 @@ function scoreQuiz(quiz, answers) {
     (q.markpoints || []).forEach((mp, j) => {
       const mpText = typeof mp === "string" ? mp : mp.text;
       const mpMarks = typeof mp === "string" ? 1 : mp.marks || 1;
-
       if (markpointMatches(normalized, mpText, STOP_WORDS)) {
         matched.push(j);
         qScore += mpMarks;
@@ -589,14 +512,9 @@ function markpointMatches(normalizedAnswer, markpointText, stopWords) {
   for (const word of words) {
     if (normalizedAnswer.includes(word)) hits += 1;
   }
-
   const threshold = Math.max(1, Math.ceil(words.length * 0.6));
   return hits >= threshold;
 }
-
-/* =========================================================
-   RESULTS
-   ========================================================= */
 
 function renderResults(result, timeUp, savedToCloud) {
   const pct = result.percentage;
@@ -610,36 +528,26 @@ function renderResults(result, timeUp, savedToCloud) {
   }
 
   if (els.finalScore) els.finalScore.textContent = pct + "%";
-  if (els.finalDetail) {
+  if (els.finalDetail)
     els.finalDetail.textContent = `${result.scored} / ${result.totalMarks} marks`;
-  }
-
   if (els.statMarks)
     els.statMarks.textContent = `${result.scored}/${result.totalMarks}`;
   if (els.statQuestions)
     els.statQuestions.textContent = state.quiz.questions.length;
   if (els.statTime) {
     const used = state.totalTime - Math.max(0, state.remaining);
-    const m = Math.floor(used / 60);
-    const s = used % 60;
-    els.statTime.textContent = `${m}:${String(s).padStart(2, "0")}`;
+    els.statTime.textContent = formatDuration(used);
   }
 
   if (els.syncStatus) {
     els.syncStatus.innerHTML = savedToCloud
       ? '<span class="sync-ok">✓ Saved to your account</span>'
-      : '<span class="sync-warn">Saved locally</span>';
+      : '<span class="sync-warn">Saved locally — will sync when online</span>';
   }
-
-  window._quizResult = result;
 }
 
-/* =========================================================
-   REVIEW
-   ========================================================= */
-
 function renderReview() {
-  const result = window._quizResult;
+  const result = state.result;
   if (!result || !els.reviewList) return;
 
   els.reviewSection?.classList.remove("hidden");
@@ -684,10 +592,6 @@ function renderReview() {
   els.reviewBtn?.classList.add("hidden");
 }
 
-/* =========================================================
-   RETRY / QUIT / MENU
-   ========================================================= */
-
 function handleRetry() {
   clearTimer();
   state.quiz = null;
@@ -695,6 +599,7 @@ function handleRetry() {
   state.currentIndex = 0;
   state.submitted = false;
   state.started = false;
+  state.result = null;
   els.reviewSection?.classList.add("hidden");
   els.reviewBtn?.classList.remove("hidden");
   showSetupScreen();
@@ -724,7 +629,6 @@ async function handleUserMenu() {
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (ok) {
     try {
       await signOutNow();
@@ -736,17 +640,13 @@ async function handleUserMenu() {
   }
 }
 
-/* =========================================================
-   INIT
-   ========================================================= */
-
 async function init() {
   try {
     const ready = await setupUser();
     if (!ready) return;
 
     initNav();
-    loadAll();
+    await loadAll();
     populateSubjects();
 
     els.subjectSelect?.addEventListener("change", () => {
@@ -765,8 +665,6 @@ async function init() {
     els.reviewBtn?.addEventListener("click", renderReview);
     els.retryBtn?.addEventListener("click", handleRetry);
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
-
-    log.info(`Quiz page ready`);
   } catch (e) {
     log.error("Quiz init failed:", e);
     toastErr("Could not load quiz.");

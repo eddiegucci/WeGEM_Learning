@@ -1,5 +1,5 @@
 // js/ui/tray.js
-// Bottom tray component for WeGEM Learning.
+// Bottom tray component (kept for future use, currently unused).
 
 /* =========================================================
    CREATE TRAY
@@ -12,7 +12,6 @@ export function createTray({
   bodyHTML = "",
   actions = [],
 } = {}) {
-  // Remove any existing tray
   closeTray();
 
   const backdrop = document.createElement("div");
@@ -24,71 +23,92 @@ export function createTray({
   tray.id = "wegemTray";
   tray.setAttribute("aria-hidden", "true");
 
-  const headerHTML = `
-    <div class="tray-header">
-      <div>
-        ${badge ? `<div class="tray-badge">${badge}</div>` : ""}
-        <h2 class="tray-title">${title}</h2>
-        ${subtitle ? `<p class="tray-sub">${subtitle}</p>` : ""}
-      </div>
-      <button class="tray-close" id="wegemTrayClose" type="button" aria-label="Close">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M6 6 L18 18 M18 6 L6 18"/>
-        </svg>
-      </button>
-    </div>
-  `;
+  // Header (safer DOM construction)
+  const handle = document.createElement("div");
+  handle.className = "tray-handle";
 
-  const actionsHTML = actions.length
-    ? `<div class="tray-actions">
-        ${actions
-          .map(
-            (a, i) => `
-          <button type="button" class="btn ${a.variant === "primary" ? "btn-primary" : "btn-ghost"}" data-tray-action="${i}">
-            ${a.label}
-          </button>
-        `,
-          )
-          .join("")}
-      </div>`
-    : "";
+  const header = document.createElement("div");
+  header.className = "tray-header";
 
-  tray.innerHTML = `
-    <div class="tray-handle"></div>
-    ${headerHTML}
-    <div class="tray-body" id="wegemTrayBody">
-      ${bodyHTML}
-      ${actionsHTML}
-    </div>
-  `;
+  const headerLeft = document.createElement("div");
+
+  if (badge) {
+    const badgeEl = document.createElement("div");
+    badgeEl.className = "tray-badge";
+    badgeEl.textContent = badge;
+    headerLeft.appendChild(badgeEl);
+  }
+
+  const titleEl = document.createElement("h2");
+  titleEl.className = "tray-title";
+  titleEl.textContent = title;
+  headerLeft.appendChild(titleEl);
+
+  if (subtitle) {
+    const subEl = document.createElement("p");
+    subEl.className = "tray-sub";
+    subEl.textContent = subtitle;
+    headerLeft.appendChild(subEl);
+  }
+
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "tray-close";
+  closeBtn.id = "wegemTrayClose";
+  closeBtn.type = "button";
+  closeBtn.setAttribute("aria-label", "Close");
+  closeBtn.innerHTML =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>';
+
+  header.appendChild(headerLeft);
+  header.appendChild(closeBtn);
+
+  // Body
+  const body = document.createElement("div");
+  body.className = "tray-body";
+  body.id = "wegemTrayBody";
+  body.innerHTML = bodyHTML;
+
+  // Actions
+  if (actions.length) {
+    const actionsEl = document.createElement("div");
+    actionsEl.className = "tray-actions";
+
+    actions.forEach((a, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `btn ${a.variant === "primary" ? "btn-primary" : "btn-ghost"}`;
+      btn.dataset.trayAction = String(i);
+      btn.textContent = a.label;
+      btn.addEventListener("click", async () => {
+        try {
+          const result = a.onClick ? await a.onClick() : true;
+          if (result !== false) closeTray();
+        } catch (e) {
+          console.error(e);
+        }
+      });
+      actionsEl.appendChild(btn);
+    });
+
+    body.appendChild(actionsEl);
+  }
+
+  tray.appendChild(handle);
+  tray.appendChild(header);
+  tray.appendChild(body);
 
   document.body.appendChild(backdrop);
   document.body.appendChild(tray);
 
-  // Wire up
-  document
-    .getElementById("wegemTrayClose")
-    ?.addEventListener("click", closeTray);
+  closeBtn.addEventListener("click", closeTray);
   backdrop.addEventListener("click", closeTray);
 
-  actions.forEach((action, i) => {
-    const btn = tray.querySelector(`[data-tray-action="${i}"]`);
-    if (btn) {
-      btn.addEventListener("click", async () => {
-        const result = action.onClick ? await action.onClick() : true;
-        if (result !== false) closeTray();
-      });
-    }
-  });
-
-  // Animate in
   requestAnimationFrame(() => {
     backdrop.classList.add("open");
     tray.classList.add("open");
     tray.setAttribute("aria-hidden", "false");
   });
 
-  // ESC closes
   const escHandler = (e) => {
     if (e.key === "Escape") {
       closeTray();
@@ -97,7 +117,6 @@ export function createTray({
   };
   document.addEventListener("keydown", escHandler);
 
-  // Focus first input
   setTimeout(() => {
     const input = tray.querySelector("input, textarea, select");
     input?.focus();
@@ -105,10 +124,6 @@ export function createTray({
 
   return tray;
 }
-
-/* =========================================================
-   CLOSE
-   ========================================================= */
 
 export function closeTray() {
   const tray = document.getElementById("wegemTray");
@@ -124,10 +139,6 @@ export function closeTray() {
     backdrop.remove();
   }, 300);
 }
-
-/* =========================================================
-   GET VALUE HELPER
-   ========================================================= */
 
 export function trayValue(id) {
   const el = document.getElementById(id);

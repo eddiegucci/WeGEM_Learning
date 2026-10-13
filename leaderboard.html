@@ -9,22 +9,34 @@
   <title>Leaderboard — WeGEM Learning</title>
 
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/glass.css">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/mobile.css">
+
   <script src="js/core/wallpaper-init.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+      });
+    }
+  </script>
 </head>
 <body class="glass-body">
 
 <nav class="top-nav glass-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
-      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
-            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
       <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
-      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
-      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
     </svg>
     <span>WeGEM Learning</span>
   </a>
@@ -49,17 +61,13 @@
 
 <main class="container">
 
-  <!-- HERO -->
   <section class="lb-hero">
     <div class="lb-hero-glow"></div>
     <div class="glass-badge">📊 National Rankings</div>
     <h1 class="glass-title">Top <span>learners</span></h1>
-    <p class="glass-sub">
-      Ranked by total points earned across all quizzes and competitions.
-    </p>
+    <p class="glass-sub">Ranked by total points earned across all quizzes and competitions.</p>
   </section>
 
-  <!-- TIME TABS -->
   <div class="lb-time-tabs">
     <button class="lb-time-tab active" data-timeframe="all" type="button">
       <span class="lb-tab-icon">🏆</span>
@@ -75,14 +83,12 @@
     </button>
   </div>
 
-  <!-- CURRICULUM FILTER -->
   <div class="lb-curriculum-bar">
     <button class="lb-chip active" data-curriculum="all" type="button">🌍 All</button>
     <button class="lb-chip" data-curriculum="844" type="button">8-4-4</button>
-    <button class="lb-chip" data-curriculum="cbe" type="button">CBE</button>
+    <button class="lb-chip" data-curriculum="CBE" type="button">CBE</button>
   </div>
 
-  <!-- MY RANK CARD -->
   <div id="myRankCard" class="lb-my-card hidden">
     <div class="lb-my-left">
       <div class="lb-my-avatar" id="myRankAvatar">?</div>
@@ -97,12 +103,10 @@
     </div>
   </div>
 
-  <!-- PODIUM (Top 3) -->
   <section id="podiumSection" class="lb-podium hidden">
     <div class="lb-podium-inner" id="podiumInner"></div>
   </section>
 
-  <!-- FULL LIST -->
   <section class="lb-full-section">
     <div class="lb-full-head">
       <div class="lb-full-title">Full Rankings</div>

@@ -32,14 +32,18 @@ const DEFAULT_AFTER_LOGIN = "home.html";
 const DEFAULT_AFTER_LOGOUT = "login.html";
 
 /* =========================================================
-   GET CURRENT PAGE
+   CURRENT PAGE
    ========================================================= */
 
 export function getCurrentPage() {
   const path = window.location.pathname;
   const parts = path.split("/").filter(Boolean);
-  const last = parts[parts.length - 1];
-  return last || "index.html";
+  let last = parts[parts.length - 1] || "index.html";
+
+  // Support clean URLs (/home → home.html)
+  if (!last.includes(".")) last = `${last}.html`;
+
+  return last;
 }
 
 /* =========================================================
@@ -54,10 +58,12 @@ function getRequiredRole(page) {
 
 async function checkUserRole(user) {
   if (!user) return null;
+
   if (!isOnline()) {
     const cached = await getCachedUserFromIDB(user.uid);
     return cached?.role || "student";
   }
+
   try {
     const doc = await getUserDoc(user.uid);
     if (doc) {
@@ -66,47 +72,42 @@ async function checkUserRole(user) {
     }
     return "student";
   } catch (e) {
-    log.warn("Could not fetch user role, using cache:", e);
+    log.warn("Could not fetch role, using cache:", e);
     const cached = await getCachedUserFromIDB(user.uid);
     return cached?.role || "student";
   }
 }
 
 /* =========================================================
-   GUARD — call on every protected page
+   GUARD
    ========================================================= */
 
 export async function guardPage() {
   const page = getCurrentPage();
   const requiredRole = getRequiredRole(page);
 
-  // Public pages
-  if (requiredRole === "any") return { ok: true };
+  if (requiredRole === "any") return { ok: true, user: null };
 
-  // Wait for auth to be ready
   const user = await waitForAuth();
 
-  // Guest-only pages (login, signup)
   if (requiredRole === "guest") {
     if (user) {
-      window.location.href = DEFAULT_AFTER_LOGIN;
+      window.location.replace(DEFAULT_AFTER_LOGIN);
       return { ok: false, redirecting: true };
     }
     return { ok: true, user: null };
   }
 
-  // User/admin pages require login
   if (!user) {
     const redirect = encodeURIComponent(page + window.location.search);
-    window.location.href = `login.html?redirect=${redirect}`;
+    window.location.replace(`login.html?redirect=${redirect}`);
     return { ok: false, redirecting: true };
   }
 
-  // Admin pages require admin role
   if (requiredRole === "admin") {
     const role = await checkUserRole(user);
     if (role !== "admin") {
-      window.location.href = DEFAULT_AFTER_LOGIN;
+      window.location.replace(DEFAULT_AFTER_LOGIN);
       return { ok: false, redirecting: true };
     }
   }
@@ -115,7 +116,7 @@ export async function guardPage() {
 }
 
 /* =========================================================
-   NAVIGATION HELPERS
+   NAVIGATION
    ========================================================= */
 
 export function goTo(url, replace = false) {
@@ -149,7 +150,7 @@ export function redirectAfterLogout() {
 }
 
 /* =========================================================
-   REQUIRE USER — throws if not signed in
+   REQUIRE USER
    ========================================================= */
 
 export async function requireUser() {
@@ -165,7 +166,7 @@ export async function requireUser() {
 }
 
 /* =========================================================
-   GET CURRENT USER (with fallback to cache)
+   USER WITH CACHE FALLBACK
    ========================================================= */
 
 export async function getUserWithCache() {
@@ -180,7 +181,7 @@ export async function getUserWithCache() {
 }
 
 /* =========================================================
-   REDIRECT IF SIGNED IN (for login/signup pages)
+   REDIRECT IF SIGNED IN
    ========================================================= */
 
 export async function redirectIfSignedIn() {
@@ -193,7 +194,7 @@ export async function redirectIfSignedIn() {
 }
 
 /* =========================================================
-   SET ACTIVE NAV LINK
+   MARK ACTIVE NAV LINK
    ========================================================= */
 
 export function markActiveNavLink() {

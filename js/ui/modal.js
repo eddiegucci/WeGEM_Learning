@@ -1,5 +1,5 @@
 // js/ui/modal.js
-// Modal dialogs for WeGEM Learning.
+// Modal dialogs.
 
 /* =========================================================
    CORE MODAL
@@ -12,7 +12,6 @@ export function openModal({
   onClose = null,
   size = "default",
 } = {}) {
-  // Remove any existing modal
   closeModal();
 
   const backdrop = document.createElement("div");
@@ -24,8 +23,9 @@ export function openModal({
   const card = document.createElement("div");
   card.className = "modal-card";
   card.style.maxWidth = maxWidth + "px";
+  card.setAttribute("role", "dialog");
+  card.setAttribute("aria-modal", "true");
 
-  // Head
   const head = document.createElement("div");
   head.className = "modal-head";
 
@@ -38,15 +38,10 @@ export function openModal({
   closeBtn.className = "modal-close";
   closeBtn.setAttribute("aria-label", "Close");
   closeBtn.innerHTML = "&times;";
-  closeBtn.onclick = () => {
-    closeModal();
-    if (onClose) onClose();
-  };
 
   head.appendChild(titleEl);
   head.appendChild(closeBtn);
 
-  // Body
   const body = document.createElement("div");
   body.className = "modal-body";
   if (typeof content === "string") body.innerHTML = content;
@@ -55,7 +50,6 @@ export function openModal({
   card.appendChild(head);
   card.appendChild(body);
 
-  // Actions
   if (actions.length) {
     const actionsEl = document.createElement("div");
     actionsEl.className = "modal-actions";
@@ -72,8 +66,12 @@ export function openModal({
             : "btn-ghost");
       btn.textContent = action.label;
       btn.onclick = async () => {
-        const shouldClose = action.onClick ? await action.onClick() : true;
-        if (shouldClose !== false) closeModal();
+        try {
+          const shouldClose = action.onClick ? await action.onClick() : true;
+          if (shouldClose !== false) closeModal();
+        } catch (e) {
+          console.error(e);
+        }
       };
       actionsEl.appendChild(btn);
     });
@@ -93,6 +91,11 @@ export function openModal({
     }
   });
 
+  closeBtn.addEventListener("click", () => {
+    closeModal();
+    if (onClose) onClose();
+  });
+
   // ESC closes
   const escHandler = (e) => {
     if (e.key === "Escape") {
@@ -103,7 +106,25 @@ export function openModal({
   };
   document.addEventListener("keydown", escHandler);
 
-  // Focus first focusable element
+  // Focus trap
+  const focusTrap = (e) => {
+    if (e.key !== "Tab") return;
+    const focusables = card.querySelectorAll(
+      "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+    );
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  document.addEventListener("keydown", focusTrap);
+
   setTimeout(() => {
     const focusable = card.querySelector("input, textarea, select, button");
     focusable?.focus();
@@ -116,10 +137,6 @@ export function openModal({
   };
 }
 
-/* =========================================================
-   CLOSE
-   ========================================================= */
-
 export function closeModal() {
   const existing = document.getElementById("wegemModal");
   if (existing) existing.remove();
@@ -127,7 +144,7 @@ export function closeModal() {
 }
 
 /* =========================================================
-   CONVENIENCE — CONFIRM
+   CONFIRM
    ========================================================= */
 
 export function confirmDialog({
@@ -138,6 +155,13 @@ export function confirmDialog({
   danger = false,
 } = {}) {
   return new Promise((resolve) => {
+    let settled = false;
+    const settle = (value) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+
     openModal({
       title,
       content: `<p style="color: var(--text-dim); font-size: 14.5px; line-height: 1.6;">${message}</p>`,
@@ -145,25 +169,21 @@ export function confirmDialog({
         {
           label: cancelLabel,
           variant: "ghost",
-          onClick: () => {
-            resolve(false);
-          },
+          onClick: () => settle(false),
         },
         {
           label: okLabel,
           variant: danger ? "danger" : "primary",
-          onClick: () => {
-            resolve(true);
-          },
+          onClick: () => settle(true),
         },
       ],
-      onClose: () => resolve(false),
+      onClose: () => settle(false),
     });
   });
 }
 
 /* =========================================================
-   CONVENIENCE — ALERT
+   ALERT
    ========================================================= */
 
 export function alertDialog({
@@ -188,7 +208,7 @@ export function alertDialog({
 }
 
 /* =========================================================
-   CONVENIENCE — PROMPT
+   PROMPT
    ========================================================= */
 
 export function promptDialog({
@@ -200,31 +220,50 @@ export function promptDialog({
   type = "text",
 } = {}) {
   return new Promise((resolve) => {
+    let settled = false;
+    const settle = (value) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+
     const inputId = "modalPromptInput_" + Date.now();
+    const input = document.createElement("input");
+    input.type = type;
+    input.id = inputId;
+    input.placeholder = placeholder;
+    input.value = defaultValue;
+
+    const wrap = document.createElement("label");
+    wrap.className = "field";
+    wrap.style.marginBottom = "0";
+
+    if (label) {
+      const span = document.createElement("span");
+      span.textContent = label;
+      wrap.appendChild(span);
+    }
+    wrap.appendChild(input);
+
     openModal({
       title,
-      content: `
-        <label class="field" style="margin-bottom: 0;">
-          ${label ? `<span>${label}</span>` : ""}
-          <input type="${type}" id="${inputId}" placeholder="${placeholder}" value="${defaultValue}" />
-        </label>
-      `,
+      content: wrap,
       actions: [
         {
           label: "Cancel",
           variant: "ghost",
-          onClick: () => resolve(null),
+          onClick: () => settle(null),
         },
         {
           label: okLabel,
           variant: "primary",
           onClick: () => {
-            const input = document.getElementById(inputId);
-            resolve(input?.value?.trim() || "");
+            const doc = document.getElementById(inputId);
+            settle((doc?.value || "").trim());
           },
         },
       ],
-      onClose: () => resolve(null),
+      onClose: () => settle(null),
     });
   });
 }

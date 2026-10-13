@@ -1,46 +1,53 @@
 // js/features/notes.js
-// Notes feature logic for WeGEM Learning.
+// Notes feature. Cache-first reads, real Firestore writes.
 
-import { getNotesForLevel } from "../core/db.js";
+import { getNotesForLevel, saveNote as saveNoteToCloud } from "../core/db.js";
 import {
   getCachedNotes,
   cacheNotes,
   put,
   remove,
-  getAllByIndex,
   STORES,
 } from "../core/cache.js";
-import { log, isOnline, escapeHTML } from "../core/utils.js";
+import { log, isOnline } from "../core/utils.js";
 
 /* =========================================================
-   FETCH NOTES
+   FETCH
    ========================================================= */
 
 export async function fetchNotes(curriculum, level) {
   let notes = [];
 
-  // Cache first
   try {
     notes = await getCachedNotes(curriculum, level);
   } catch (e) {
-    log.warn("Could not read cached notes:", e);
+    log.warn("Cache read failed for notes:", e);
   }
 
-  // Fetch from cloud if empty or online
-  if (isOnline() && !notes.length) {
+  if (isOnline()) {
     try {
-      notes = await getNotesForLevel(curriculum, level);
-      if (notes.length) await cacheNotes(notes);
+      const fresh = await getNotesForLevel(curriculum, level);
+      if (fresh.length) {
+        await cacheNotes(fresh);
+        notes = mergeNotes(notes, fresh);
+      }
     } catch (e) {
-      log.warn("Could not fetch notes:", e);
+      log.warn("Cloud fetch failed, using cache:", e);
     }
   }
 
   return notes;
 }
 
+function mergeNotes(cached, fresh) {
+  const byId = new Map();
+  cached.forEach((n) => n.id && byId.set(n.id, n));
+  fresh.forEach((n) => n.id && byId.set(n.id, n));
+  return Array.from(byId.values());
+}
+
 /* =========================================================
-   FILTER NOTES
+   FILTER
    ========================================================= */
 
 export function filterNotes(notes, { subject = "all", query = "" } = {}) {
@@ -64,7 +71,7 @@ export function filterNotes(notes, { subject = "all", query = "" } = {}) {
 }
 
 /* =========================================================
-   CREATE NOTE
+   CREATE — real Firestore write
    ========================================================= */
 
 export async function createNote(note) {
@@ -79,22 +86,30 @@ export async function createNote(note) {
     level: note.level || "",
     createdBy: note.createdBy || "",
     createdByName: note.createdByName || "",
-    createdAt: new Date().toISOString(),
     source: "user",
   };
 
-  // Save locally
+  // Always save locally first — instant UX.
   const localId = "note_" + Date.now();
-  const stored = { ...prepared, id: localId };
+  const stored = {
+    ...prepared,
+    id: localId,
+    createdAt: new Date().toISOString(),
+    pending: true,
+  };
   await put(STORES.CONTENT, { ...stored, type: "note" });
 
-  // Save to cloud
+  // Sync to Firestore if online.
   if (isOnline()) {
     try {
-      const { saveNote } = await import("../core/db.js").catch(() => ({}));
-      if (saveNote) await saveNote(prepared);
+      const cloudId = await saveNoteToCloud(prepared);
+      // Replace local copy with cloud-id version.
+      await remove(STORES.CONTENT, localId);
+      const synced = { ...stored, id: cloudId, pending: false };
+      await put(STORES.CONTENT, { ...synced, type: "note" });
+      return synced;
     } catch (e) {
-      log.warn("Could not save note to cloud:", e);
+      log.warn("Cloud save failed, note stays local:", e);
     }
   }
 
@@ -102,7 +117,7 @@ export async function createNote(note) {
 }
 
 /* =========================================================
-   DELETE NOTE
+   DELETE
    ========================================================= */
 
 export async function deleteNote(noteId) {
@@ -117,7 +132,7 @@ export async function deleteNote(noteId) {
 }
 
 /* =========================================================
-   GET SUBJECTS WITH NOTES
+   SUBJECTS
    ========================================================= */
 
 export function extractSubjects(notes) {

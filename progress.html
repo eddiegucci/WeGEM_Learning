@@ -10,22 +10,33 @@
 
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
-  <link rel="stylesheet" href="css/main.css">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/mobile.css">
+
   <script src="js/core/wallpaper-init.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+      });
+    }
+  </script>
 </head>
 <body>
 
-<!-- ==================== TOP NAV ==================== -->
 <nav class="top-nav">
   <a href="home.html" class="top-nav-brand">
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
-      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z"
-            fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
       <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
-      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
-      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5"
-            stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
+      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
     </svg>
     <span>WeGEM Learning</span>
   </a>
@@ -56,14 +67,12 @@
     <p class="page-sub">Track your growth. Every quiz gets you closer to your goal.</p>
   </section>
 
-  <!-- Time range tabs -->
   <div class="leaderboard-tabs" role="tablist">
     <button class="lb-tab active" data-range="all" type="button" role="tab">All Time</button>
     <button class="lb-tab" data-range="month" type="button" role="tab">This Month</button>
     <button class="lb-tab" data-range="week" type="button" role="tab">This Week</button>
   </div>
 
-  <!-- Stat tiles -->
   <section class="stats-grid-4">
     <div class="stat-tile st-fire">
       <div class="st-icon">🔥</div>
@@ -94,8 +103,7 @@
     </div>
   </section>
 
-  <!-- Big chart -->
-  <section class="panel" style="margin-bottom: 20px;">
+  <section class="panel" style="margin-bottom: var(--sp-5);">
     <div class="panel-head-inline">
       <div>
         <div class="panel-title-lg">📈 Performance Trend</div>
@@ -112,7 +120,6 @@
     </div>
   </section>
 
-  <!-- Two column: Topics + Recent -->
   <section class="row-progress">
     <div class="panel">
       <div class="panel-head-inline">
@@ -120,7 +127,7 @@
         <div class="pill-tag" id="topicCount">0 topics</div>
       </div>
       <div id="topicList" class="topic-list-v2">
-        <div class="loading-wrap" style="padding: 20px;">
+        <div class="loading-wrap" style="padding: var(--sp-5);">
           <div class="spinner"></div>
         </div>
       </div>
@@ -132,27 +139,25 @@
         <button class="link-sm" id="clearHistoryBtn" type="button">Clear</button>
       </div>
       <div id="historyList" class="history-list-v2">
-        <div class="loading-wrap" style="padding: 20px;">
+        <div class="loading-wrap" style="padding: var(--sp-5);">
           <div class="spinner"></div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Subject Breakdown -->
-  <section class="panel" style="margin-top: 20px;">
+  <section class="panel" style="margin-top: var(--sp-5);">
     <div class="panel-head-inline">
       <div class="panel-title-lg">📚 Subject Breakdown</div>
       <div class="pill-tag" id="subjectCount">0 subjects</div>
     </div>
     <div id="subjectBreakdown" class="subject-list">
-      <div class="loading-wrap" style="padding: 20px;">
+      <div class="loading-wrap" style="padding: var(--sp-5);">
         <div class="spinner"></div>
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
   <footer class="app-footer">
     <div class="footer-left">
       <span class="footer-bulb">💡</span>

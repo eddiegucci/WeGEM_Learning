@@ -1,5 +1,5 @@
 // js/pages/settings.js
-// Controller for settings.html.
+// Settings page controller.
 
 import {
   waitForAuth,
@@ -8,36 +8,18 @@ import {
   sendPasswordReset,
   deleteAccount,
 } from "../core/auth.js";
-import { getUserDoc, updateUserDoc } from "../core/db.js";
+import { getUserDoc, updateUserDoc, deleteUserData } from "../core/db.js";
 import {
   cacheUser,
   getCachedUser as getCachedUserFromIDB,
   clearAllCache,
-  getWallpaperCache,
   setWallpaperCache,
 } from "../core/cache.js";
 import { getDefaultWallpaper } from "../data/wallpapers.js";
 import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
-import {
-  confirmDialog,
-  promptDialog,
-  openModal,
-  closeModal,
-} from "../ui/modal.js";
-import {
-  escapeHTML,
-  firstName,
-  initials,
-  log,
-  lsGet,
-  lsSet,
-  lsRemove,
-} from "../core/utils.js";
-
-/* =========================================================
-   STATE
-   ========================================================= */
+import { confirmDialog, promptDialog } from "../ui/modal.js";
+import { firstName, initials, log, lsGet, lsRemove } from "../core/utils.js";
 
 const state = {
   user: null,
@@ -47,36 +29,26 @@ const state = {
 
 const WALLPAPER_KEY = "wegem_wallpaper";
 
-/* =========================================================
-   DOM REFS
-   ========================================================= */
-
 const els = {
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
   userMenuBtn: document.getElementById("userMenuBtn"),
-
   profileAvatar: document.getElementById("profileAvatar"),
   profileName: document.getElementById("profileName"),
   profileEmail: document.getElementById("profileEmail"),
-
   infoCurriculum: document.getElementById("infoCurriculum"),
   infoLevel: document.getElementById("infoLevel"),
   infoSchool: document.getElementById("infoSchool"),
   infoAdm: document.getElementById("infoAdm"),
   infoStream: document.getElementById("infoStream"),
   infoSubjects: document.getElementById("infoSubjects"),
-
   editProfileBtn: document.getElementById("editProfileBtn"),
   resetWallpaperBtn: document.getElementById("resetWallpaperBtn"),
   wallpaperSubText: document.getElementById("wallpaperSubText"),
-
   changePasswordBtn: document.getElementById("changePasswordBtn"),
   clearDataBtn: document.getElementById("clearDataBtn"),
   signOutBtn: document.getElementById("signOutBtn"),
   deleteAccountBtn: document.getElementById("deleteAccountBtn"),
-
-  // Modal
   editModal: document.getElementById("editModal"),
   modalError: document.getElementById("modalError"),
   editName: document.getElementById("editName"),
@@ -89,7 +61,7 @@ const els = {
 };
 
 /* =========================================================
-   SETUP USER
+   USER
    ========================================================= */
 
 async function setupUser() {
@@ -98,7 +70,6 @@ async function setupUser() {
     window.location.replace("login.html");
     return false;
   }
-
   state.user = user;
 
   try {
@@ -111,7 +82,6 @@ async function setupUser() {
   } catch (e) {
     log.warn("Could not load user doc:", e);
   }
-
   return true;
 }
 
@@ -127,16 +97,12 @@ function renderProfile() {
     doc?.name || user?.displayName || user?.email?.split("@")[0] || "Student";
   const email = doc?.email || user?.email || "—";
 
-  // Top nav
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
-
-  // Profile card
   if (els.profileAvatar) els.profileAvatar.textContent = initials(displayName);
   if (els.profileName) els.profileName.textContent = displayName;
   if (els.profileEmail) els.profileEmail.textContent = email;
 
-  // Info grid
   if (els.infoCurriculum)
     els.infoCurriculum.textContent =
       doc?.curriculum === "CBE" ? "CBE" : "8-4-4";
@@ -151,7 +117,7 @@ function renderProfile() {
 }
 
 /* =========================================================
-   WALLPAPER
+   WALLPAPER LABEL
    ========================================================= */
 
 function renderWallpaperLabel() {
@@ -167,7 +133,6 @@ async function handleResetWallpaper() {
     okLabel: "Reset",
     cancelLabel: "Cancel",
   });
-
   if (!ok) return;
 
   const def = getDefaultWallpaper();
@@ -192,13 +157,11 @@ function openEditModal() {
     toastErr("Profile not loaded yet.");
     return;
   }
-
   if (els.editName) els.editName.value = state.userDoc.name || "";
   if (els.editSchool) els.editSchool.value = state.userDoc.school || "";
   if (els.editAdm) els.editAdm.value = state.userDoc.adm || "";
   if (els.editStream) els.editStream.value = state.userDoc.stream || "";
   clearModalError();
-
   els.editModal?.classList.remove("hidden");
   setTimeout(() => els.editName?.focus(), 100);
 }
@@ -237,13 +200,10 @@ async function saveProfile() {
 
   try {
     await updateUserDoc(state.user.uid, { name, school, adm, stream });
-
-    // Update cached
     state.userDoc = { ...state.userDoc, name, school, adm, stream };
     try {
       await cacheUser(state.userDoc);
     } catch {}
-
     renderProfile();
     closeEditModal();
     toastOk("Profile updated");
@@ -263,9 +223,7 @@ async function saveProfile() {
 
 async function handleChangePassword() {
   const email = state.userDoc?.email || state.user?.email;
-  if (!email) {
-    return toastErr("No email on account.");
-  }
+  if (!email) return toastErr("No email on account.");
 
   const ok = await confirmDialog({
     title: "Send reset email?",
@@ -273,7 +231,6 @@ async function handleChangePassword() {
     okLabel: "Send",
     cancelLabel: "Cancel",
   });
-
   if (!ok) return;
 
   try {
@@ -298,7 +255,6 @@ async function handleClearData() {
     cancelLabel: "Cancel",
     danger: true,
   });
-
   if (!ok) return;
 
   try {
@@ -322,7 +278,6 @@ async function handleSignOut() {
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (!ok) return;
 
   try {
@@ -366,11 +321,13 @@ async function handleDeleteAccount() {
   if (!password) return;
 
   try {
-    // Clear local data first
     await clearAllCache().catch(() => {});
     lsRemove(WALLPAPER_KEY);
 
-    // Delete Firebase Auth account
+    // Delete Firestore data BEFORE removing the auth user,
+    // since after deleteAccount we lose the ability to write.
+    await deleteUserData(state.user.uid).catch(() => {});
+
     await deleteAccount(password);
 
     toastOk("Account deleted. Goodbye 👋");
@@ -391,7 +348,7 @@ async function handleDeleteAccount() {
 }
 
 /* =========================================================
-   USER MENU (top nav)
+   USER MENU
    ========================================================= */
 
 async function handleUserMenu() {
@@ -427,7 +384,6 @@ async function init() {
     renderProfile();
     renderWallpaperLabel();
 
-    // Wire buttons
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
     els.editProfileBtn?.addEventListener("click", openEditModal);
     els.resetWallpaperBtn?.addEventListener("click", handleResetWallpaper);
@@ -436,7 +392,6 @@ async function init() {
     els.signOutBtn?.addEventListener("click", handleSignOut);
     els.deleteAccountBtn?.addEventListener("click", handleDeleteAccount);
 
-    // Modal wiring
     els.modalCloseBtn?.addEventListener("click", closeEditModal);
     els.modalCancelBtn?.addEventListener("click", closeEditModal);
     els.editModal?.addEventListener("click", (e) => {
@@ -444,7 +399,6 @@ async function init() {
     });
     els.modalSaveBtn?.addEventListener("click", saveProfile);
 
-    // ESC closes modal
     document.addEventListener("keydown", (e) => {
       if (
         e.key === "Escape" &&

@@ -1,5 +1,5 @@
 // js/features/progress.js
-// Progress analytics for WeGEM Learning.
+// Progress analytics.
 
 import { getUserAttempts } from "../core/db.js";
 import { getCachedAttempts, cacheAttempts } from "../core/cache.js";
@@ -20,18 +20,18 @@ export async function fetchAttempts(uid, max = 200) {
   try {
     attempts = await getCachedAttempts();
   } catch (e) {
-    log.warn("Could not read cached attempts:", e);
+    log.warn("Cache read failed for attempts:", e);
   }
 
   if (uid && isOnline()) {
     try {
       const fresh = await getUserAttempts(uid, max);
-      if (fresh.length) {
+      if (fresh.length || !attempts.length) {
         await cacheAttempts(fresh);
         attempts = fresh;
       }
     } catch (e) {
-      log.warn("Could not fetch attempts:", e);
+      log.warn("Cloud fetch failed for attempts:", e);
     }
   }
 
@@ -43,13 +43,12 @@ export async function fetchAttempts(uid, max = 200) {
 }
 
 /* =========================================================
-   BUILD STATS
+   STATS
    ========================================================= */
 
 export function buildStats(attempts) {
   const agg = aggregateAttempts(attempts);
   const streak = computeStreak(attempts);
-
   const weakTopics = getWeakTopics(agg.topics);
   const strongTopics = Object.entries(agg.topics || {})
     .map(([name, s]) => ({
@@ -58,7 +57,7 @@ export function buildStats(attempts) {
       total: s.total,
       score: s.total ? s.correct / s.total : 0,
     }))
-    .filter((t) => t.score >= 0.8)
+    .filter((t) => t.total > 0 && t.score >= 0.8)
     .sort((a, b) => b.score - a.score);
 
   const studyMinutes = Math.round(
@@ -109,7 +108,7 @@ export function subjectBreakdown(attempts) {
 }
 
 /* =========================================================
-   CHART DATA (last N attempts)
+   CHART
    ========================================================= */
 
 export function chartData(attempts, count = 10) {
@@ -122,7 +121,7 @@ export function chartData(attempts, count = 10) {
 }
 
 /* =========================================================
-   TIME RANGE
+   RANGE FILTER
    ========================================================= */
 
 export function filterByRange(attempts, range = "all") {

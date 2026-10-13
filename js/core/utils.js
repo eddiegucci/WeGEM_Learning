@@ -66,8 +66,10 @@ export function escapeHTML(str) {
   return String(str).replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
 }
 
-export function escapeAttr(str) {
-  return escapeHTML(str);
+export const escapeAttr = escapeHTML;
+
+export function escapeRegExp(str) {
+  return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function capitalize(str) {
@@ -110,14 +112,6 @@ export function truncate(str, max = 60) {
   return s.length > max ? s.slice(0, max).trimEnd() + "…" : s;
 }
 
-export function makeUserId(email) {
-  if (!email) return "guest_" + Date.now();
-  return String(email)
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]/g, "_");
-}
-
 /* =========================================================
    TIME HELPERS
    ========================================================= */
@@ -157,17 +151,20 @@ export function formatDateTime(dateInput) {
   });
 }
 
-export function toDateString(dateInput) {
-  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
-  return d.toDateString();
-}
-
-export function todayString() {
-  return new Date().toDateString();
+export function formatDuration(seconds) {
+  const s = Math.max(0, Math.floor(Number(seconds) || 0));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${String(r).padStart(2, "0")}`;
 }
 
 export function isToday(dateInput) {
-  return toDateString(dateInput) === todayString();
+  try {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    return d.toDateString() === new Date().toDateString();
+  } catch {
+    return false;
+  }
 }
 
 /* =========================================================
@@ -280,7 +277,7 @@ export function throttle(fn, wait = 250) {
 }
 
 /* =========================================================
-   STORAGE HELPERS (localStorage with JSON)
+   STORAGE HELPERS
    ========================================================= */
 
 export function lsGet(key, fallback = null) {
@@ -351,7 +348,7 @@ export function reload() {
 }
 
 /* =========================================================
-   VALIDATION HELPERS
+   VALIDATION
    ========================================================= */
 
 export function isValidEmail(email) {
@@ -440,7 +437,7 @@ export function friendlyFirebaseError(error) {
 }
 
 /* =========================================================
-   LOGGER (only logs in development)
+   LOGGER
    ========================================================= */
 
 const IS_DEV = (() => {

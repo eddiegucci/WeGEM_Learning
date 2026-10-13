@@ -1,5 +1,5 @@
 // js/pages/home.js
-// Controller for home.html — the main dashboard.
+// Dashboard controller.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc, getUserAttempts } from "../core/db.js";
@@ -10,18 +10,13 @@ import {
   getCachedAttempts,
 } from "../core/cache.js";
 import { initNav } from "../ui/nav.js";
-import { toastErr, toastOk } from "../ui/toast.js";
+import { toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
-import {
-  getSubjectIcon,
-  getSubjectColor,
-  getSubjects,
-} from "../data/subjects.js";
+import { getSubjectIcon, getSubjectColor } from "../data/subjects.js";
 import {
   aggregateAttempts,
   computeStreak,
   getWeakTopics,
-  scoreLabel,
 } from "../features/quiz-engine.js";
 import {
   log,
@@ -32,19 +27,7 @@ import {
   isOnline,
 } from "../core/utils.js";
 
-/* =========================================================
-   STATE
-   ========================================================= */
-
-const state = {
-  user: null,
-  userDoc: null,
-  attempts: [],
-};
-
-/* =========================================================
-   DOM REFS
-   ========================================================= */
+const state = { user: null, userDoc: null, attempts: [] };
 
 const els = {
   greeting: document.getElementById("greeting"),
@@ -73,10 +56,6 @@ const els = {
   progressNote: document.getElementById("progressNote"),
 };
 
-/* =========================================================
-   GREETING
-   ========================================================= */
-
 function setGreeting(name) {
   const hour = new Date().getHours();
   let greeting = "Good morning";
@@ -87,15 +66,10 @@ function setGreeting(name) {
   if (els.heroName) els.heroName.textContent = firstName(name || "Student");
 }
 
-/* =========================================================
-   RENDER HERO STATS
-   ========================================================= */
-
 function renderHeroStats(attempts) {
   const agg = aggregateAttempts(attempts);
   const streak = computeStreak(attempts);
 
-  // Streak
   if (els.heroStreak) els.heroStreak.textContent = streak;
   if (els.heroStreakNote) {
     if (streak === 0) els.heroStreakNote.textContent = "Start today!";
@@ -105,7 +79,6 @@ function renderHeroStats(attempts) {
     else els.heroStreakNote.textContent = "Unstoppable!";
   }
 
-  // Average
   if (els.heroAvg) {
     els.heroAvg.innerHTML = `${agg.averageScore}<span class="hs-unit">%</span>`;
   }
@@ -118,7 +91,6 @@ function renderHeroStats(attempts) {
     else els.heroAvgNote.textContent = "Keep practicing";
   }
 
-  // Quizzes
   if (els.heroQuizzes) els.heroQuizzes.textContent = agg.totalAttempts;
   if (els.heroQuizzesNote) {
     if (!agg.totalAttempts) els.heroQuizzesNote.textContent = "Take your first";
@@ -127,7 +99,6 @@ function renderHeroStats(attempts) {
     else els.heroQuizzesNote.textContent = "Great consistency!";
   }
 
-  // Study hours
   const minutes = attempts.reduce((s, a) => s + (a.duration || 0), 0) / 60;
   const hours = Math.round((minutes / 60) * 10) / 10;
   if (els.heroHours)
@@ -137,10 +108,6 @@ function renderHeroStats(attempts) {
     else els.heroHoursNote.textContent = `~${Math.round(minutes)} min total`;
   }
 }
-
-/* =========================================================
-   RENDER REVISE NEXT
-   ========================================================= */
 
 function renderReviseNext(attempts) {
   if (!els.reviseList) return;
@@ -153,9 +120,7 @@ function renderReviseNext(attempts) {
     const previewSubjects = userSubjects.slice(0, 3);
 
     els.reviseList.innerHTML = `
-      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">
-        Take a quiz to see your weak topics here.
-      </p>
+      <p style="font-size: 13px; color: var(--text-mute); margin-bottom: 12px;">Take a quiz to see your weak topics here.</p>
       ${previewSubjects
         .map((s, i) => {
           const colors = ["#3b82f6", "#a855f7", "#10b981"];
@@ -212,10 +177,6 @@ function renderReviseNext(attempts) {
     .join("");
 }
 
-/* =========================================================
-   RENDER SUBJECT PERFORMANCE
-   ========================================================= */
-
 function renderSubjectPerformance(attempts) {
   if (!els.subjectList) return;
 
@@ -238,7 +199,6 @@ function renderSubjectPerformance(attempts) {
     .sort((a, b) => b.pct - a.pct);
 
   if (!rows.length) {
-    // Show user's subjects with 0% as a starting point
     const userSubjects = (state.userDoc?.subjects || []).slice(0, 8);
     if (userSubjects.length) {
       renderSubjectRows(
@@ -293,13 +253,8 @@ function renderSubjectRows(rows, avg) {
   }
 }
 
-/* =========================================================
-   RENDER ACTIVITY
-   ========================================================= */
-
 function renderActivity(attempts) {
   if (!els.activityList) return;
-
   const recent = attempts.slice(0, 4);
 
   if (!recent.length) {
@@ -330,10 +285,6 @@ function renderActivity(attempts) {
     .join("");
 }
 
-/* =========================================================
-   RENDER MINI CHART
-   ========================================================= */
-
 function renderMiniChart(attempts) {
   if (!els.miniChart) return;
 
@@ -347,13 +298,13 @@ function renderMiniChart(attempts) {
     return;
   }
 
-  const W = 300;
-  const H = 120;
-  const padTop = 15;
-  const padBottom = 15;
+  const W = 300,
+    H = 120,
+    padTop = 15,
+    padBottom = 15;
   const chartH = H - padTop - padBottom;
-
   const scores = recent.map((a) => a.score || 0);
+
   const points = scores
     .map((s, i) => {
       const x = (i / (scores.length - 1)) * W;
@@ -371,26 +322,19 @@ function renderMiniChart(attempts) {
         <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
       </linearGradient>
     </defs>
-    <polyline points="${points}"
-              fill="none" stroke="#fbbf24" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${points}" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     <polygon points="${polygonPoints}" fill="url(#chartFill)"/>
   `;
 
   if (els.chartXAxis) {
-    const labels = recent
+    els.chartXAxis.innerHTML = recent
       .map((a) => {
         const d = new Date(a.createdAt || Date.now());
         return `<span>${d.getDate()}</span>`;
       })
       .join("");
-    els.chartXAxis.innerHTML = labels;
   }
 }
-
-/* =========================================================
-   USER MENU
-   ========================================================= */
 
 async function handleUserMenu() {
   const ok = await confirmDialog({
@@ -400,7 +344,6 @@ async function handleUserMenu() {
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (ok) {
     try {
       await signOutNow();
@@ -412,29 +355,18 @@ async function handleUserMenu() {
   }
 }
 
-/* =========================================================
-   CONTINUE BUTTON
-   ========================================================= */
-
 function handleContinue() {
   window.location.href = "notes.html";
 }
 
-/* =========================================================
-   LOAD DATA
-   ========================================================= */
-
 async function loadAttempts(uid) {
   let attempts = [];
-
-  // Try cache first
   try {
     attempts = await getCachedAttempts();
   } catch (e) {
-    log.warn("Could not read attempts from cache:", e);
+    log.warn("Cache read failed:", e);
   }
 
-  // If online, fetch fresh
   if (isOnline() && uid) {
     try {
       const fresh = await getUserAttempts(uid, 200);
@@ -475,22 +407,15 @@ async function loadUserDoc(uid) {
   return doc;
 }
 
-/* =========================================================
-   INIT
-   ========================================================= */
-
 async function init() {
   try {
-    // Wait for auth
     const user = await waitForAuth();
     if (!user) {
       window.location.replace("login.html");
       return;
     }
-
     state.user = user;
 
-    // Set initial name (cached)
     const cached = getCachedUser();
     const initialName =
       cached?.displayName ||
@@ -502,10 +427,8 @@ async function init() {
     if (els.userAvatar) els.userAvatar.textContent = initials(initialName);
     if (els.userNameTop) els.userNameTop.textContent = firstName(initialName);
 
-    // Wire up nav
     initNav();
 
-    // Load user doc + attempts in parallel
     const [doc, attempts] = await Promise.all([
       loadUserDoc(user.uid),
       loadAttempts(user.uid),
@@ -514,14 +437,12 @@ async function init() {
     state.userDoc = doc;
     state.attempts = attempts;
 
-    // Update name from doc if available
     if (doc?.name) {
       setGreeting(doc.name);
       if (els.userAvatar) els.userAvatar.textContent = initials(doc.name);
       if (els.userNameTop) els.userNameTop.textContent = firstName(doc.name);
     }
 
-    // Personalize hero sub
     if (els.heroSub && doc) {
       const level = doc.level || "your level";
       if (doc.curriculum === "CBE") {
@@ -531,7 +452,6 @@ async function init() {
       }
     }
 
-    // Personalize "continue" card
     if (els.continueCardSub) {
       if (doc?.subjects?.length) {
         els.continueCardSub.textContent = `Study ${doc.subjects.length} subjects — pick a topic`;
@@ -540,18 +460,14 @@ async function init() {
       }
     }
 
-    // Render everything
     renderHeroStats(attempts);
     renderReviseNext(attempts);
     renderSubjectPerformance(attempts);
     renderActivity(attempts);
     renderMiniChart(attempts);
 
-    // Wire up buttons
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
     els.continueBtn?.addEventListener("click", handleContinue);
-
-    log.info(`Dashboard loaded: ${attempts.length} attempts`);
   } catch (e) {
     log.error("Dashboard init failed:", e);
     toastErr("Could not load dashboard. Please refresh.");

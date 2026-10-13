@@ -1,5 +1,6 @@
 // js/core/db.js
 // Firestore wrapper for WeGEM Learning.
+// Same collections, same field names — no schema changes.
 
 import {
   getApps,
@@ -27,13 +28,14 @@ import {
   runTransaction,
   onSnapshot,
   Timestamp,
+  deleteField,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import { firebaseConfig } from "../config/firebase-config.js";
 import { log, withTimeout } from "./utils.js";
 
 /* =========================================================
-   INITIALIZE FIRESTORE (singleton with modern offline cache)
+   INIT
    ========================================================= */
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
@@ -60,10 +62,48 @@ export const COLLECTIONS = {
 };
 
 /* =========================================================
+   TIMEOUTS
+   ========================================================= */
+
+const READ_TIMEOUT = 8000;
+const WRITE_TIMEOUT = 10000;
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function toISO(value) {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (value instanceof Date) return value.toISOString();
+  if (value.toDate && typeof value.toDate === "function") {
+    try {
+      return value.toDate().toISOString();
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function docToObject(snap) {
+  if (!snap || !snap.exists()) return null;
+  const data = snap.data() || {};
+  return {
+    id: snap.id,
+    ...data,
+    createdAt: toISO(data.createdAt),
+    updatedAt: toISO(data.updatedAt),
+    lastActiveAt: toISO(data.lastActiveAt),
+  };
+}
+
+/* =========================================================
    USER OPERATIONS
    ========================================================= */
 
 export async function createUserDoc(uid, data) {
+  if (!uid) throw new Error("createUserDoc: uid required");
   const ref = doc(db, COLLECTIONS.USERS, uid);
   await withTimeout(
     setDoc(ref, {
@@ -80,7 +120,7 @@ export async function createUserDoc(uid, data) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }),
-    8000,
+    WRITE_TIMEOUT,
     "Create user doc",
   );
 }
@@ -88,24 +128,50 @@ export async function createUserDoc(uid, data) {
 export async function getUserDoc(uid) {
   if (!uid) return null;
   const ref = doc(db, COLLECTIONS.USERS, uid);
-  const snap = await withTimeout(getDoc(ref), 8000, "Get user doc");
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  const snap = await withTimeout(getDoc(ref), READ_TIMEOUT, "Get user doc");
+  return docToObject(snap);
 }
 
 export async function updateUserDoc(uid, updates) {
+  if (!uid) throw new Error("updateUserDoc: uid required");
   const ref = doc(db, COLLECTIONS.USERS, uid);
   await withTimeout(
     updateDoc(ref, { ...updates, updatedAt: serverTimestamp() }),
-    8000,
+    WRITE_TIMEOUT,
     "Update user doc",
   );
 }
 
+export async function deleteUserData(uid) {
+  if (!uid) return;
+  try {
+    // Delete attempts subcollection
+    const attemptsRef = collection(db, COLLECTIONS.USERS, uid, "attempts");
+    const attemptsSnap = await withTimeout(
+      getDocs(attemptsRef),
+      READ_TIMEOUT,
+      "Get attempts for deletion",
+    );
+    const batch = writeBatch(db);
+    attemptsSnap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+
+    // Delete user doc
+    await deleteDoc(doc(db, COLLECTIONS.USERS, uid));
+
+    // Delete leaderboard entry
+    await deleteDoc(doc(db, COLLECTIONS.LEADERBOARD, uid)).catch(() => {});
+  } catch (e) {
+    log.warn("Could not fully delete user data:", e);
+  }
+}
+
 /* =========================================================
-   QUIZ ATTEMPTS — subcollection: users/{uid}/attempts
+   QUIZ ATTEMPTS — users/{uid}/attempts
    ========================================================= */
 
 export async function saveAttempt(uid, attempt) {
+  if (!uid) throw new Error("saveAttempt: uid required");
   const ref = collection(db, COLLECTIONS.USERS, uid, "attempts");
   const docRef = await withTimeout(
     addDoc(ref, {
@@ -119,7 +185,7 @@ export async function saveAttempt(uid, attempt) {
       mode: attempt.mode || "practice",
       createdAt: serverTimestamp(),
     }),
-    8000,
+    WRITE_TIMEOUT,
     "Save attempt",
   );
   return docRef.id;
@@ -129,13 +195,13 @@ export async function getUserAttempts(uid, max = 100) {
   if (!uid) return [];
   const ref = collection(db, COLLECTIONS.USERS, uid, "attempts");
   const q = query(ref, orderBy("createdAt", "desc"), limit(max));
-  const snap = await withTimeout(getDocs(q), 8000, "Get attempts");
+  const snap = await withTimeout(getDocs(q), READ_TIMEOUT, "Get attempts");
   return snap.docs.map((d) => {
-    const data = d.data();
+    const data = d.data() || {};
     return {
       id: d.id,
       ...data,
-      createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+      createdAt: toISO(data.createdAt),
     };
   });
 }
@@ -146,11 +212,11 @@ export function subscribeToAttempts(uid, callback, max = 50) {
   const q = query(ref, orderBy("createdAt", "desc"), limit(max));
   return onSnapshot(q, (snap) => {
     const list = snap.docs.map((d) => {
-      const data = d.data();
+      const data = d.data() || {};
       return {
         id: d.id,
         ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+        createdAt: toISO(data.createdAt),
       };
     });
     callback(list);
@@ -158,25 +224,11 @@ export function subscribeToAttempts(uid, callback, max = 50) {
 }
 
 /* =========================================================
-   CONTENT (questions, notes — versioned for delta sync)
+   CONTENT — QUESTIONS
    ========================================================= */
 
-export async function getContentMeta() {
-  const ref = doc(db, COLLECTIONS.CONTENT_META, "manifest");
-  const snap = await withTimeout(getDoc(ref), 8000, "Get content manifest");
-  return snap.exists() ? snap.data() : null;
-}
-
-export async function setContentMeta(meta) {
-  const ref = doc(db, COLLECTIONS.CONTENT_META, "manifest");
-  await withTimeout(
-    setDoc(ref, { ...meta, updatedAt: serverTimestamp() }, { merge: true }),
-    8000,
-    "Set content manifest",
-  );
-}
-
 export async function getQuestionsForSubject(exam, subject) {
+  if (!exam || !subject) return [];
   const ref = collection(db, COLLECTIONS.QUESTIONS);
   const q = query(
     ref,
@@ -184,11 +236,16 @@ export async function getQuestionsForSubject(exam, subject) {
     where("subject", "==", subject),
     limit(200),
   );
-  const snap = await withTimeout(getDocs(q), 8000, "Get questions");
+  const snap = await withTimeout(getDocs(q), READ_TIMEOUT, "Get questions");
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+/* =========================================================
+   CONTENT — NOTES
+   ========================================================= */
+
 export async function getNotesForLevel(curriculum, level) {
+  if (!curriculum || !level) return [];
   const ref = collection(db, COLLECTIONS.NOTES);
   const q = query(
     ref,
@@ -196,8 +253,61 @@ export async function getNotesForLevel(curriculum, level) {
     where("level", "==", level),
     limit(500),
   );
-  const snap = await withTimeout(getDocs(q), 8000, "Get notes");
+  const snap = await withTimeout(getDocs(q), READ_TIMEOUT, "Get notes");
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * Save a user-created note to Firestore.
+ * Previously missing — this is what features/notes.js tried to call.
+ */
+export async function saveNote(note) {
+  const ref = collection(db, COLLECTIONS.NOTES);
+  const docRef = await withTimeout(
+    addDoc(ref, {
+      curriculum: note.curriculum || "844",
+      level: note.level || "",
+      subject: note.subject || "",
+      topic: note.topic || "",
+      summary: note.summary || "",
+      keyPoints: Array.isArray(note.keyPoints) ? note.keyPoints : [],
+      createdBy: note.createdBy || "",
+      createdByName: note.createdByName || "",
+      source: note.source || "user",
+      createdAt: serverTimestamp(),
+    }),
+    WRITE_TIMEOUT,
+    "Save note",
+  );
+  return docRef.id;
+}
+
+export async function deleteNoteById(id) {
+  if (!id) return;
+  await withTimeout(
+    deleteDoc(doc(db, COLLECTIONS.NOTES, id)),
+    WRITE_TIMEOUT,
+    "Delete note",
+  );
+}
+
+/* =========================================================
+   CONTENT MANIFEST (delta sync)
+   ========================================================= */
+
+export async function getContentMeta() {
+  const ref = doc(db, COLLECTIONS.CONTENT_META, "manifest");
+  const snap = await withTimeout(getDoc(ref), READ_TIMEOUT, "Get manifest");
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function setContentMeta(meta) {
+  const ref = doc(db, COLLECTIONS.CONTENT_META, "manifest");
+  await withTimeout(
+    setDoc(ref, { ...meta, updatedAt: serverTimestamp() }, { merge: true }),
+    WRITE_TIMEOUT,
+    "Set manifest",
+  );
 }
 
 /* =========================================================
@@ -215,9 +325,10 @@ export async function addExamLink(link) {
       curriculum: link.curriculum || "844",
       level: link.level || "",
       createdBy: link.createdBy || "",
+      createdByName: link.createdByName || "",
       createdAt: serverTimestamp(),
     }),
-    8000,
+    WRITE_TIMEOUT,
     "Add exam link",
   );
   return docRef.id;
@@ -226,20 +337,24 @@ export async function addExamLink(link) {
 export async function getExamLinks() {
   const ref = collection(db, COLLECTIONS.EXAM_LINKS);
   const q = query(ref, orderBy("createdAt", "desc"), limit(200));
-  const snap = await withTimeout(getDocs(q), 8000, "Get exam links");
+  const snap = await withTimeout(getDocs(q), READ_TIMEOUT, "Get exam links");
   return snap.docs.map((d) => {
-    const data = d.data();
+    const data = d.data() || {};
     return {
       id: d.id,
       ...data,
-      createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+      createdAt: toISO(data.createdAt),
     };
   });
 }
 
 export async function deleteExamLink(id) {
-  const ref = doc(db, COLLECTIONS.EXAM_LINKS, id);
-  await withTimeout(deleteDoc(ref), 8000, "Delete exam link");
+  if (!id) return;
+  await withTimeout(
+    deleteDoc(doc(db, COLLECTIONS.EXAM_LINKS, id)),
+    WRITE_TIMEOUT,
+    "Delete exam link",
+  );
 }
 
 /* =========================================================
@@ -247,26 +362,31 @@ export async function deleteExamLink(id) {
    ========================================================= */
 
 export async function updateLeaderboardEntry(uid, data) {
+  if (!uid) return;
   const ref = doc(db, COLLECTIONS.LEADERBOARD, uid);
+
+  const payload = {
+    uid,
+    name: data.name || "",
+    school: data.school || "",
+    curriculum: data.curriculum || "844",
+    level: data.level || "",
+    lastActiveAt: serverTimestamp(),
+  };
+
+  if (data.scoreDelta !== undefined)
+    payload.totalScore = increment(data.scoreDelta);
+  if (data.quizDelta !== undefined)
+    payload.totalQuizzes = increment(data.quizDelta);
+  if (data.correctDelta !== undefined)
+    payload.totalCorrect = increment(data.correctDelta);
+  if (data.totalDelta !== undefined)
+    payload.totalQuestions = increment(data.totalDelta);
+  if (data.bestStreak !== undefined) payload.bestStreak = data.bestStreak;
+
   await withTimeout(
-    setDoc(
-      ref,
-      {
-        uid,
-        name: data.name || "",
-        school: data.school || "",
-        curriculum: data.curriculum || "844",
-        level: data.level || "",
-        totalScore: increment(data.scoreDelta || 0),
-        totalQuizzes: increment(data.quizDelta || 0),
-        totalCorrect: increment(data.correctDelta || 0),
-        totalQuestions: increment(data.totalDelta || 0),
-        bestStreak: data.bestStreak || 0,
-        lastActiveAt: serverTimestamp(),
-      },
-      { merge: true },
-    ),
-    8000,
+    setDoc(ref, payload, { merge: true }),
+    WRITE_TIMEOUT,
     "Update leaderboard",
   );
 }
@@ -284,7 +404,7 @@ export async function getLeaderboard(limitCount = 100, curriculum = null) {
   } else {
     q = query(ref, orderBy("totalScore", "desc"), limit(limitCount));
   }
-  const snap = await withTimeout(getDocs(q), 8000, "Get leaderboard");
+  const snap = await withTimeout(getDocs(q), READ_TIMEOUT, "Get leaderboard");
   return snap.docs.map((d, idx) => ({
     rank: idx + 1,
     id: d.id,
@@ -294,9 +414,14 @@ export async function getLeaderboard(limitCount = 100, curriculum = null) {
 
 export async function getUserRank(uid, curriculum = null) {
   if (!uid) return null;
-  const entries = await getLeaderboard(500, curriculum);
-  const idx = entries.findIndex((e) => e.id === uid);
-  return idx >= 0 ? entries[idx] : null;
+  try {
+    const entries = await getLeaderboard(500, curriculum);
+    const idx = entries.findIndex((e) => e.id === uid);
+    return idx >= 0 ? entries[idx] : null;
+  } catch (e) {
+    log.warn("Could not get user rank:", e);
+    return null;
+  }
 }
 
 /* =========================================================
@@ -304,6 +429,7 @@ export async function getUserRank(uid, curriculum = null) {
    ========================================================= */
 
 export async function logActivity(uid, action, meta = {}) {
+  if (!uid) return;
   try {
     const ref = collection(db, COLLECTIONS.ACTIVITY);
     await addDoc(ref, {
@@ -332,7 +458,7 @@ export async function batchWrite(operations) {
 }
 
 /* =========================================================
-   RE-EXPORTS
+   RE-EXPORTS (so features don't need to import firebase-firestore directly)
    ========================================================= */
 
 export {
@@ -344,4 +470,6 @@ export {
   orderBy,
   limit,
   Timestamp,
+  deleteField,
+  serverTimestamp,
 };

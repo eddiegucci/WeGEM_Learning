@@ -1,5 +1,5 @@
 // js/pages/compete.js
-// Compete mode — real-time multiplayer quiz via Realtime Database.
+// Compete mode — real-time multiplayer.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -19,6 +19,7 @@ import {
   computeRoomRankings,
 } from "../features/quiz-compete.js";
 import {
+  loadBanks,
   getAllSubjectsWithBankStatus,
   getBanksForUser,
 } from "../compete/index.js";
@@ -27,10 +28,6 @@ import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
 import { escapeHTML, firstName, initials, log } from "../core/utils.js";
-
-/* =========================================================
-   STATE
-   ========================================================= */
 
 const state = {
   user: null,
@@ -49,33 +46,25 @@ const state = {
   advancing: false,
 };
 
-/* =========================================================
-   DOM REFS
-   ========================================================= */
-
 const els = {
   lobbyScreen: document.getElementById("lobbyScreen"),
   waitingScreen: document.getElementById("waitingScreen"),
   playScreen: document.getElementById("playScreen"),
   finalScreen: document.getElementById("finalScreen"),
-
   createRoomBtn: document.getElementById("createRoomBtn"),
   showJoinBtn: document.getElementById("showJoinBtn"),
   joinForm: document.getElementById("joinForm"),
   joinCodeInput: document.getElementById("joinCodeInput"),
   joinRoomBtn: document.getElementById("joinRoomBtn"),
   cancelJoinBtn: document.getElementById("cancelJoinBtn"),
-
   createForm: document.getElementById("createForm"),
   createSubject: document.getElementById("createSubject"),
   createCount: document.getElementById("createCount"),
   createTime: document.getElementById("createTime"),
   confirmCreateBtn: document.getElementById("confirmCreateBtn"),
   cancelCreateBtn: document.getElementById("cancelCreateBtn"),
-
   lobbyError: document.getElementById("lobbyError"),
   lobbyErrorText: document.getElementById("lobbyErrorText"),
-
   roomCodeDisplay: document.getElementById("roomCodeDisplay"),
   copyCodeBtn: document.getElementById("copyCodeBtn"),
   leaveRoomBtn: document.getElementById("leaveRoomBtn"),
@@ -85,7 +74,6 @@ const els = {
   playerCount: document.getElementById("playerCount"),
   playerList: document.getElementById("playerList"),
   startGameBtn: document.getElementById("startGameBtn"),
-
   playMeta: document.getElementById("playMeta"),
   playCounter: document.getElementById("playCounter"),
   playTimer: document.getElementById("playTimer"),
@@ -96,21 +84,15 @@ const els = {
   playOptions: document.getElementById("playOptions"),
   playFeedback: document.getElementById("playFeedback"),
   playStatus: document.getElementById("playStatus"),
-
   finalTitle: document.getElementById("finalTitle"),
   finalWinnerScore: document.getElementById("finalWinnerScore"),
   finalWinnerName: document.getElementById("finalWinnerName"),
   finalStandings: document.getElementById("finalStandings"),
   playAgainBtn: document.getElementById("playAgainBtn"),
-
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
   userMenuBtn: document.getElementById("userMenuBtn"),
 };
-
-/* =========================================================
-   SETUP USER
-   ========================================================= */
 
 async function setupUser() {
   const user = await waitForAuth();
@@ -118,7 +100,6 @@ async function setupUser() {
     window.location.replace("login.html");
     return false;
   }
-
   state.user = user;
 
   const cached = getCachedUser();
@@ -127,7 +108,6 @@ async function setupUser() {
     user.displayName ||
     user.email?.split("@")[0] ||
     "Student";
-
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
 
@@ -138,42 +118,28 @@ async function setupUser() {
       if (doc) await cacheUser(doc);
     }
     state.userDoc = doc;
-
     if (doc?.name) {
       if (els.userAvatar) els.userAvatar.textContent = initials(doc.name);
       if (els.userNameTop) els.userNameTop.textContent = firstName(doc.name);
     }
-
     state.curriculum = doc?.curriculum || "";
     state.level = doc?.level || "";
   } catch (e) {
     log.warn("Could not load user doc:", e);
   }
-
   return true;
 }
 
-/* =========================================================
-   GET SUBJECTS + BANK STATUS
-   Returns: { "Mathematics": <bank|null>, "Biology": <bank|null>, ... }
-   ========================================================= */
-
 function getSubjectBankMap() {
   if (!state.curriculum || !state.level) return {};
-
-  // Normalize curriculum key for subjects.js
   const curriculumKey =
     state.curriculum === "CBE" || state.curriculum.toLowerCase() === "cbe"
       ? "CBE"
       : "844";
-
-  // Get subject list for the user's class
   const source = SUBJECTS_BY_CURRICULUM[curriculumKey];
   if (!source) return {};
 
   let subjects = source[state.level];
-
-  // If direct key not found, try to match by number
   if (!subjects) {
     const numMatch = String(state.level).match(/\d+/);
     if (numMatch) {
@@ -181,31 +147,22 @@ function getSubjectBankMap() {
       if (matchKey) subjects = source[matchKey];
     }
   }
-
   if (!subjects || !subjects.length) return {};
 
-  // Get bank status for each subject
   const withStatus = getAllSubjectsWithBankStatus(
     state.curriculum,
     state.level,
     subjects,
   );
-
   const map = {};
   withStatus.forEach(({ subject, bank }) => {
     map[subject] = bank;
   });
-
   return map;
 }
 
-/* =========================================================
-   POPULATE CREATE FORM
-   ========================================================= */
-
 function populateCreateSubjects() {
   if (!els.createSubject) return;
-
   const subjectMap = getSubjectBankMap();
   const subjects = Object.keys(subjectMap);
 
@@ -218,7 +175,6 @@ function populateCreateSubjects() {
     return;
   }
 
-  // Sort: subjects with a bank first, then empty ones
   const sorted = [...subjects].sort((a, b) => {
     const aHas = !!subjectMap[a];
     const bHas = !!subjectMap[b];
@@ -248,10 +204,6 @@ function showLobbyError(msg) {
 function clearLobbyError() {
   els.lobbyError?.classList.add("hidden");
 }
-
-/* =========================================================
-   SCREEN SWITCHING
-   ========================================================= */
 
 function showLobby() {
   els.lobbyScreen?.classList.remove("hidden");
@@ -287,10 +239,6 @@ function showFinal() {
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-/* =========================================================
-   CREATE ROOM
-   ========================================================= */
-
 async function handleCreateRoom() {
   clearLobbyError();
 
@@ -313,7 +261,6 @@ async function handleCreateRoom() {
   els.confirmCreateBtn.textContent = "Creating…";
 
   try {
-    // Take the first N questions, keep MCQ format
     const questions = bank.questions.slice(0, count).map((q) => ({
       question: q.q,
       options: q.options || [],
@@ -357,18 +304,10 @@ async function handleCreateRoom() {
   }
 }
 
-/* =========================================================
-   JOIN ROOM
-   ========================================================= */
-
 async function handleJoinRoom() {
   clearLobbyError();
-
   const code = (els.joinCodeInput?.value || "").trim().toUpperCase();
-
-  if (code.length !== 6) {
-    return toastErr("Please enter a 6-letter code.");
-  }
+  if (code.length !== 6) return toastErr("Please enter a 6-letter code.");
 
   els.joinRoomBtn.disabled = true;
   els.joinRoomBtn.textContent = "Joining…";
@@ -379,10 +318,8 @@ async function handleJoinRoom() {
       name: state.userDoc?.name || state.user.displayName || "Player",
       school: state.userDoc?.school || "",
     });
-
     state.roomCode = code;
     state.isHost = false;
-
     toastOk(`Joined room ${code}`);
     subscribeToCurrentRoom();
     showWaiting();
@@ -393,10 +330,6 @@ async function handleJoinRoom() {
     els.joinRoomBtn.textContent = "Join →";
   }
 }
-
-/* =========================================================
-   SUBSCRIBE TO ROOM
-   ========================================================= */
 
 function subscribeToCurrentRoom() {
   if (!state.roomCode) return;
@@ -409,11 +342,9 @@ function subscribeToCurrentRoom() {
       showLobby();
       return;
     }
-
     state.room = room;
-    if (room.settings?.secondsPerQuestion) {
+    if (room.settings?.secondsPerQuestion)
       state.timerSeconds = room.settings.secondsPerQuestion;
-    }
 
     const status = room.status;
     if (status === "waiting") {
@@ -429,14 +360,9 @@ function subscribeToCurrentRoom() {
   });
 }
 
-/* =========================================================
-   WAITING ROOM
-   ========================================================= */
-
 function renderWaitingRoom(room) {
   if (els.roomCodeDisplay)
     els.roomCodeDisplay.textContent = room.code || "------";
-
   const settings = room.settings || {};
   if (els.waitingSubject)
     els.waitingSubject.textContent = settings.subject || "—";
@@ -474,10 +400,6 @@ function renderWaitingRoom(room) {
   }
 }
 
-/* =========================================================
-   COPY CODE
-   ========================================================= */
-
 async function handleCopyCode() {
   if (!state.roomCode) return;
   try {
@@ -488,22 +410,15 @@ async function handleCopyCode() {
   }
 }
 
-/* =========================================================
-   START GAME (host only)
-   ========================================================= */
-
 async function handleStartGame() {
   if (!state.isHost || !state.roomCode) return;
-
   const ok = await confirmDialog({
     title: "Start game?",
     message: "All players must answer in real time.",
     okLabel: "Start",
     cancelLabel: "Wait",
   });
-
   if (!ok) return;
-
   try {
     await startGame(state.roomCode);
     toastOk("Game starting!");
@@ -512,10 +427,6 @@ async function handleStartGame() {
     toastErr("Could not start the game.");
   }
 }
-
-/* =========================================================
-   PLAYING ROOM
-   ========================================================= */
 
 function renderPlayingRoom(room) {
   const currentIdx = room.currentQuestionIndex;
@@ -542,7 +453,6 @@ function renderPlayingRoom(room) {
     }
   }
 
-  // Host auto-advances when everyone answered
   if (
     state.isHost &&
     !state.advancing &&
@@ -568,17 +478,14 @@ function renderPlayingRoom(room) {
 
 function renderQuestion(q, index, room) {
   if (!q) return;
-
   const settings = room.settings || {};
 
   if (els.playMeta)
     els.playMeta.textContent = `${settings.exam || ""} · ${settings.subject || ""}`;
   if (els.playCounter)
     els.playCounter.textContent = `Question ${index + 1} of ${room.questions.length}`;
-  if (els.playProgress) {
+  if (els.playProgress)
     els.playProgress.style.width = `${((index + 1) / room.questions.length) * 100}%`;
-  }
-
   if (els.playTopic)
     els.playTopic.textContent = (
       q.topic ||
@@ -613,16 +520,11 @@ function renderQuestion(q, index, room) {
   }
 }
 
-/* =========================================================
-   ANSWER
-   ========================================================= */
-
 async function handlePlayAnswer(selectedIndex, questionIndex, q) {
   if (!state.roomCode || !state.room) return;
   if (state.myAnswers[questionIndex] !== undefined) return;
 
   state.myAnswers[questionIndex] = selectedIndex;
-
   const isCorrect = selectedIndex === q.correctIndex;
 
   const options = els.playOptions?.querySelectorAll(".option") || [];
@@ -649,13 +551,8 @@ async function handlePlayAnswer(selectedIndex, questionIndex, q) {
   }
 }
 
-/* =========================================================
-   LIVE SCOREBOARD
-   ========================================================= */
-
 function renderLiveScoreboard(room) {
   if (!els.liveScoreboard) return;
-
   const rankings = computeRoomRankings(room);
 
   els.liveScoreboard.innerHTML = rankings
@@ -681,14 +578,9 @@ function renderLiveScoreboard(room) {
     .join("");
 }
 
-/* =========================================================
-   TIMER
-   ========================================================= */
-
 function startQuestionTimer() {
   clearQuestionTimer();
   state.timerEndsAt = Date.now() + state.timerSeconds * 1000;
-
   updateTimerValue(state.timerSeconds);
 
   state.timerInterval = setInterval(() => {
@@ -730,10 +622,6 @@ function clearQuestionTimer() {
     state.timerInterval = null;
   }
 }
-
-/* =========================================================
-   FINAL SCREEN
-   ========================================================= */
 
 function renderFinal() {
   const room = state.room;
@@ -786,10 +674,6 @@ function renderFinal() {
   }
 }
 
-/* =========================================================
-   LEAVE / CLEANUP
-   ========================================================= */
-
 async function handleLeaveRoom() {
   const ok = await confirmDialog({
     title: state.isHost ? "Close room?" : "Leave room?",
@@ -800,7 +684,6 @@ async function handleLeaveRoom() {
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (!ok) return;
 
   try {
@@ -829,10 +712,6 @@ function cleanupRoom() {
   if (els.roomCodeDisplay) els.roomCodeDisplay.textContent = "------";
 }
 
-/* =========================================================
-   USER MENU
-   ========================================================= */
-
 async function handleUserMenu() {
   const ok = await confirmDialog({
     title: "Sign out?",
@@ -841,7 +720,6 @@ async function handleUserMenu() {
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (ok) {
     try {
       if (state.roomCode) {
@@ -856,15 +734,12 @@ async function handleUserMenu() {
   }
 }
 
-/* =========================================================
-   INIT
-   ========================================================= */
-
 async function init() {
   const ready = await setupUser();
   if (!ready) return;
 
   initNav();
+  await loadBanks(state.curriculum, state.level);
   populateCreateSubjects();
 
   els.createRoomBtn?.addEventListener("click", () => {
@@ -879,14 +754,12 @@ async function init() {
     setTimeout(() => els.joinCodeInput?.focus(), 150);
   });
 
-  els.cancelJoinBtn?.addEventListener("click", () => {
-    els.joinForm?.classList.add("hidden");
-  });
-
-  els.cancelCreateBtn?.addEventListener("click", () => {
-    els.createForm?.classList.add("hidden");
-  });
-
+  els.cancelJoinBtn?.addEventListener("click", () =>
+    els.joinForm?.classList.add("hidden"),
+  );
+  els.cancelCreateBtn?.addEventListener("click", () =>
+    els.createForm?.classList.add("hidden"),
+  );
   els.confirmCreateBtn?.addEventListener("click", handleCreateRoom);
   els.joinRoomBtn?.addEventListener("click", handleJoinRoom);
   els.copyCodeBtn?.addEventListener("click", handleCopyCode);
@@ -898,7 +771,6 @@ async function init() {
   });
   els.userMenuBtn?.addEventListener("click", handleUserMenu);
 
-  // Uppercase join code input
   els.joinCodeInput?.addEventListener("input", (e) => {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
   });
@@ -906,8 +778,6 @@ async function init() {
   els.joinCodeInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") handleJoinRoom();
   });
-
-  log.info("Compete page ready");
 }
 
 if (document.readyState === "loading") {

@@ -1,11 +1,13 @@
 // js/pages/progress.js
-// Controller for progress.html.
+// Progress page controller.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
 import {
   cacheUser,
   getCachedUser as getCachedUserFromIDB,
+  clear,
+  STORES,
 } from "../core/cache.js";
 import {
   fetchAttempts,
@@ -14,7 +16,6 @@ import {
   chartData,
   filterByRange,
 } from "../features/progress.js";
-import { clearAllCache, STORES, clear } from "../core/cache.js";
 import { getSubjectIcon, getSubjectColor } from "../data/subjects.js";
 import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
@@ -24,13 +25,8 @@ import {
   firstName,
   initials,
   timeAgo,
-  formatDateTime,
   log,
 } from "../core/utils.js";
-
-/* =========================================================
-   STATE
-   ========================================================= */
 
 const state = {
   user: null,
@@ -39,10 +35,6 @@ const state = {
   filtered: [],
   range: "all",
 };
-
-/* =========================================================
-   DOM REFS
-   ========================================================= */
 
 const els = {
   userAvatar: document.getElementById("userAvatar"),
@@ -72,7 +64,7 @@ const els = {
 };
 
 /* =========================================================
-   SETUP USER
+   USER
    ========================================================= */
 
 async function setupUser() {
@@ -81,7 +73,6 @@ async function setupUser() {
     window.location.replace("login.html");
     return false;
   }
-
   state.user = user;
 
   const cached = getCachedUser();
@@ -109,12 +100,11 @@ async function setupUser() {
   } catch (e) {
     log.warn("Could not load user doc:", e);
   }
-
   return true;
 }
 
 /* =========================================================
-   LOAD ATTEMPTS
+   LOAD
    ========================================================= */
 
 async function loadAttempts() {
@@ -124,7 +114,6 @@ async function loadAttempts() {
     log.warn("Could not load attempts:", e);
     state.attempts = [];
   }
-
   applyRange();
 }
 
@@ -228,22 +217,19 @@ function renderChart() {
   const linePath = points
     .map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`))
     .join(" ");
+
   const areaPath = `${linePath} L ${points[points.length - 1].x} ${padTop + chartH} L ${points[0].x} ${padTop + chartH} Z`;
 
-  // Gridlines
   const gridlines = [0, 25, 50, 75, 100]
     .map((v) => {
       const y = padTop + chartH - (v / 100) * chartH;
       return `
-      <line x1="${padLeft}" y1="${y}" x2="${W - padRight}" y2="${y}"
-            stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 5"/>
-      <text x="${padLeft - 10}" y="${y + 4}" text-anchor="end"
-            fill="#6b7590" font-size="10">${v}</text>
+      <line x1="${padLeft}" y1="${y}" x2="${W - padRight}" y2="${y}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 5"/>
+      <text x="${padLeft - 10}" y="${y + 4}" text-anchor="end" fill="#6b7590" font-size="10">${v}</text>
     `;
     })
     .join("");
 
-  // Dots with hover titles
   const dots = points
     .map((p, i) => {
       const d = new Date(data[i].date || Date.now());
@@ -265,14 +251,13 @@ function renderChart() {
     </defs>
     ${gridlines}
     <path d="${areaPath}" fill="url(#areaGradient)"/>
-    <path d="${linePath}" fill="none" stroke="#fbbf24" stroke-width="2.5"
-          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${linePath}" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     ${dots}
   `;
 }
 
 /* =========================================================
-   TOPIC LIST
+   TOPICS
    ========================================================= */
 
 function renderTopics() {
@@ -438,7 +423,6 @@ async function handleClearHistory() {
     cancelLabel: "Cancel",
     danger: true,
   });
-
   if (!ok) return;
 
   try {

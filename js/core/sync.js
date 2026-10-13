@@ -1,6 +1,6 @@
 // js/core/sync.js
 // Delta sync engine for WeGEM Learning.
-// First load: fetches everything. Later loads: only changes.
+// Fixes: manifest key format now matches what seed.js writes.
 
 import {
   getContentMeta,
@@ -8,27 +8,57 @@ import {
   getNotesForLevel,
   getExamLinks,
   getLeaderboard,
+  saveAttempt,
+  updateLeaderboardEntry,
 } from "./db.js";
 import {
   cacheQuestions,
   cacheNotes,
+  cacheLeaderboard,
+  cacheAttempt,
   getCachedQuestions,
   getCachedNotes,
+  getPendingAttempts,
   setMeta,
   getMeta,
   clear,
+  remove,
   STORES,
   putMany,
 } from "./cache.js";
 import { log, isOnline } from "./utils.js";
 
 /* =========================================================
-   SYNC STATE
+   CONSTANTS
    ========================================================= */
 
 const SYNC_FLAG = "wegem_synced_once";
 const SYNC_STATUS_KEY = "wegem_sync_status";
 const MANIFEST_KEY = "content_manifest";
+
+// Default scope when no manifest exists yet.
+// Kept small — content is added via admin panel over time.
+const DEFAULT_EXAMS = ["KCSE", "KJSEA", "KPSEA"];
+const SUBJECTS_BY_EXAM = {
+  KCSE: [
+    "Mathematics",
+    "English",
+    "Kiswahili",
+    "Biology",
+    "Chemistry",
+    "Physics",
+    "Geography",
+    "History",
+    "CRE",
+    "Business Studies",
+  ],
+  KJSEA: ["Mathematics", "Integrated Science", "English"],
+  KPSEA: ["Mathematics", "English", "Science"],
+};
+
+/* =========================================================
+   SYNC STATE
+   ========================================================= */
 
 let syncing = false;
 const listeners = new Set();
@@ -38,7 +68,7 @@ function notify(status) {
     try {
       cb(status);
     } catch (e) {
-      log.error(e);
+      log.error("Sync listener error:", e);
     }
   });
 }
@@ -53,7 +83,11 @@ export function isSyncing() {
 }
 
 export function hasSyncedBefore() {
-  return localStorage.getItem(SYNC_FLAG) === "1";
+  try {
+    return localStorage.getItem(SYNC_FLAG) === "1";
+  } catch {
+    return false;
+  }
 }
 
 function markSynced() {
@@ -64,19 +98,8 @@ function markSynced() {
 }
 
 /* =========================================================
-   MANIFEST-BASED DELTA SYNC
+   MANIFEST HANDLING
    ========================================================= */
-
-/**
- * The manifest looks like:
- * {
- *   version: "2026-10-08T10:00:00Z",
- *   questions: { "KCSE-Mathematics": "2026-10-08T09:00:00Z", ... },
- *   notes: { "844-Form 4": "2026-10-08T08:00:00Z", ... },
- *   examLinks: "2026-10-08T07:00:00Z",
- *   leaderboard: "2026-10-08T06:00:00Z"
- * }
- */
 
 async function getLocalManifest() {
   const stored = await getMeta(MANIFEST_KEY);
@@ -93,6 +116,24 @@ async function getLocalManifest() {
 
 async function saveLocalManifest(manifest) {
   await setMeta(MANIFEST_KEY, manifest);
+}
+
+/**
+ * Manifest shape (what seed.js / admin panel writes):
+ * {
+ *   version: "2026-10-13T10:00:00Z",
+ *   questions: { "KCSE::Mathematics": "2026-10-13T09:00:00Z", ... },
+ *   notes: { "844::Form 4": "2026-10-13T08:00:00Z", ... },
+ *   examLinks: "2026-10-13T07:00:00Z",
+ *   leaderboard: "2026-10-13T06:00:00Z"
+ * }
+ */
+function detectChanges(local = {}, remote = {}) {
+  const changed = [];
+  for (const key of Object.keys(remote)) {
+    if (local[key] !== remote[key]) changed.push(key);
+  }
+  return changed;
 }
 
 /* =========================================================
@@ -112,7 +153,6 @@ export async function syncContent({
   }
 
   if (!isOnline()) {
-    log.info("Offline, using cache only");
     notify({ state: "offline" });
     return { offline: true };
   }
@@ -129,6 +169,9 @@ export async function syncContent({
   };
 
   try {
+    // First: flush any pending offline attempts to Firestore.
+    await flushPendingAttempts();
+
     const isFirstSync = !hasSyncedBefore();
     const localManifest = await getLocalManifest();
 
@@ -136,68 +179,65 @@ export async function syncContent({
     try {
       remoteManifest = await getContentMeta();
     } catch (e) {
-      log.warn("Could not fetch manifest, using local cache only:", e);
-      notify({ state: "error", error: e });
-      return { ...result, error: "manifest-failed" };
+      log.warn("Could not fetch manifest:", e);
     }
 
-    // If first sync, or forced, or no manifest — do a full sync
+    // Full sync on first run, forced, or no remote manifest.
     if (isFirstSync || force || !remoteManifest || !localManifest.version) {
       log.info("Performing full sync");
       result.fullSync = true;
-      await fullSync({ exam, subject, curriculum, level });
+      const counts = await fullSync({ exam, subject, curriculum, level });
+      result.questionsUpdated = counts.questions;
+      result.notesUpdated = counts.notes;
+      result.examLinksUpdated = counts.examLinks;
+      result.leaderboardUpdated = counts.leaderboard;
       if (remoteManifest) await saveLocalManifest(remoteManifest);
       markSynced();
       notify({ state: "done", fullSync: true });
       return result;
     }
 
-    // Otherwise, only fetch what changed
+    // Up to date?
     if (remoteManifest.version === localManifest.version) {
-      log.info("Already up to date");
       notify({ state: "done", upToDate: true });
       return result;
     }
 
+    // Delta sync
     log.info("Performing delta sync");
 
-    // Questions changed?
     const questionsChanged = detectChanges(
       localManifest.questions,
       remoteManifest.questions,
     );
-    if (questionsChanged.length) {
-      for (const key of questionsChanged) {
-        const [examKey, subjectKey] = key.split("::");
-        try {
-          const qs = await getQuestionsForSubject(examKey, subjectKey);
-          await cacheQuestions(qs);
-          result.questionsUpdated += qs.length;
-        } catch (e) {
-          log.warn(`Could not sync questions for ${key}:`, e);
-        }
+    for (const key of questionsChanged) {
+      const [examKey, subjectKey] = key.split("::");
+      if (!examKey || !subjectKey) continue;
+      try {
+        const qs = await getQuestionsForSubject(examKey, subjectKey);
+        await cacheQuestions(qs);
+        result.questionsUpdated += qs.length;
+      } catch (e) {
+        log.warn(`Sync questions failed for ${key}:`, e);
       }
     }
 
-    // Notes changed?
     const notesChanged = detectChanges(
       localManifest.notes,
       remoteManifest.notes,
     );
-    if (notesChanged.length) {
-      for (const key of notesChanged) {
-        const [currKey, levelKey] = key.split("::");
-        try {
-          const ns = await getNotesForLevel(currKey, levelKey);
-          await cacheNotes(ns);
-          result.notesUpdated += ns.length;
-        } catch (e) {
-          log.warn(`Could not sync notes for ${key}:`, e);
-        }
+    for (const key of notesChanged) {
+      const [currKey, levelKey] = key.split("::");
+      if (!currKey || !levelKey) continue;
+      try {
+        const ns = await getNotesForLevel(currKey, levelKey);
+        await cacheNotes(ns);
+        result.notesUpdated += ns.length;
+      } catch (e) {
+        log.warn(`Sync notes failed for ${key}:`, e);
       }
     }
 
-    // Exam links changed?
     if (remoteManifest.examLinks !== localManifest.examLinks) {
       try {
         const links = await getExamLinks();
@@ -207,19 +247,17 @@ export async function syncContent({
         );
         result.examLinksUpdated = links.length;
       } catch (e) {
-        log.warn("Could not sync exam links:", e);
+        log.warn("Sync exam links failed:", e);
       }
     }
 
-    // Leaderboard changed?
     if (remoteManifest.leaderboard !== localManifest.leaderboard) {
       try {
         const lb = await getLeaderboard(100);
-        const { cacheLeaderboard } = await import("./cache.js");
         await cacheLeaderboard(lb);
         result.leaderboardUpdated = lb.length;
       } catch (e) {
-        log.warn("Could not sync leaderboard:", e);
+        log.warn("Sync leaderboard failed:", e);
       }
     }
 
@@ -237,65 +275,109 @@ export async function syncContent({
 }
 
 /* =========================================================
-   FULL SYNC (first launch or forced)
+   OFFLINE ATTEMPT FLUSH
+   ========================================================= */
+
+export async function flushPendingAttempts() {
+  if (!isOnline()) return { flushed: 0 };
+
+  let pending = [];
+  try {
+    pending = await getPendingAttempts();
+  } catch {
+    return { flushed: 0 };
+  }
+
+  if (!pending.length) return { flushed: 0 };
+
+  // Group by uid — we only flush the current user's attempts.
+  const byUid = {};
+  pending.forEach((a) => {
+    if (!a.uid) return;
+    if (!byUid[a.uid]) byUid[a.uid] = [];
+    byUid[a.uid].push(a);
+  });
+
+  let flushed = 0;
+
+  for (const uid of Object.keys(byUid)) {
+    for (const attempt of byUid[uid]) {
+      try {
+        const cloudId = await saveAttempt(uid, attempt);
+        // Remove the local copy, replace with cloud-id one
+        await remove(STORES.ATTEMPTS, attempt.id);
+        await cacheAttempt({ ...attempt, id: cloudId, synced: true });
+
+        await updateLeaderboardEntry(uid, {
+          scoreDelta: attempt.score || 0,
+          quizDelta: 1,
+          correctDelta: attempt.correct || 0,
+          totalDelta: attempt.total || 0,
+        });
+
+        flushed += 1;
+      } catch (e) {
+        log.warn("Could not flush attempt:", e);
+      }
+    }
+  }
+
+  if (flushed) log.info(`Flushed ${flushed} offline attempts`);
+  return { flushed };
+}
+
+/* =========================================================
+   FULL SYNC
    ========================================================= */
 
 async function fullSync({ exam, subject, curriculum, level } = {}) {
   log.info("Full sync starting");
 
-  // Default scope if not provided
-  const exams = exam ? [exam] : ["KCSE", "KJSEA", "KPSEA"];
-  const subjectsByExam = {
-    KCSE: subject
-      ? [subject]
-      : [
-          "Mathematics",
-          "English",
-          "Kiswahili",
-          "Biology",
-          "Chemistry",
-          "Physics",
-          "Geography",
-          "History",
-          "CRE",
-          "Business",
-        ],
-    KJSEA: subject
-      ? [subject]
-      : ["Mathematics", "Integrated Science", "English"],
-    KPSEA: subject ? [subject] : ["Mathematics", "English", "Science"],
-  };
+  const exams = exam ? [exam] : DEFAULT_EXAMS;
   const curriculumList = curriculum ? [curriculum] : ["844", "CBE"];
-  const levelsByCurriculum = {
-    844: level ? [level] : ["Form 1", "Form 2", "Form 3", "Form 4"],
-    CBE: level ? [level] : ["Grade 7", "Grade 8", "Grade 9"],
-  };
 
-  // Fetch questions
+  let questions = 0;
+  let notes = 0;
+  let examLinks = 0;
+  let leaderboard = 0;
+
   for (const e of exams) {
-    for (const s of subjectsByExam[e] || []) {
+    const subjects = subject ? [subject] : SUBJECTS_BY_EXAM[e] || [];
+    for (const s of subjects) {
       try {
         const qs = await getQuestionsForSubject(e, s);
-        if (qs.length) await cacheQuestions(qs);
-      } catch (err) {
-        log.warn(`Full sync: questions failed for ${e}/${s}:`, err);
+        if (qs.length) {
+          await cacheQuestions(qs);
+          questions += qs.length;
+        }
+      } catch (e2) {
+        log.warn(`Full sync questions failed ${e}/${s}:`, e2);
       }
     }
   }
 
-  // Fetch notes
   for (const c of curriculumList) {
-    for (const lv of levelsByCurriculum[c] || []) {
+    const levelKeys =
+      c === "844"
+        ? level
+          ? [level]
+          : ["Form 1", "Form 2", "Form 3", "Form 4"]
+        : level
+          ? [level]
+          : ["Grade 7", "Grade 8", "Grade 9"];
+    for (const lv of levelKeys) {
       try {
         const ns = await getNotesForLevel(c, lv);
-        if (ns.length) await cacheNotes(ns);
-      } catch (err) {
-        log.warn(`Full sync: notes failed for ${c}/${lv}:`, err);
+        if (ns.length) {
+          await cacheNotes(ns);
+          notes += ns.length;
+        }
+      } catch (e2) {
+        log.warn(`Full sync notes failed ${c}/${lv}:`, e2);
       }
     }
   }
 
-  // Exam links
   try {
     const links = await getExamLinks();
     if (links.length) {
@@ -303,33 +385,24 @@ async function fullSync({ exam, subject, curriculum, level } = {}) {
         STORES.CONTENT,
         links.map((l) => ({ ...l, type: "examLink" })),
       );
+      examLinks = links.length;
     }
-  } catch (err) {
-    log.warn("Full sync: exam links failed:", err);
+  } catch (e2) {
+    log.warn("Full sync exam links failed:", e2);
   }
 
-  // Leaderboard
   try {
     const lb = await getLeaderboard(100);
-    const { cacheLeaderboard } = await import("./cache.js");
-    if (lb.length) await cacheLeaderboard(lb);
-  } catch (err) {
-    log.warn("Full sync: leaderboard failed:", err);
+    if (lb.length) {
+      await cacheLeaderboard(lb);
+      leaderboard = lb.length;
+    }
+  } catch (e2) {
+    log.warn("Full sync leaderboard failed:", e2);
   }
 
   log.info("Full sync complete");
-}
-
-/* =========================================================
-   HELPERS
-   ========================================================= */
-
-function detectChanges(local = {}, remote = {}) {
-  const changed = [];
-  for (const key of Object.keys(remote)) {
-    if (local[key] !== remote[key]) changed.push(key);
-  }
-  return changed;
+  return { questions, notes, examLinks, leaderboard };
 }
 
 /* =========================================================
@@ -345,11 +418,12 @@ export function scheduleBackgroundSync() {
   }, 2000);
 }
 
-export function forceFullSync() {
+export async function forceFullSync() {
   try {
     localStorage.removeItem(SYNC_FLAG);
   } catch {}
-  return clear(STORES.CONTENT).then(() => syncContent({ force: true }));
+  await clear(STORES.CONTENT);
+  return syncContent({ force: true });
 }
 
 /* =========================================================

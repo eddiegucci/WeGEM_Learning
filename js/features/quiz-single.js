@@ -1,5 +1,5 @@
 // js/features/quiz-single.js
-// Solo quiz flow for WeGEM Learning.
+// Solo quiz flow. Handles fetch, save, and offline re-sync.
 
 import {
   buildQuiz,
@@ -11,35 +11,35 @@ import {
   getWeakTopics,
   scoreLabel,
 } from "./quiz-engine.js";
-import { saveAttempt, updateLeaderboardEntry } from "../core/db.js";
-import { cacheAttempt } from "../core/cache.js";
-import { getQuestionsForSubject } from "../core/db.js";
-import { getCachedQuestions } from "../core/cache.js";
-import { toast, toastOk, toastErr } from "../ui/toast.js";
+import {
+  saveAttempt,
+  updateLeaderboardEntry,
+  getQuestionsForSubject,
+} from "../core/db.js";
+import {
+  cacheAttempt,
+  cacheQuestions,
+  getCachedQuestions,
+} from "../core/cache.js";
 import { log, isOnline } from "../core/utils.js";
 
 /* =========================================================
-   FETCH QUESTIONS (cache-first)
+   FETCH QUESTIONS — cache first
    ========================================================= */
 
 export async function fetchQuestions({ exam, subject, count = 10 }) {
   let questions = [];
 
-  // Try cache first
   try {
     questions = await getCachedQuestions(exam, subject);
   } catch (e) {
     log.warn("Cache read failed:", e);
   }
 
-  // If cache is empty and online, fetch from Firestore
   if (!questions.length && isOnline()) {
     try {
       questions = await getQuestionsForSubject(exam, subject);
-      if (questions.length) {
-        const { cacheQuestions } = await import("../core/cache.js");
-        await cacheQuestions(questions);
-      }
+      if (questions.length) await cacheQuestions(questions);
     } catch (e) {
       log.warn("Firestore fetch failed:", e);
     }
@@ -53,7 +53,7 @@ export async function fetchQuestions({ exam, subject, count = 10 }) {
 }
 
 /* =========================================================
-   RUN QUIZ
+   FLOW WRAPPERS
    ========================================================= */
 
 export function startQuiz(quiz) {
@@ -77,11 +77,12 @@ export function complete(state) {
 }
 
 /* =========================================================
-   SAVE ATTEMPT
+   PERSIST ATTEMPT
    ========================================================= */
 
 export async function persistAttempt(uid, { exam, subject, result }) {
   const attempt = {
+    uid,
     exam,
     subject,
     correct: result.correct,
@@ -92,40 +93,45 @@ export async function persistAttempt(uid, { exam, subject, result }) {
     mode: "practice",
   };
 
-  // Save to Firestore
   let savedToCloud = false;
+
   if (uid && isOnline()) {
     try {
       const id = await saveAttempt(uid, attempt);
       attempt.id = id;
       savedToCloud = true;
 
-      // Update leaderboard
-      await updateLeaderboardEntry(uid, {
-        scoreDelta: result.score,
-        quizDelta: 1,
-        correctDelta: result.correct,
-        totalDelta: result.total,
-      });
+      try {
+        await updateLeaderboardEntry(uid, {
+          scoreDelta: result.score,
+          quizDelta: 1,
+          correctDelta: result.correct,
+          totalDelta: result.total,
+        });
+      } catch (e) {
+        log.warn("Leaderboard update failed:", e);
+      }
     } catch (e) {
-      log.warn("Could not save attempt to cloud:", e);
+      log.warn("Cloud save failed, will retry on sync:", e);
     }
   }
 
-  // Always save to IndexedDB
+  // Always cache locally. If it never reached the cloud, mark as pending.
   attempt.id = attempt.id || "local_" + Date.now();
   attempt.createdAt = new Date().toISOString();
+  attempt.pending = !savedToCloud;
+
   try {
     await cacheAttempt(attempt);
   } catch (e) {
-    log.warn("Could not cache attempt:", e);
+    log.warn("Local cache failed:", e);
   }
 
   return { attempt, savedToCloud };
 }
 
 /* =========================================================
-   RESULTS HELPERS
+   RESULTS SUMMARY
    ========================================================= */
 
 export function getResultsSummary(result) {

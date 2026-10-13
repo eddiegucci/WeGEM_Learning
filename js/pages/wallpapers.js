@@ -1,5 +1,5 @@
 // js/pages/wallpapers.js
-// Controller for wallpapers.html.
+// Wallpapers page controller.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -27,10 +27,6 @@ import {
   lsSet,
 } from "../core/utils.js";
 
-/* =========================================================
-   STATE
-   ========================================================= */
-
 const state = {
   user: null,
   userDoc: null,
@@ -39,10 +35,6 @@ const state = {
 };
 
 const STORAGE_KEY = "wegem_wallpaper";
-
-/* =========================================================
-   DOM REFS
-   ========================================================= */
 
 const els = {
   userAvatar: document.getElementById("userAvatar"),
@@ -53,17 +45,12 @@ const els = {
   resetWallpaperBtn: document.getElementById("resetWallpaperBtn"),
 };
 
-/* =========================================================
-   SETUP USER
-   ========================================================= */
-
 async function setupUser() {
   const user = await waitForAuth();
   if (!user) {
     window.location.replace("login.html");
     return false;
   }
-
   state.user = user;
 
   const cached = getCachedUser();
@@ -91,12 +78,11 @@ async function setupUser() {
   } catch (e) {
     log.warn("Could not load user doc:", e);
   }
-
   return true;
 }
 
 /* =========================================================
-   LOAD SAVED WALLPAPER
+   WALLPAPER STATE
    ========================================================= */
 
 function loadSavedWallpaper() {
@@ -148,7 +134,7 @@ function renderCategoryBar() {
 }
 
 /* =========================================================
-   WALLPAPER GRID
+   GRID
    ========================================================= */
 
 function renderWallpaperGrid() {
@@ -198,20 +184,16 @@ function renderWallpaperGrid() {
 }
 
 /* =========================================================
-   SELECT WALLPAPER
+   SELECT
    ========================================================= */
 
 function handleSelectWallpaper(id) {
   const wallpaper = getWallpaperById(id);
   if (!wallpaper) return;
 
-  // Apply
   applyWallpaperToPage(wallpaper.url);
   saveWallpaper(wallpaper);
-
-  // Update UI
   renderWallpaperGrid();
-
   toastOk(`✓ ${wallpaper.name} applied`);
 }
 
@@ -226,7 +208,6 @@ async function handleReset() {
     okLabel: "Reset",
     cancelLabel: "Cancel",
   });
-
   if (!ok) return;
 
   const def = getDefaultWallpaper();
@@ -275,7 +256,6 @@ async function init() {
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
     els.resetWallpaperBtn?.addEventListener("click", handleReset);
 
-    // Apply current wallpaper (in case it wasn't set on page load)
     const current =
       getWallpaperById(state.currentWallpaperId) || getDefaultWallpaper();
     applyWallpaperToPage(current.url);

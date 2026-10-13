@@ -1,0 +1,115 @@
+/* =========================================================
+   WeGEM Learning — tokens.css
+   Single source of truth for all design values.
+   ========================================================= */
+
+:root {
+  /* ---------- SURFACES ---------- */
+  --bg: #060a15;
+  --bg-deep: #04060f;
+  --surface: rgba(14, 20, 37, 0.85);
+  --surface-solid: #0e1425;
+  --surface-raised: rgba(19, 26, 46, 0.96);
+  --nav-bg: rgba(10, 16, 32, 0.9);
+
+  /* ---------- BORDERS ---------- */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hi: rgba(255, 255, 255, 0.14);
+  --border-gold: rgba(251, 191, 36, 0.28);
+
+  /* ---------- TEXT ---------- */
+  --text: #eef2ff;
+  --text-dim: #a3aec6;
+  --text-mute: #6b7590;
+  --text-inverse: #06070a;
+
+  /* ---------- BRAND (3 colors only) ---------- */
+  --gold: #fbbf24;
+  --gold-2: #f59e0b;
+  --gold-soft: rgba(251, 191, 36, 0.12);
+  --gold-glow: rgba(251, 191, 36, 0.4);
+
+  --success: #10b981;
+  --success-2: #34d399;
+  --success-soft: rgba(16, 185, 129, 0.12);
+
+  --danger: #ef4444;
+  --danger-2: #fca5a5;
+  --danger-soft: rgba(239, 68, 68, 0.12);
+
+  --warn: #f59e0b;
+  --warn-soft: rgba(249, 115, 22, 0.12);
+
+  /* Subject accent colors — used only in subject labels/icons */
+  --subject-mathematics: #fbbf24;
+  --subject-english: #3b82f6;
+  --subject-kiswahili: #ef4444;
+  --subject-biology: #10b981;
+  --subject-chemistry: #14b8a6;
+  --subject-physics: #8b5cf6;
+  --subject-geography: #22c55e;
+  --subject-history: #f97316;
+  --subject-cre: #a855f7;
+  --subject-ire: #06b6d4;
+  --subject-business: #ec4899;
+  --subject-agriculture: #84cc16;
+  --subject-computer: #06b6d4;
+  --subject-default: #fbbf24;
+
+  /* ---------- SPACING (8 steps) ---------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* ---------- RADII (3 sizes + pill) ---------- */
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 100px;
+
+  /* ---------- SHADOWS (3 levels) ---------- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+
+  /* ---------- TYPOGRAPHY (6 sizes) ---------- */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-2xl: 36px;
+
+  /* ---------- FONTS ---------- */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+  /* ---------- MOTION (1 easing, 3 durations) ---------- */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --fast: 150ms;
+  --base: 250ms;
+  --slow: 400ms;
+
+  /* ---------- Z-INDEX ---------- */
+  --z-base: 1;
+  --z-nav: 100;
+  --z-backdrop: 299;
+  --z-tray: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  /* ---------- LAYOUT ---------- */
+  --top-nav-height: 56px;
+  --mobile-nav-height: 68px;
+  --container-max: 1200px;
+
+  /* ---------- WALLPAPER (set by JS) ---------- */
+  --wallpaper: none;
+}

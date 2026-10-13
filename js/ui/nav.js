@@ -1,13 +1,13 @@
 // js/ui/nav.js
-// Top navigation behavior for WeGEM Learning.
+// Top navigation. Does NOT wire the user menu — pages own that.
 
-import { onAuthChange, getCachedUser, signOutNow } from "../core/auth.js";
+import { onAuthChange, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
 import {
   cacheUser,
   getCachedUser as getCachedUserFromIDB,
 } from "../core/cache.js";
-import { getCurrentPage, goTo } from "../core/router.js";
+import { getCurrentPage } from "../core/router.js";
 import { initials, firstName, log } from "../core/utils.js";
 
 /* =========================================================
@@ -30,14 +30,12 @@ export function markActiveLink() {
 }
 
 /* =========================================================
-   UPDATE USER CHIP
+   FILL USER CHIP
    ========================================================= */
 
 async function fillUserChip(user) {
   const avatarEl = document.getElementById("userAvatar");
   const nameEl = document.getElementById("userNameTop");
-  const menuBtn = document.getElementById("userMenuBtn");
-
   if (!avatarEl && !nameEl) return;
 
   if (!user) {
@@ -46,7 +44,6 @@ async function fillUserChip(user) {
     return;
   }
 
-  // Show cached display name immediately
   const cached = getCachedUser();
   const displayName =
     cached?.displayName || cached?.email?.split("@")[0] || "Student";
@@ -54,7 +51,6 @@ async function fillUserChip(user) {
   if (avatarEl) avatarEl.textContent = initials(displayName);
   if (nameEl) nameEl.textContent = firstName(displayName);
 
-  // Try to enrich from Firestore
   try {
     let doc = await getCachedUserFromIDB(user.uid);
     if (!doc) {
@@ -68,44 +64,14 @@ async function fillUserChip(user) {
   } catch (e) {
     log.warn("Could not enrich user chip:", e);
   }
-
-  // Wire up sign-out
-  if (menuBtn && !menuBtn._wired) {
-    menuBtn._wired = true;
-    menuBtn.addEventListener("click", handleUserMenuClick);
-  }
 }
 
 /* =========================================================
-   USER MENU CLICK
-   ========================================================= */
-
-async function handleUserMenuClick() {
-  const user = getCachedUser();
-  const label = user?.displayName || user?.email || "Student";
-
-  const choice = window.confirm(
-    `Signed in as ${label}\n\nOK = Sign out\nCancel = Stay signed in`,
-  );
-
-  if (choice) {
-    try {
-      await signOutNow();
-      goTo("login.html", true);
-    } catch (e) {
-      log.error("Sign out failed:", e);
-      alert("Could not sign out. Try again.");
-    }
-  }
-}
-
-/* =========================================================
-   MOBILE NAV — swipe-up gesture from bottom bar
+   MOBILE SWIPE (bottom nav → scroll to top)
    ========================================================= */
 
 function installMobileSwipe() {
   if (!("ontouchstart" in window)) return;
-
   const nav = document.querySelector(".top-nav");
   if (!nav) return;
 
@@ -128,7 +94,6 @@ function installMobileSwipe() {
       const deltaY = startY - endY;
       const duration = Date.now() - startTime;
 
-      // Fast swipe up (over 50px in under 300ms) triggers "back to top"
       if (deltaY > 50 && duration < 300) {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -150,6 +115,5 @@ export function initNav() {
 
   installMobileSwipe();
 
-  // Keep active link in sync on route changes
   window.addEventListener("popstate", markActiveLink);
 }

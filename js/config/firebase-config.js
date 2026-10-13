@@ -15,5 +15,5 @@ export const firebaseConfig = {
 /* Firebase services used by WeGEM:
    - Authentication (email + password)
    - Firestore (users, content, rankings)
-   - Realtime Database (live compete quiz) — optional
+   - Realtime Database (live compete quiz)
 */
