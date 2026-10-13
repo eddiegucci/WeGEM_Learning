@@ -23,12 +23,19 @@
   --text-mute: #6b7590;
   --text-inverse: #06070a;
 
-  /* ---------- BRAND (3 colors only) ---------- */
+  /* ---------- BRAND — PRIMARY (gold) ---------- */
   --gold: #fbbf24;
   --gold-2: #f59e0b;
   --gold-soft: rgba(251, 191, 36, 0.12);
   --gold-glow: rgba(251, 191, 36, 0.4);
 
+  /* ---------- BRAND — SECONDARY (blue/cyan, matches logo) ---------- */
+  --brand-blue: #3b82f6;
+  --brand-cyan: #06b6d4;
+  --brand-blue-soft: rgba(59, 130, 246, 0.12);
+  --brand-gradient: linear-gradient(135deg, #3b82f6, #06b6d4);
+
+  /* ---------- STATUS ---------- */
   --success: #10b981;
   --success-2: #34d399;
   --success-soft: rgba(16, 185, 129, 0.12);
@@ -40,7 +47,7 @@
   --warn: #f59e0b;
   --warn-soft: rgba(249, 115, 22, 0.12);
 
-  /* Subject accent colors — used only in subject labels/icons */
+  /* ---------- SUBJECT ACCENTS (only for subject chips/icons) ---------- */
   --subject-mathematics: #fbbf24;
   --subject-english: #3b82f6;
   --subject-kiswahili: #ef4444;
@@ -66,18 +73,18 @@
   --sp-7: 48px;
   --sp-8: 64px;
 
-  /* ---------- RADII (3 sizes + pill) ---------- */
+  /* ---------- RADII ---------- */
   --radius-sm: 8px;
   --radius: 14px;
   --radius-lg: 20px;
   --radius-pill: 100px;
 
-  /* ---------- SHADOWS (3 levels) ---------- */
+  /* ---------- SHADOWS ---------- */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
 
-  /* ---------- TYPOGRAPHY (6 sizes) ---------- */
+  /* ---------- TYPOGRAPHY ---------- */
   --text-xs: 11px;
   --text-sm: 13px;
   --text-base: 15px;
@@ -91,7 +98,7 @@
     "Helvetica Neue", Arial, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 
-  /* ---------- MOTION (1 easing, 3 durations) ---------- */
+  /* ---------- MOTION ---------- */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --fast: 150ms;
   --base: 250ms;

@@ -52,7 +52,10 @@
 }
 
 .top-nav-brand span:last-child {
-  color: #fff;
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .top-nav-links {
