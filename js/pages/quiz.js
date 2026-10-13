@@ -128,7 +128,7 @@ async function setupUser() {
 }
 
 /* =========================================================
-   LOAD QUIZZES — CRITICAL: await loadQuizzes before using data
+   LOAD QUIZZES — awaits loadQuizzes BEFORE using data
    ========================================================= */
 
 async function loadAll() {
@@ -181,7 +181,7 @@ function populateSubjects() {
     })
     .join("");
 
-  // Prefer the first subject WITH a quiz
+  // Prefer the first subject that HAS a quiz
   const firstWithQuiz = sorted.find((s) => subjectsWithQuiz.has(s));
   state.subject = firstWithQuiz || sorted[0];
 
