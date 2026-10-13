@@ -22,12 +22,25 @@ const STATIC_ASSETS = [
   "/wallpapers.html",
   "/settings.html",
   "/admin.html",
+
+  // CSS
   "/css/tokens.css",
   "/css/base.css",
   "/css/layout.css",
   "/css/components.css",
   "/css/pages.css",
   "/css/mobile.css",
+
+  // Icons
+  "/favicon.ico",
+  "/assets/icons/favicon.svg",
+  "/assets/icons/favicon-96x96.png",
+  "/assets/icons/apple-touch-icon.png",
+  "/assets/icons/icon-192.png",
+  "/assets/icons/icon-512.png",
+  "/assets/icons/icon-maskable-512.png",
+
+  // Manifest
   "/manifest.webmanifest",
 ];
 
@@ -83,7 +96,7 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // Skip Firebase, Unsplash, and 3rd-party
+  // Skip Firebase, Unsplash, and 3rd-party hosts
   if (
     url.hostname.includes("firebase") ||
     url.hostname.includes("googleapis") ||
