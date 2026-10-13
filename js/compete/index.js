@@ -1,5 +1,8 @@
 // js/compete/index.js
-// Lazy-loaded compete registry. Only loads current user's curriculum.
+// Lazy-loaded compete registry.
+// Loads only the current user's curriculum.
+// Resolves all module paths to absolute URLs so dynamic import works
+// regardless of what page calls it.
 
 import { SUBJECTS_BY_CURRICULUM } from "../data/subjects.js";
 
@@ -24,7 +27,7 @@ export function resolveUserClass(curriculum, level) {
     const m = lvl.match(/^grade\s*(\d+)$/);
     if (m) {
       const n = parseInt(m[1], 10);
-      if (n >= 7 && n <= 9) {
+      if (n >= 6 && n <= 12) {
         return {
           curriculum: "cbe",
           classId: `grade-${n}`,
@@ -54,6 +57,19 @@ export function resolveUserClass(curriculum, level) {
 }
 
 /* =========================================================
+   PATH RESOLUTION
+   "./844/form-1/english.js" → "/js/compete/844/form-1/english.js"
+   ========================================================= */
+
+function toAbsoluteUrl(relativePath) {
+  let clean = String(relativePath || "").trim();
+  if (clean.startsWith("./")) clean = clean.slice(2);
+  if (clean.startsWith("/")) clean = clean.slice(1);
+
+  return new URL(`/js/compete/${clean}`, window.location.origin).href;
+}
+
+/* =========================================================
    LAZY LOADER
    ========================================================= */
 
@@ -63,13 +79,21 @@ async function loadModulesForCurriculum(curriculumKey) {
   const prefix = curriculumKey === "cbe" ? "./cbe/" : "./844/";
   const paths = COMPETE_PATHS.filter((p) => p.startsWith(prefix));
 
+  if (!paths.length) {
+    console.warn(`[compete] No paths listed for ${curriculumKey}`);
+    return [];
+  }
+
   const modules = await Promise.all(
-    paths.map((p) =>
-      import(/* @vite-ignore */ p).catch((err) => {
-        console.warn("[compete] Failed to load:", p, err);
+    paths.map(async (p) => {
+      const url = toAbsoluteUrl(p);
+      try {
+        return await import(url);
+      } catch (err) {
+        console.warn(`[compete] Failed to load: ${url}`, err.message || err);
         return null;
-      }),
-    ),
+      }
+    }),
   );
 
   return modules.filter((m) => m && m.default).map((m) => m.default);
@@ -97,6 +121,9 @@ export async function loadBanks(curriculum, level) {
 
   try {
     _BANKS = await _loadingPromise;
+    console.log(
+      `[compete] Loaded ${_BANKS.length} banks for ${resolved.curriculum}`,
+    );
   } catch (e) {
     console.warn("[compete] Failed to load banks:", e);
     _BANKS = [];

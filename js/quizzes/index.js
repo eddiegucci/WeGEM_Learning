@@ -1,6 +1,8 @@
 ﻿// js/quizzes/index.js
 // Lazy-loaded quiz registry.
-// Only loads the curriculum the current user belongs to.
+// Loads only the current user's curriculum.
+// Resolves all module paths to absolute URLs so dynamic import works
+// regardless of what page calls it.
 
 import { SUBJECTS_BY_CURRICULUM } from "../data/subjects.js";
 
@@ -25,7 +27,7 @@ export function resolveUserClass(curriculum, level) {
     const m = lvl.match(/^grade\s*(\d+)$/);
     if (m) {
       const n = parseInt(m[1], 10);
-      if (n >= 7 && n <= 9) {
+      if (n >= 6 && n <= 12) {
         return {
           curriculum: "cbe",
           classId: `grade-${n}`,
@@ -55,23 +57,46 @@ export function resolveUserClass(curriculum, level) {
 }
 
 /* =========================================================
-   LAZY LOADER — only loads the user's curriculum
+   PATH RESOLUTION
+   Converts "./844/form-1/english-1.js" → "/js/quizzes/844/form-1/english-1.js"
+   ========================================================= */
+
+function toAbsoluteUrl(relativePath) {
+  // Strip leading "./" if present
+  let clean = String(relativePath || "").trim();
+  if (clean.startsWith("./")) clean = clean.slice(2);
+  if (clean.startsWith("/")) clean = clean.slice(1);
+
+  // Build absolute URL
+  return new URL(`/js/quizzes/${clean}`, window.location.origin).href;
+}
+
+/* =========================================================
+   LAZY LOADER
    ========================================================= */
 
 async function loadModulesForCurriculum(curriculumKey) {
   const { PUBLISHED_PATHS } = await import("./_published.js");
 
-  // Filter paths by the prefix for the current curriculum.
   const prefix = curriculumKey === "cbe" ? "./cbe/" : "./844/";
   const paths = PUBLISHED_PATHS.filter((p) => p.startsWith(prefix));
 
+  if (!paths.length) {
+    console.warn(`[quiz] No paths listed for ${curriculumKey}`);
+    return [];
+  }
+
   const modules = await Promise.all(
-    paths.map((p) =>
-      import(/* @vite-ignore */ p).catch((err) => {
-        console.warn("[quiz] Failed to load:", p, err);
+    paths.map(async (p) => {
+      const url = toAbsoluteUrl(p);
+      try {
+        return await import(url);
+      } catch (err) {
+        // 404s are expected until content is written — log at debug level
+        console.warn(`[quiz] Failed to load: ${url}`, err.message || err);
         return null;
-      }),
-    ),
+      }
+    }),
   );
 
   return modules.filter((m) => m && m.default).map((m) => m.default);
@@ -101,6 +126,9 @@ export async function loadQuizzes(curriculum, level) {
 
   try {
     _QUIZZES = await _loadingPromise;
+    console.log(
+      `[quiz] Loaded ${_QUIZZES.length} quizzes for ${resolved.curriculum}`,
+    );
   } catch (e) {
     console.warn("[quiz] Failed to load quizzes:", e);
     _QUIZZES = [];
