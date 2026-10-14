@@ -1,19 +1,14 @@
-﻿// js/compete/844/form-4/computer-studies.js
-// Compete question bank for Computer Studies (Form 4)
-// Format: MCQ with points + time limit per question.
-
-export default {
-  exam: "KCSE",
+﻿export default {
   subject: "Computer Studies",
-  grade: "Form 4",
-  class: "form-4",
+  exam: "KCSE",
   curriculum: "844",
+  class: "form-4",
+  grade: "Form 4",
+  status: "published",
   title: "Computer Studies — Compete Bank",
   description: "Real-time MCQ bank for compete mode.",
-  status: "draft", // change to "published" when ready
-  updatedAt: "2026-10-13",
+  updatedAt: "2026-10-14",
   version: "1.0",
-
   questions: [
     {
       q: "Which generation of computers used vacuum tubes?",
