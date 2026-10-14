@@ -1,7 +1,5 @@
 // js/features/quiz-compete.js
 // Real-time multiplayer quiz via Firebase Realtime Database.
-// Answers are NOT shipped to clients — verification is client-side
-// for now (see note at bottom of file).
 
 import {
   initializeApp,
@@ -16,6 +14,7 @@ import {
   remove,
   onValue,
   off,
+  onDisconnect,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 import { firebaseConfig } from "../config/firebase-config.js";
@@ -64,14 +63,14 @@ export async function createRoom({ host, questions, settings = {} }) {
 
   for (let attempt = 0; attempt < 5; attempt++) {
     roomCode = generateRoomCode();
-    roomRef = ref(rtdb, `rooms/${roomCode}`);
+    roomRef = ref(rtdb, "rooms/" + roomCode);
     existing = await get(roomRef);
     if (!existing.exists()) break;
 
     const data = existing.val();
     const age = Date.now() - (data.createdAt || 0);
     if (age > MAX_ROOM_AGE_MS) {
-      await remove(roomRef).catch(() => {});
+      await remove(roomRef).catch(function () {});
       break;
     }
   }
@@ -80,17 +79,35 @@ export async function createRoom({ host, questions, settings = {} }) {
     throw new Error("Could not find a free room code. Please try again.");
   }
 
-  // Strip correctIndex — verification stays client-side.
-  const safeQuestions = questions.map((q, i) => ({
-    index: i,
-    topic: q.topic || "General",
-    question: q.question || q.q || "",
-    options: Array.isArray(q.options) ? q.options : [],
-    correctIndex: q.correctIndex ?? q.answer ?? 0,
-    explain: q.explain || "",
-    points: q.points || 100,
-    timeLimit: q.timeLimit || settings.secondsPerQuestion || 20,
-  }));
+  const safeQuestions = questions.map(function (q, i) {
+    return {
+      index: i,
+      topic: q.topic || "General",
+      question: q.question || q.q || "",
+      options: Array.isArray(q.options) ? q.options : [],
+      correctIndex:
+        q.correctIndex != null
+          ? q.correctIndex
+          : q.answer != null
+            ? q.answer
+            : 0,
+      explain: q.explain || "",
+      points: q.points || 100,
+      timeLimit: q.timeLimit || settings.secondsPerQuestion || 20,
+    };
+  });
+
+  const hostPlayer = {};
+  hostPlayer[host.uid] = {
+    uid: host.uid,
+    name: host.name || "Player",
+    school: host.school || "",
+    ready: true,
+    score: 0,
+    correct: 0,
+    answers: {},
+    joinedAt: Date.now(),
+  };
 
   const roomData = {
     code: roomCode,
@@ -103,18 +120,7 @@ export async function createRoom({ host, questions, settings = {} }) {
       questionsPerRound: settings.questionsPerRound || safeQuestions.length,
       secondsPerQuestion: settings.secondsPerQuestion || 20,
     },
-    players: {
-      [host.uid]: {
-        uid: host.uid,
-        name: host.name || "Player",
-        school: host.school || "",
-        ready: true,
-        score: 0,
-        correct: 0,
-        answers: {},
-        joinedAt: Date.now(),
-      },
-    },
+    players: hostPlayer,
     questions: safeQuestions,
     currentQuestionIndex: -1,
     startedAt: null,
@@ -123,14 +129,11 @@ export async function createRoom({ host, questions, settings = {} }) {
 
   await set(roomRef, roomData);
 
-  // Only remove the host's player node on disconnect — NOT the room.
-  const hostPlayerRef = ref(rtdb, `rooms/${roomCode}/players/${host.uid}`);
-  hostPlayerRef
-    .onDisconnect()
-    .remove()
-    .catch((e) => log.warn("Could not set host disconnect:", e));
+  // Auto-remove the host's player node if they disconnect.
+  const hostPlayerRef = ref(rtdb, "rooms/" + roomCode + "/players/" + host.uid);
+  onDisconnect(hostPlayerRef).remove();
 
-  return { roomCode, room: roomData };
+  return { roomCode: roomCode, room: roomData };
 }
 
 /* =========================================================
@@ -139,7 +142,7 @@ export async function createRoom({ host, questions, settings = {} }) {
 
 export async function joinRoom(roomCode, player) {
   const normalized = String(roomCode).toUpperCase().trim();
-  const roomRef = ref(rtdb, `rooms/${normalized}`);
+  const roomRef = ref(rtdb, "rooms/" + normalized);
   const snap = await get(roomRef);
 
   if (!snap.exists()) throw new Error("Room not found. Check the code.");
@@ -148,7 +151,7 @@ export async function joinRoom(roomCode, player) {
 
   const age = Date.now() - (room.createdAt || 0);
   if (age > MAX_ROOM_AGE_MS) {
-    await remove(roomRef).catch(() => {});
+    await remove(roomRef).catch(function () {});
     throw new Error("This room has expired. Ask the host to create a new one.");
   }
 
@@ -159,7 +162,7 @@ export async function joinRoom(roomCode, player) {
   const existingPlayer = room.players && room.players[player.uid];
   if (existingPlayer) return room;
 
-  const playerRef = ref(rtdb, `rooms/${normalized}/players/${player.uid}`);
+  const playerRef = ref(rtdb, "rooms/" + normalized + "/players/" + player.uid);
   await set(playerRef, {
     uid: player.uid,
     name: player.name || "Player",
@@ -171,10 +174,7 @@ export async function joinRoom(roomCode, player) {
     joinedAt: Date.now(),
   });
 
-  playerRef
-    .onDisconnect()
-    .remove()
-    .catch((e) => log.warn("Could not set player disconnect:", e));
+  onDisconnect(playerRef).remove();
 
   return room;
 }
@@ -184,7 +184,10 @@ export async function joinRoom(roomCode, player) {
    ========================================================= */
 
 export async function setPlayerReady(roomCode, uid, ready) {
-  const playerRef = ref(rtdb, `rooms/${roomCode}/players/${uid}/ready`);
+  const playerRef = ref(
+    rtdb,
+    "rooms/" + roomCode + "/players/" + uid + "/ready",
+  );
   await set(playerRef, !!ready);
 }
 
@@ -193,7 +196,7 @@ export async function setPlayerReady(roomCode, uid, ready) {
    ========================================================= */
 
 export async function startGame(roomCode) {
-  const roomRef = ref(rtdb, `rooms/${roomCode}`);
+  const roomRef = ref(rtdb, "rooms/" + roomCode);
   await update(roomRef, {
     status: "playing",
     currentQuestionIndex: 0,
@@ -214,7 +217,7 @@ export async function submitAnswerRtdb(
 ) {
   const answerRef = ref(
     rtdb,
-    `rooms/${roomCode}/players/${uid}/answers/${questionIndex}`,
+    "rooms/" + roomCode + "/players/" + uid + "/answers/" + questionIndex,
   );
 
   await set(answerRef, {
@@ -224,7 +227,7 @@ export async function submitAnswerRtdb(
   });
 
   if (correct) {
-    const playerRef = ref(rtdb, `rooms/${roomCode}/players/${uid}`);
+    const playerRef = ref(rtdb, "rooms/" + roomCode + "/players/" + uid);
     const snap = await get(playerRef);
     const data = snap.val() || {};
     await update(playerRef, {
@@ -239,7 +242,7 @@ export async function submitAnswerRtdb(
    ========================================================= */
 
 export async function advanceQuestion(roomCode, newIndex, totalQuestions) {
-  const roomRef = ref(rtdb, `rooms/${roomCode}`);
+  const roomRef = ref(rtdb, "rooms/" + roomCode);
   if (newIndex >= totalQuestions) {
     await update(roomRef, {
       status: "finished",
@@ -256,12 +259,12 @@ export async function advanceQuestion(roomCode, newIndex, totalQuestions) {
    ========================================================= */
 
 export async function leaveRoom(roomCode, uid) {
-  const playerRef = ref(rtdb, `rooms/${roomCode}/players/${uid}`);
+  const playerRef = ref(rtdb, "rooms/" + roomCode + "/players/" + uid);
   await remove(playerRef);
 }
 
 export async function deleteRoom(roomCode) {
-  const roomRef = ref(rtdb, `rooms/${roomCode}`);
+  const roomRef = ref(rtdb, "rooms/" + roomCode);
   await remove(roomRef);
 }
 
@@ -270,10 +273,14 @@ export async function deleteRoom(roomCode) {
    ========================================================= */
 
 export function subscribeToRoom(roomCode, callback) {
-  const roomRef = ref(rtdb, `rooms/${roomCode}`);
-  const handler = (snap) => callback(snap.exists() ? snap.val() : null);
+  const roomRef = ref(rtdb, "rooms/" + roomCode);
+  const handler = function (snap) {
+    callback(snap.exists() ? snap.val() : null);
+  };
   onValue(roomRef, handler);
-  return () => off(roomRef, "value", handler);
+  return function () {
+    off(roomRef, "value", handler);
+  };
 }
 
 /* =========================================================
@@ -283,11 +290,14 @@ export function subscribeToRoom(roomCode, callback) {
 export function computeRoomRankings(room) {
   if (!room || !room.players) return [];
   return Object.values(room.players)
-    .sort(
-      (a, b) =>
-        (b.score || 0) - (a.score || 0) || (b.correct || 0) - (a.correct || 0),
-    )
-    .map((p, i) => ({ ...p, rank: i + 1 }));
+    .sort(function (a, b) {
+      const scoreDiff = (b.score || 0) - (a.score || 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return (b.correct || 0) - (a.correct || 0);
+    })
+    .map(function (p, i) {
+      return Object.assign({}, p, { rank: i + 1 });
+    });
 }
 
 /* =========================================================
@@ -311,10 +321,11 @@ export async function loadCompeteQuestions({ exam, subject, count = 10 }) {
   if (!questions.length)
     throw new Error("No questions available for this subject.");
 
-  const { questions: prepared } = buildQuiz(questions, {
-    count,
+  const built = buildQuiz(questions, {
+    count: count,
     shuffleOptions: true,
     shuffleQuestions: true,
   });
-  return prepared;
+
+  return built.questions;
 }

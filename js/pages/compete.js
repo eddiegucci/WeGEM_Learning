@@ -1,5 +1,5 @@
 // js/pages/compete.js
-// Compete mode — real-time multiplayer quiz via Firebase Realtime Database.
+// Compete page controller.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -141,7 +141,7 @@ async function setupUser() {
 }
 
 /* =========================================================
-   LOAD BANKS — awaits loadBanks BEFORE using data
+   LOAD BANKS
    ========================================================= */
 
 async function loadAll() {
@@ -153,7 +153,7 @@ async function loadAll() {
 }
 
 /* =========================================================
-   GET SUBJECT BANK MAP
+   SUBJECT → BANK MAP
    ========================================================= */
 
 function getSubjectBankMap() {
@@ -189,7 +189,6 @@ function getSubjectBankMap() {
   withStatus.forEach(({ subject, bank }) => {
     map[subject] = bank;
   });
-
   return map;
 }
 
