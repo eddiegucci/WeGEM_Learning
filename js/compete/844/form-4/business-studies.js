@@ -3,11 +3,11 @@
 
 export default {
   exam: "KCSE",
-  subject: "Computer Studies",
+  subject: "Business Studies",
   grade: "Form 4",
   class: "form-4",
   curriculum: "844",
-  title: "Computer Studies — Compete Bank",
+  title: "Business Studies — Compete Bank",
   description:
     "Real-time MCQ bank — databases, networking, system analysis, security.",
   status: "published",
