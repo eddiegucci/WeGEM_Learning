@@ -1,5 +1,5 @@
 // js/pages/quiz.js
-// Quiz page controller. Typed-answer engine with real Firestore sync.
+// Quiz page controller.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc, saveAttempt, updateLeaderboardEntry } from "../core/db.js";
@@ -87,10 +87,6 @@ const els = {
   userMenuBtn: document.getElementById("userMenuBtn"),
 };
 
-/* =========================================================
-   USER
-   ========================================================= */
-
 async function setupUser() {
   const user = await waitForAuth();
   if (!user) {
@@ -127,10 +123,6 @@ async function setupUser() {
   return true;
 }
 
-/* =========================================================
-   LOAD QUIZZES — awaits loadQuizzes BEFORE using data
-   ========================================================= */
-
 async function loadAll() {
   try {
     await loadQuizzes(state.curriculum, state.level);
@@ -142,30 +134,32 @@ async function loadAll() {
   state.availableQuizzes = getQuizzesForUser(state.curriculum, state.level);
 
   log.info(
-    `Quiz page: ${state.allSubjects.length} subjects, ${state.availableQuizzes.length} published quizzes`,
+    "Quiz page: " +
+      state.allSubjects.length +
+      " subjects, " +
+      state.availableQuizzes.length +
+      " published quizzes",
   );
 }
-
-/* =========================================================
-   POPULATE SUBJECT DROPDOWN
-   ========================================================= */
 
 function populateSubjects() {
   if (!els.subjectSelect) return;
 
   if (!state.allSubjects.length) {
-    els.subjectSelect.innerHTML = `<option value="">No subjects</option>`;
+    els.subjectSelect.innerHTML = '<option value="">No subjects</option>';
     els.startBtn.disabled = true;
-    els.setSelectWrap?.classList.add("hidden");
-    els.quizPreviewInfo?.classList.add("hidden");
+    if (els.setSelectWrap) els.setSelectWrap.classList.add("hidden");
+    if (els.quizPreviewInfo) els.quizPreviewInfo.classList.add("hidden");
     return;
   }
 
   const subjectsWithQuiz = new Set(
-    state.availableQuizzes.map((q) => q.subject),
+    state.availableQuizzes.map(function (q) {
+      return q.subject;
+    }),
   );
 
-  const sorted = [...state.allSubjects].sort((a, b) => {
+  const sorted = state.allSubjects.slice().sort(function (a, b) {
     const aHas = subjectsWithQuiz.has(a);
     const bHas = subjectsWithQuiz.has(b);
     if (aHas && !bHas) return -1;
@@ -174,24 +168,28 @@ function populateSubjects() {
   });
 
   els.subjectSelect.innerHTML = sorted
-    .map((s) => {
+    .map(function (s) {
       const hasQuiz = subjectsWithQuiz.has(s);
       const suffix = hasQuiz ? "" : " ·";
-      return `<option value="${escapeHTML(s)}">${escapeHTML(s)}${suffix}</option>`;
+      return (
+        '<option value="' +
+        escapeHTML(s) +
+        '">' +
+        escapeHTML(s) +
+        suffix +
+        "</option>"
+      );
     })
     .join("");
 
-  // Prefer the first subject that HAS a quiz
-  const firstWithQuiz = sorted.find((s) => subjectsWithQuiz.has(s));
+  const firstWithQuiz = sorted.find(function (s) {
+    return subjectsWithQuiz.has(s);
+  });
   state.subject = firstWithQuiz || sorted[0];
 
   els.subjectSelect.value = state.subject;
   populateSets();
 }
-
-/* =========================================================
-   POPULATE SETS
-   ========================================================= */
 
 function populateSets() {
   if (!els.setSelect) return;
@@ -200,20 +198,30 @@ function populateSets() {
 
   if (!sets.length) {
     if (els.setSelectWrap) els.setSelectWrap.classList.add("hidden");
-    els.quizPreviewInfo?.classList.add("hidden");
-    els.comingSoon?.classList.remove("hidden");
+    if (els.quizPreviewInfo) els.quizPreviewInfo.classList.add("hidden");
+    if (els.comingSoon) els.comingSoon.classList.remove("hidden");
     els.startBtn.disabled = true;
     return;
   }
 
-  els.setSelectWrap?.classList.remove("hidden");
-  els.comingSoon?.classList.add("hidden");
+  if (els.setSelectWrap) els.setSelectWrap.classList.remove("hidden");
+  if (els.comingSoon) els.comingSoon.classList.add("hidden");
 
   els.setSelect.innerHTML = sets
-    .map((q) => {
+    .map(function (q) {
       const marks = q.totalMarks || 0;
-      const questions = q.questions?.length || 0;
-      return `<option value="${escapeHTML(q.title)}">${escapeHTML(q.title)} · ${questions} Qs · ${marks} marks</option>`;
+      const questions = (q.questions && q.questions.length) || 0;
+      return (
+        '<option value="' +
+        escapeHTML(q.title) +
+        '">' +
+        escapeHTML(q.title) +
+        " · " +
+        questions +
+        " Qs · " +
+        marks +
+        " marks</option>"
+      );
     })
     .join("");
 
@@ -221,42 +229,38 @@ function populateSets() {
   updatePreview();
 }
 
-/* =========================================================
-   PREVIEW
-   ========================================================= */
-
 function updatePreview() {
   const quiz = getMatchingQuiz();
 
   if (!quiz) {
-    els.quizPreviewInfo?.classList.add("hidden");
+    if (els.quizPreviewInfo) els.quizPreviewInfo.classList.add("hidden");
     els.startBtn.disabled = true;
     return;
   }
 
-  els.quizPreviewInfo?.classList.remove("hidden");
+  if (els.quizPreviewInfo) els.quizPreviewInfo.classList.remove("hidden");
   if (els.qpiMarks) els.qpiMarks.textContent = quiz.totalMarks || "—";
-  if (els.qpiQuestions)
-    els.qpiQuestions.textContent = quiz.questions.length || 0;
+  if (els.qpiQuestions) {
+    els.qpiQuestions.textContent =
+      (quiz.questions && quiz.questions.length) || 0;
+  }
   if (els.qpiTime) {
     const mins = Math.round((quiz.duration || 1800) / 60);
-    els.qpiTime.textContent = `${mins} min`;
+    els.qpiTime.textContent = mins + " min";
   }
   els.startBtn.disabled = false;
 }
 
 function getMatchingQuiz() {
   const sets = getSets(state.availableQuizzes, state.subject);
-  return sets.find((q) => q.title === state.quizId);
+  return sets.find(function (q) {
+    return q.title === state.quizId;
+  });
 }
-
-/* =========================================================
-   START QUIZ
-   ========================================================= */
 
 function handleStart() {
   const quiz = getMatchingQuiz();
-  if (!quiz || !quiz.questions?.length) return;
+  if (!quiz || !quiz.questions || !quiz.questions.length) return;
 
   state.quiz = quiz;
   state.answers = new Array(quiz.questions.length).fill("");
@@ -272,56 +276,57 @@ function handleStart() {
   startTimer();
 }
 
-/* =========================================================
-   SCREENS
-   ========================================================= */
-
 function showSetupScreen() {
-  els.setupScreen?.classList.remove("hidden");
-  els.quizScreen?.classList.add("hidden");
-  els.resultsScreen?.classList.add("hidden");
+  if (els.setupScreen) els.setupScreen.classList.remove("hidden");
+  if (els.quizScreen) els.quizScreen.classList.add("hidden");
+  if (els.resultsScreen) els.resultsScreen.classList.add("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function showQuizScreen() {
-  els.setupScreen?.classList.add("hidden");
-  els.quizScreen?.classList.remove("hidden");
-  els.resultsScreen?.classList.add("hidden");
+  if (els.setupScreen) els.setupScreen.classList.add("hidden");
+  if (els.quizScreen) els.quizScreen.classList.remove("hidden");
+  if (els.resultsScreen) els.resultsScreen.classList.add("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function showResultsScreen() {
-  els.setupScreen?.classList.add("hidden");
-  els.quizScreen?.classList.add("hidden");
-  els.resultsScreen?.classList.remove("hidden");
+  if (els.setupScreen) els.setupScreen.classList.add("hidden");
+  if (els.quizScreen) els.quizScreen.classList.add("hidden");
+  if (els.resultsScreen) els.resultsScreen.classList.remove("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-/* =========================================================
-   RENDER QUESTION
-   ========================================================= */
-
 function renderQuestion() {
-  const { quiz, currentIndex, answers } = state;
+  const quiz = state.quiz;
+  const currentIndex = state.currentIndex;
+  const answers = state.answers;
   if (!quiz) return;
   const q = quiz.questions[currentIndex];
 
-  if (els.quizMeta)
-    els.quizMeta.textContent = `${quiz.exam || ""} · ${quiz.subject}`;
+  if (els.quizMeta) {
+    els.quizMeta.textContent = (quiz.exam || "") + " · " + (quiz.subject || "");
+  }
   if (els.quizCounter) {
-    els.quizCounter.textContent = `Question ${currentIndex + 1} of ${quiz.questions.length}`;
+    els.quizCounter.textContent =
+      "Question " + (currentIndex + 1) + " of " + quiz.questions.length;
   }
   if (els.quizProgress) {
-    els.quizProgress.style.width = `${((currentIndex + 1) / quiz.questions.length) * 100}%`;
+    const pct = ((currentIndex + 1) / quiz.questions.length) * 100;
+    els.quizProgress.style.width = pct + "%";
   }
 
   if (els.questionTopic) {
-    els.questionTopic.textContent = (q.topic || quiz.subject).toUpperCase();
+    els.questionTopic.textContent = String(
+      q.topic || quiz.subject || "",
+    ).toUpperCase();
   }
-  if (els.questionText) els.questionText.textContent = q.q || q.question || "";
+  if (els.questionText) {
+    els.questionText.textContent = q.q || q.question || "";
+  }
   if (els.questionMarks) {
     const marks = q.marks || 1;
-    els.questionMarks.textContent = `${marks} mark${marks === 1 ? "" : "s"}`;
+    els.questionMarks.textContent = marks + " mark" + (marks === 1 ? "" : "s");
   }
 
   if (els.answerBox) {
@@ -336,10 +341,6 @@ function renderQuestion() {
   }
 }
 
-/* =========================================================
-   NAV
-   ========================================================= */
-
 function saveCurrentAnswer() {
   if (!els.answerBox) return;
   state.answers[state.currentIndex] = els.answerBox.value;
@@ -353,7 +354,8 @@ function handlePrev() {
 }
 
 async function handleNext() {
-  const { quiz, currentIndex } = state;
+  const quiz = state.quiz;
+  const currentIndex = state.currentIndex;
   if (!quiz) return;
   saveCurrentAnswer();
 
@@ -371,15 +373,11 @@ async function handleNext() {
   }
 }
 
-/* =========================================================
-   TIMER
-   ========================================================= */
-
 function startTimer() {
   clearTimer();
   updateTimerDisplay();
 
-  state.timerId = setInterval(() => {
+  state.timerId = setInterval(function () {
     state.remaining -= 1;
     updateTimerDisplay();
     if (state.remaining <= 0) {
@@ -402,18 +400,15 @@ function updateTimerDisplay() {
   const s = Math.max(0, state.remaining) % 60;
   const valueEl = els.quizTimer.querySelector(".timer-value");
   if (valueEl) {
-    valueEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    valueEl.textContent =
+      String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
   }
   els.quizTimer.classList.remove("warn", "danger");
   if (state.remaining <= 60) els.quizTimer.classList.add("danger");
   else if (state.remaining <= 180) els.quizTimer.classList.add("warn");
 }
 
-/* =========================================================
-   SUBMIT
-   ========================================================= */
-
-async function submitQuiz(timeUp = false) {
+async function submitQuiz(timeUp) {
   if (state.submitted) return;
   state.submitted = true;
   state.started = false;
@@ -442,8 +437,8 @@ async function submitQuiz(timeUp = false) {
       await saveAttempt(state.user.uid, attempt);
       savedToCloud = true;
       await updateLeaderboardEntry(state.user.uid, {
-        name: state.userDoc?.name || "",
-        school: state.userDoc?.school || "",
+        name: (state.userDoc && state.userDoc.name) || "",
+        school: (state.userDoc && state.userDoc.school) || "",
         curriculum: quiz.curriculum,
         level: quiz.grade || state.level,
         scoreDelta: result.percentage,
@@ -458,7 +453,15 @@ async function submitQuiz(timeUp = false) {
 
   try {
     await cacheAttempt({
-      ...attempt,
+      uid: state.user.uid,
+      exam: quiz.exam || "",
+      subject: quiz.subject,
+      correct: result.scored,
+      total: result.totalMarks,
+      score: result.percentage,
+      duration: timeUsed,
+      topicResults: result.topicResults,
+      mode: "typed",
       id: "local_" + Date.now(),
       createdAt: new Date().toISOString(),
       pending: !savedToCloud,
@@ -467,14 +470,13 @@ async function submitQuiz(timeUp = false) {
     log.warn("Cache failed:", e);
   }
 
-  state.result = { ...result, timeUp, savedToCloud };
-  renderResults(result, timeUp, savedToCloud);
+  state.result = Object.assign({}, result, {
+    timeUp: !!timeUp,
+    savedToCloud: savedToCloud,
+  });
+  renderResults(result, !!timeUp, savedToCloud);
   showResultsScreen();
 }
-
-/* =========================================================
-   SCORING
-   ========================================================= */
 
 function scoreQuiz(quiz, answers) {
   let scored = 0;
@@ -482,7 +484,7 @@ function scoreQuiz(quiz, answers) {
   const details = [];
   const topicResults = {};
 
-  const STOP_WORDS = new Set([
+  const stopWords = [
     "the",
     "a",
     "an",
@@ -517,19 +519,19 @@ function scoreQuiz(quiz, answers) {
     "than",
     "if",
     "when",
-  ]);
+  ];
 
-  quiz.questions.forEach((q, i) => {
+  quiz.questions.forEach(function (q, i) {
     const studentAnswer = answers[i] || "";
     const normalized = normalize(studentAnswer);
     const matched = [];
     let qScore = 0;
     const qMarks = q.marks || 1;
 
-    (q.markpoints || []).forEach((mp, j) => {
+    (q.markpoints || []).forEach(function (mp, j) {
       const mpText = typeof mp === "string" ? mp : mp.text;
       const mpMarks = typeof mp === "string" ? 1 : mp.marks || 1;
-      if (markpointMatches(normalized, mpText, STOP_WORDS)) {
+      if (markpointMatches(normalized, mpText, stopWords)) {
         matched.push(j);
         qScore += mpMarks;
       }
@@ -544,8 +546,8 @@ function scoreQuiz(quiz, answers) {
       q: q.q || q.question || "",
       marks: qMarks,
       scored: qScore,
-      matched,
-      studentAnswer,
+      matched: matched,
+      studentAnswer: studentAnswer,
       markpoints: q.markpoints || [],
     });
 
@@ -556,7 +558,13 @@ function scoreQuiz(quiz, answers) {
   });
 
   const percentage = totalMarks ? Math.round((scored / totalMarks) * 100) : 0;
-  return { scored, totalMarks, percentage, details, topicResults };
+  return {
+    scored: scored,
+    totalMarks: totalMarks,
+    percentage: percentage,
+    details: details,
+    topicResults: topicResults,
+  };
 }
 
 function normalize(text) {
@@ -571,24 +579,20 @@ function markpointMatches(normalizedAnswer, markpointText, stopWords) {
   if (!normalizedAnswer) return false;
   const normalizedMp = normalize(markpointText);
   if (!normalizedMp) return false;
-  if (normalizedAnswer.includes(normalizedMp)) return true;
+  if (normalizedAnswer.indexOf(normalizedMp) !== -1) return true;
 
-  const words = normalizedMp
-    .split(" ")
-    .filter((w) => w.length > 2 && !stopWords.has(w));
+  const words = normalizedMp.split(" ").filter(function (w) {
+    return w.length > 2 && stopWords.indexOf(w) === -1;
+  });
   if (!words.length) return false;
 
   let hits = 0;
   for (const word of words) {
-    if (normalizedAnswer.includes(word)) hits += 1;
+    if (normalizedAnswer.indexOf(word) !== -1) hits += 1;
   }
   const threshold = Math.max(1, Math.ceil(words.length * 0.6));
   return hits >= threshold;
 }
-
-/* =========================================================
-   RESULTS
-   ========================================================= */
 
 function renderResults(result, timeUp, savedToCloud) {
   const pct = result.percentage;
@@ -602,12 +606,16 @@ function renderResults(result, timeUp, savedToCloud) {
   }
 
   if (els.finalScore) els.finalScore.textContent = pct + "%";
-  if (els.finalDetail)
-    els.finalDetail.textContent = `${result.scored} / ${result.totalMarks} marks`;
-  if (els.statMarks)
-    els.statMarks.textContent = `${result.scored}/${result.totalMarks}`;
-  if (els.statQuestions)
+  if (els.finalDetail) {
+    els.finalDetail.textContent =
+      result.scored + " / " + result.totalMarks + " marks";
+  }
+  if (els.statMarks) {
+    els.statMarks.textContent = result.scored + "/" + result.totalMarks;
+  }
+  if (els.statQuestions) {
     els.statQuestions.textContent = state.quiz.questions.length;
+  }
   if (els.statTime) {
     const used = state.totalTime - Math.max(0, state.remaining);
     els.statTime.textContent = formatDuration(used);
@@ -620,59 +628,73 @@ function renderResults(result, timeUp, savedToCloud) {
   }
 }
 
-/* =========================================================
-   REVIEW
-   ========================================================= */
-
 function renderReview() {
   const result = state.result;
   if (!result || !els.reviewList) return;
 
-  els.reviewSection?.classList.remove("hidden");
+  if (els.reviewSection) els.reviewSection.classList.remove("hidden");
 
   els.reviewList.innerHTML = result.details
-    .map((d, i) => {
+    .map(function (d, i) {
       const rows = (d.markpoints || [])
-        .map((mp, j) => {
+        .map(function (mp, j) {
           const text = typeof mp === "string" ? mp : mp.text;
           const marks = typeof mp === "string" ? 1 : mp.marks || 1;
-          const hit = d.matched.includes(j);
-          return `
-            <div class="review-point ${hit ? "hit" : "missed"}">
-              <span class="review-icon">${hit ? "✓" : "✗"}</span>
-              <span class="review-text">${escapeHTML(text)}</span>
-              <span class="review-marks">${marks} mark${marks === 1 ? "" : "s"}</span>
-            </div>
-          `;
+          const hit = d.matched.indexOf(j) !== -1;
+          return (
+            '<div class="review-point ' +
+            (hit ? "hit" : "missed") +
+            '">' +
+            '<span class="review-icon">' +
+            (hit ? "✓" : "✗") +
+            "</span>" +
+            '<span class="review-text">' +
+            escapeHTML(text) +
+            "</span>" +
+            '<span class="review-marks">' +
+            marks +
+            " mark" +
+            (marks === 1 ? "" : "s") +
+            "</span>" +
+            "</div>"
+          );
         })
         .join("");
 
-      return `
-        <div class="review-item">
-          <div class="review-item-head">
-            <span class="review-num">Q${i + 1}</span>
-            <span class="review-score">${d.scored}/${d.marks} marks</span>
-          </div>
-          <div class="review-question">${escapeHTML(d.q)}</div>
-          <div class="review-your-answer">
-            <strong>Your answer:</strong>
-            <div class="your-answer-text">${d.studentAnswer ? escapeHTML(d.studentAnswer) : "<em>Not answered</em>"}</div>
-          </div>
-          <div class="review-scheme">
-            <div class="scheme-title">Mark scheme:</div>
-            ${rows}
-          </div>
-        </div>
-      `;
+      return (
+        '<div class="review-item">' +
+        '<div class="review-item-head">' +
+        '<span class="review-num">Q' +
+        (i + 1) +
+        "</span>" +
+        '<span class="review-score">' +
+        d.scored +
+        "/" +
+        d.marks +
+        " marks</span>" +
+        "</div>" +
+        '<div class="review-question">' +
+        escapeHTML(d.q) +
+        "</div>" +
+        '<div class="review-your-answer">' +
+        "<strong>Your answer:</strong>" +
+        '<div class="your-answer-text">' +
+        (d.studentAnswer
+          ? escapeHTML(d.studentAnswer)
+          : "<em>Not answered</em>") +
+        "</div>" +
+        "</div>" +
+        '<div class="review-scheme">' +
+        '<div class="scheme-title">Mark scheme:</div>' +
+        rows +
+        "</div>" +
+        "</div>"
+      );
     })
     .join("");
 
-  els.reviewBtn?.classList.add("hidden");
+  if (els.reviewBtn) els.reviewBtn.classList.add("hidden");
 }
-
-/* =========================================================
-   RETRY / QUIT / MENU
-   ========================================================= */
 
 function handleRetry() {
   clearTimer();
@@ -682,8 +704,8 @@ function handleRetry() {
   state.submitted = false;
   state.started = false;
   state.result = null;
-  els.reviewSection?.classList.add("hidden");
-  els.reviewBtn?.classList.remove("hidden");
+  if (els.reviewSection) els.reviewSection.classList.add("hidden");
+  if (els.reviewBtn) els.reviewBtn.classList.remove("hidden");
   showSetupScreen();
 }
 
@@ -706,7 +728,10 @@ async function handleQuit() {
 async function handleUserMenu() {
   const ok = await confirmDialog({
     title: "Sign out?",
-    message: `Signed in as ${state.user?.email || "Student"}.\n\nSign out?`,
+    message:
+      "Signed in as " +
+      ((state.user && state.user.email) || "Student") +
+      ".\n\nSign out?",
     okLabel: "Sign Out",
     cancelLabel: "Stay",
     danger: true,
@@ -722,10 +747,6 @@ async function handleUserMenu() {
   }
 }
 
-/* =========================================================
-   INIT
-   ========================================================= */
-
 async function init() {
   try {
     const ready = await setupUser();
@@ -735,22 +756,27 @@ async function init() {
     await loadAll();
     populateSubjects();
 
-    els.subjectSelect?.addEventListener("change", () => {
-      state.subject = els.subjectSelect.value;
-      populateSets();
-    });
-    els.setSelect?.addEventListener("change", () => {
-      state.quizId = els.setSelect.value;
-      updatePreview();
-    });
+    if (els.subjectSelect) {
+      els.subjectSelect.addEventListener("change", function () {
+        state.subject = els.subjectSelect.value;
+        populateSets();
+      });
+    }
+    if (els.setSelect) {
+      els.setSelect.addEventListener("change", function () {
+        state.quizId = els.setSelect.value;
+        updatePreview();
+      });
+    }
 
-    els.startBtn?.addEventListener("click", handleStart);
-    els.prevBtn?.addEventListener("click", handlePrev);
-    els.nextBtn?.addEventListener("click", handleNext);
-    els.quitBtn?.addEventListener("click", handleQuit);
-    els.reviewBtn?.addEventListener("click", renderReview);
-    els.retryBtn?.addEventListener("click", handleRetry);
-    els.userMenuBtn?.addEventListener("click", handleUserMenu);
+    if (els.startBtn) els.startBtn.addEventListener("click", handleStart);
+    if (els.prevBtn) els.prevBtn.addEventListener("click", handlePrev);
+    if (els.nextBtn) els.nextBtn.addEventListener("click", handleNext);
+    if (els.quitBtn) els.quitBtn.addEventListener("click", handleQuit);
+    if (els.reviewBtn) els.reviewBtn.addEventListener("click", renderReview);
+    if (els.retryBtn) els.retryBtn.addEventListener("click", handleRetry);
+    if (els.userMenuBtn)
+      els.userMenuBtn.addEventListener("click", handleUserMenu);
   } catch (e) {
     log.error("Quiz init failed:", e);
     toastErr("Could not load quiz.");
@@ -762,7 +788,3 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
-/ /  
- f o r c e  
- r e b u i l d  
- 
