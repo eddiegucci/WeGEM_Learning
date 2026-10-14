@@ -1,18 +1,195 @@
-﻿export default {
+﻿// js/compete/844/form-4/computer-studies.js
+// Compete bank: Form 4 Computer Studies (KCSE).
+// MCQ format for real-time multiplayer.
+
+export default {
   subject: "Computer Studies",
   exam: "KCSE",
   curriculum: "844",
-  class: "form-4", // ← must be exactly "form-4"
+  class: "form-4",
   grade: "Form 4",
-  status: "published", // ← must be exactly "published"
+  status: "published",
   questions: [
     {
-      q: "What is a computer?",
-      options: ["...", "...", "...", "..."],
-      answer: 1, // index of correct option
-      topic: "Introduction",
-      explain: "...",
+      q: "What does CPU stand for?",
+      options: [
+        "Central Processing Unit",
+        "Computer Personal Unit",
+        "Central Program Utility",
+        "Control Processing Unit",
+      ],
+      answer: 0,
+      topic: "Introduction to Computers",
+      explain: "CPU = Central Processing Unit — the brain of the computer.",
     },
-    // ... more
+    {
+      q: "Which of these is a primary storage device?",
+      options: ["Hard disk", "Flash drive", "RAM", "DVD"],
+      answer: 2,
+      topic: "Computer Systems",
+      explain: "RAM is primary storage — directly accessed by the CPU.",
+    },
+    {
+      q: "What is the binary representation of the decimal number 10?",
+      options: ["1000", "1010", "1100", "1110"],
+      answer: 1,
+      topic: "Data Representation",
+      explain: "10 = 8 + 2 = 1010 in binary.",
+    },
+    {
+      q: "Which file extension is used for a Microsoft Word document?",
+      options: [".xls", ".docx", ".pptx", ".pdf"],
+      answer: 1,
+      topic: "Application Software",
+      explain: ".docx is the Word document format.",
+    },
+    {
+      q: "What does HTML stand for?",
+      options: [
+        "Hyper Text Markup Language",
+        "Home Tool Markup Language",
+        "Hyperlinks and Text Markup Language",
+        "Hyper Text Machine Language",
+      ],
+      answer: 0,
+      topic: "Web Design",
+      explain: "HTML = Hyper Text Markup Language.",
+    },
+    {
+      q: "Which of these is a valid IP address?",
+      options: ["192.168.1.1", "192.168.1", "256.100.100.100", "192.168.300.1"],
+      answer: 0,
+      topic: "Networking",
+      explain: "Each octet must be 0-255. 256 and 300 are invalid.",
+    },
+    {
+      q: "What is the primary function of an operating system?",
+      options: [
+        "Browse the internet",
+        "Manage hardware and software resources",
+        "Create documents",
+        "Design graphics",
+      ],
+      answer: 1,
+      topic: "Operating Systems",
+      explain: "An OS manages hardware, software, and user interaction.",
+    },
+    {
+      q: "Which of these is NOT a programming language?",
+      options: ["Python", "Java", "HTML", "Photoshop"],
+      answer: 3,
+      topic: "Programming",
+      explain: "Photoshop is image editing software, not a language.",
+    },
+    {
+      q: "1 kilobyte is equal to how many bytes?",
+      options: ["100", "512", "1024", "2048"],
+      answer: 2,
+      topic: "Data Representation",
+      explain: "1 KB = 1024 bytes.",
+    },
+    {
+      q: "Which type of software is Microsoft Excel?",
+      options: ["Word processor", "Spreadsheet", "Database", "Presentation"],
+      answer: 1,
+      topic: "Application Software",
+      explain: "Excel is a spreadsheet program.",
+    },
+    {
+      q: "What does URL stand for?",
+      options: [
+        "Uniform Resource Locator",
+        "Universal Reference Link",
+        "Unified Resource Language",
+        "User Registered Link",
+      ],
+      answer: 0,
+      topic: "Internet",
+      explain: "URL = Uniform Resource Locator.",
+    },
+    {
+      q: "Which of these is an input device?",
+      options: ["Monitor", "Printer", "Keyboard", "Speaker"],
+      answer: 2,
+      topic: "Computer Hardware",
+      explain: "Keyboard is input; the others are output devices.",
+    },
+    {
+      q: "What does LAN stand for?",
+      options: [
+        "Local Area Network",
+        "Large Access Network",
+        "Long Area Network",
+        "Linked Access Node",
+      ],
+      answer: 0,
+      topic: "Networking",
+      explain: "LAN = Local Area Network.",
+    },
+    {
+      q: "Which of these is a database management system?",
+      options: ["MS Word", "MySQL", "Photoshop", "Chrome"],
+      answer: 1,
+      topic: "Databases",
+      explain: "MySQL is a DBMS.",
+    },
+    {
+      q: "What is a byte made of?",
+      options: ["4 bits", "8 bits", "16 bits", "32 bits"],
+      answer: 1,
+      topic: "Data Representation",
+      explain: "1 byte = 8 bits.",
+    },
+    {
+      q: "Which of these is a valid email address?",
+      options: [
+        "user@example.com",
+        "user.example.com",
+        "user@example",
+        "@example.com",
+      ],
+      answer: 0,
+      topic: "Internet",
+      explain: "An email needs a username, @, and a valid domain.",
+    },
+    {
+      q: "What does GUI stand for?",
+      options: [
+        "Graphical User Interface",
+        "General User Input",
+        "Graphical Utility Interface",
+        "Guided User Interaction",
+      ],
+      answer: 0,
+      topic: "Operating Systems",
+      explain: "GUI = Graphical User Interface.",
+    },
+    {
+      q: "Which of these storage devices has the largest capacity?",
+      options: ["Floppy disk", "CD-ROM", "DVD", "Blu-ray"],
+      answer: 3,
+      topic: "Storage Devices",
+      explain:
+        "Blu-ray holds ~25 GB; DVD ~4.7 GB; CD ~700 MB; floppy ~1.44 MB.",
+    },
+    {
+      q: "What is the purpose of a compiler?",
+      options: [
+        "Run programs",
+        "Translate source code to machine code",
+        "Store files",
+        "Connect to the internet",
+      ],
+      answer: 1,
+      topic: "Programming",
+      explain: "A compiler translates high-level code to machine code.",
+    },
+    {
+      q: "Which of these is an example of system software?",
+      options: ["MS Word", "Windows 10", "Excel", "PowerPoint"],
+      answer: 1,
+      topic: "Operating Systems",
+      explain: "Windows is an OS — system software.",
+    },
   ],
 };
