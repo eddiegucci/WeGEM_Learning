@@ -3,50 +3,23 @@
     "rooms": {
       "$roomCode": {
         ".read": "auth != null",
+        ".write": "auth != null",
         ".indexOn": ["status", "createdAt", "hostUid"],
-
-        "status": {
-          ".write": "auth != null && (
-            !data.exists() ||
-            root.child('rooms').child($roomCode).child('hostUid').val() == auth.uid
-          )"
-        },
-        "currentQuestionIndex": {
-          ".write": "auth != null && (
-            !data.exists() ||
-            root.child('rooms').child($roomCode).child('hostUid').val() == auth.uid
-          )"
-        },
-        "startedAt": {
-          ".write": "auth != null && (!data.exists() || root.child('rooms').child($roomCode).child('hostUid').val() == auth.uid)"
-        },
-        "finishedAt": {
-          ".write": "auth != null && (!data.exists() || root.child('rooms').child($roomCode).child('hostUid').val() == auth.uid)"
-        },
-
-        "questions": {
-          ".write": "auth != null && !data.exists()"
-        },
-        "settings": {
-          ".write": "auth != null && !data.exists()"
-        },
-        "code": {
-          ".write": "auth != null && !data.exists()"
-        },
-        "hostUid": {
-          ".write": "auth != null && !data.exists()"
-        },
-        "createdAt": {
-          ".write": "auth != null && !data.exists()"
-        },
-
+        "questions": { ".read": "auth != null" },
+        "settings": { ".read": "auth != null" },
+        "status": { ".read": "auth != null" },
+        "currentQuestionIndex": { ".read": "auth != null" },
+        "code": { ".read": "auth != null" },
+        "hostUid": { ".read": "auth != null" },
+        "createdAt": { ".read": "auth != null" },
+        "startedAt": { ".read": "auth != null" },
+        "finishedAt": { ".read": "auth != null" },
         "players": {
+          ".read": "auth != null",
           "$uid": {
             ".write": "auth != null && auth.uid == $uid",
             "answers": {
-              "$questionIndex": {
-                ".write": "auth != null && auth.uid == $uid"
-              }
+              ".read": "auth != null"
             }
           }
         }
