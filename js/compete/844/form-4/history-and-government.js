@@ -1,28 +1,92 @@
 ﻿// js/compete/844/form-4/history-and-government.js
-// Compete question bank for History and Government (Form 4)
-// Format: MCQ with points + time limit per question.
 
 export default {
-  exam: "KCSE",
   subject: "History and Government",
-  grade: "Form 4",
-  class: "form-4",
+  exam: "KCSE",
   curriculum: "844",
+  class: "form-4",
+  grade: "Form 4",
+  status: "published",
   title: "History and Government — Compete Bank",
-  description: "Real-time MCQ bank for compete mode.",
-  status: "draft",             // change to "published" when ready
-  updatedAt: "2026-10-12",
-  version: "0.1",
-
   questions: [
-    // {
-    //   q: "Question text?",
-    //   options: ["A", "B", "C", "D"],
-    //   answer: 0,             // 0-based index of correct option
-    //   topic: "Topic name",
-    //   points: 100,           // points awarded for correct answer
-    //   timeLimit: 20,         // seconds for this question
-    //   explain: "Why this answer is correct."
-    // }
-  ]
+    {
+      q: "In which year did Kenya gain independence?",
+      marks: 1,
+      topic: "Independence",
+      markpoints: [{ text: "1963", marks: 1 }],
+    },
+    {
+      q: "Who was the first president of Kenya?",
+      marks: 1,
+      topic: "Independence",
+      markpoints: [{ text: "Jomo Kenyatta", marks: 1 }],
+    },
+    {
+      q: "Name the three arms of the Kenyan government.",
+      marks: 3,
+      topic: "Government",
+      markpoints: [
+        { text: "Executive", marks: 1 },
+        { text: "Legislature", marks: 1 },
+        { text: "Judiciary", marks: 1 },
+      ],
+    },
+    {
+      q: "What was the main method used by the British to colonize Kenya?",
+      marks: 2,
+      topic: "Colonialism",
+      markpoints: [
+        { text: "Military conquest", marks: 1 },
+        { text: "Treaties and agreements", marks: 1 },
+      ],
+    },
+    {
+      q: "Name two political parties in Kenya before independence.",
+      marks: 2,
+      topic: "Independence",
+      markpoints: [
+        { text: "KANU", marks: 1 },
+        { text: "KADU", marks: 1 },
+      ],
+    },
+    {
+      q: "What is the supreme law of Kenya?",
+      marks: 1,
+      topic: "Government",
+      markpoints: [{ text: "The Constitution", marks: 1 }],
+    },
+    {
+      q: "State two functions of the Senate in Kenya.",
+      marks: 2,
+      topic: "Government",
+      markpoints: [
+        { text: "Represents counties", marks: 1 },
+        { text: "Oversees county governments", marks: 1 },
+      ],
+    },
+    {
+      q: "Who was the leader of the Mau Mau rebellion?",
+      marks: 1,
+      topic: "Colonialism",
+      markpoints: [{ text: "Dedan Kimathi", marks: 1 }],
+    },
+    {
+      q: "Name two pre-colonial kingdoms in East Africa.",
+      marks: 2,
+      topic: "Pre-Colonial",
+      markpoints: [
+        { text: "Buganda", marks: 1 },
+        { text: "Bunyoro", marks: 1 },
+      ],
+    },
+    {
+      q: "What does devolution mean?",
+      marks: 2,
+      topic: "Government",
+      markpoints: [
+        { text: "Transfer of power to local governments", marks: 1 },
+        { text: "Decentralization of resources and authority", marks: 1 },
+      ],
+    },
+  ],
 };
