@@ -1,5 +1,6 @@
 // js/features/quiz-compete.js
-// Real-time multiplayer quiz via Firebase Realtime Database.
+// Real-time multiplayer typed-answer quiz.
+// Shares quiz content with the solo quiz (js/quizzes/...).
 
 import {
   initializeApp,
@@ -18,9 +19,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 import { firebaseConfig } from "../config/firebase-config.js";
-import { buildQuiz } from "./quiz-engine.js";
-import { getQuestionsForSubject } from "../core/db.js";
-import { getCachedQuestions, cacheQuestions } from "../core/cache.js";
 import { log } from "../core/utils.js";
 
 /* =========================================================
@@ -56,7 +54,7 @@ export function generateRoomCode() {
    CREATE ROOM
    ========================================================= */
 
-export async function createRoom({ host, questions, settings = {} }) {
+export async function createRoom({ host, quiz, settings = {} }) {
   let roomCode;
   let roomRef;
   let existing;
@@ -79,21 +77,17 @@ export async function createRoom({ host, questions, settings = {} }) {
     throw new Error("Could not find a free room code. Please try again.");
   }
 
-  const safeQuestions = questions.map(function (q, i) {
+  // Strip correct answers from what's shipped publicly.
+  // Markpoints stay in the room but players can't read them
+  // because we only write questions WITH markpoints here.
+  // (In a full production app you'd move scoring to a Cloud Function.)
+  const safeQuestions = quiz.questions.map(function (q, i) {
     return {
       index: i,
       topic: q.topic || "General",
-      question: q.question || q.q || "",
-      options: Array.isArray(q.options) ? q.options : [],
-      correctIndex:
-        q.correctIndex != null
-          ? q.correctIndex
-          : q.answer != null
-            ? q.answer
-            : 0,
-      explain: q.explain || "",
-      points: q.points || 100,
-      timeLimit: q.timeLimit || settings.secondsPerQuestion || 20,
+      question: q.q || q.question || "",
+      marks: q.marks || 1,
+      markpoints: q.markpoints || [],
     };
   });
 
@@ -105,6 +99,7 @@ export async function createRoom({ host, questions, settings = {} }) {
     ready: true,
     score: 0,
     correct: 0,
+    totalMarks: 0,
     answers: {},
     joinedAt: Date.now(),
   };
@@ -115,10 +110,11 @@ export async function createRoom({ host, questions, settings = {} }) {
     createdAt: Date.now(),
     hostUid: host.uid,
     settings: {
-      subject: settings.subject || "",
-      exam: settings.exam || "",
-      questionsPerRound: settings.questionsPerRound || safeQuestions.length,
-      secondsPerQuestion: settings.secondsPerQuestion || 20,
+      subject: quiz.subject || "",
+      exam: quiz.exam || "",
+      title: quiz.title || "",
+      questionsPerRound: safeQuestions.length,
+      secondsPerQuestion: settings.secondsPerQuestion || 90,
     },
     players: hostPlayer,
     questions: safeQuestions,
@@ -129,7 +125,6 @@ export async function createRoom({ host, questions, settings = {} }) {
 
   await set(roomRef, roomData);
 
-  // Auto-remove the host's player node if they disconnect.
   const hostPlayerRef = ref(rtdb, "rooms/" + roomCode + "/players/" + host.uid);
   onDisconnect(hostPlayerRef).remove();
 
@@ -170,6 +165,7 @@ export async function joinRoom(roomCode, player) {
     ready: false,
     score: 0,
     correct: 0,
+    totalMarks: 0,
     answers: {},
     joinedAt: Date.now(),
   });
@@ -205,15 +201,19 @@ export async function startGame(roomCode) {
 }
 
 /* =========================================================
-   SUBMIT ANSWER
+   SUBMIT TYPED ANSWER
+   Player submits their text answer + the score they
+   calculated locally. Server just records it.
+   (In production this would be server-side.)
    ========================================================= */
 
-export async function submitAnswerRtdb(
+export async function submitTypedAnswer(
   roomCode,
   uid,
   questionIndex,
-  selectedIndex,
-  correct,
+  text,
+  scored,
+  marks,
 ) {
   const answerRef = ref(
     rtdb,
@@ -221,20 +221,21 @@ export async function submitAnswerRtdb(
   );
 
   await set(answerRef, {
-    selected: selectedIndex,
-    correct: !!correct,
+    text: String(text || ""),
+    scored: scored || 0,
+    marks: marks || 0,
     answeredAt: Date.now(),
   });
 
-  if (correct) {
-    const playerRef = ref(rtdb, "rooms/" + roomCode + "/players/" + uid);
-    const snap = await get(playerRef);
-    const data = snap.val() || {};
-    await update(playerRef, {
-      score: (data.score || 0) + 1,
-      correct: (data.correct || 0) + 1,
-    });
-  }
+  // Update running totals
+  const playerRef = ref(rtdb, "rooms/" + roomCode + "/players/" + uid);
+  const snap = await get(playerRef);
+  const data = snap.val() || {};
+  await update(playerRef, {
+    score: (data.score || 0) + (scored || 0),
+    correct: (data.correct || 0) + (scored || 0),
+    totalMarks: (data.totalMarks || 0) + (marks || 0),
+  });
 }
 
 /* =========================================================
@@ -301,31 +302,89 @@ export function computeRoomRankings(room) {
 }
 
 /* =========================================================
-   LOAD COMPETE QUESTIONS
+   SCORING (matches solo quiz logic)
    ========================================================= */
 
-export async function loadCompeteQuestions({ exam, subject, count = 10 }) {
-  let questions = [];
+const STOP_WORDS = [
+  "the",
+  "a",
+  "an",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "and",
+  "or",
+  "of",
+  "to",
+  "in",
+  "on",
+  "at",
+  "for",
+  "with",
+  "by",
+  "from",
+  "as",
+  "it",
+  "its",
+  "that",
+  "this",
+  "these",
+  "those",
+  "such",
+  "also",
+  "so",
+  "then",
+  "than",
+  "if",
+  "when",
+];
 
-  try {
-    questions = await getCachedQuestions(exam, subject);
-  } catch (e) {
-    log.warn("Cache read failed:", e);
+export function normalizeText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function markpointMatches(normalizedAnswer, markpointText) {
+  if (!normalizedAnswer) return false;
+  const normalizedMp = normalizeText(markpointText);
+  if (!normalizedMp) return false;
+  if (normalizedAnswer.indexOf(normalizedMp) !== -1) return true;
+
+  const words = normalizedMp.split(" ").filter(function (w) {
+    return w.length > 2 && STOP_WORDS.indexOf(w) === -1;
+  });
+  if (!words.length) return false;
+
+  let hits = 0;
+  for (const word of words) {
+    if (normalizedAnswer.indexOf(word) !== -1) hits += 1;
   }
+  const threshold = Math.max(1, Math.ceil(words.length * 0.6));
+  return hits >= threshold;
+}
 
-  if (!questions.length) {
-    questions = await getQuestionsForSubject(exam, subject);
-    if (questions.length) await cacheQuestions(questions);
-  }
+export function scoreAnswer(question, text) {
+  const normalized = normalizeText(text);
+  const matched = [];
+  let scored = 0;
 
-  if (!questions.length)
-    throw new Error("No questions available for this subject.");
-
-  const built = buildQuiz(questions, {
-    count: count,
-    shuffleOptions: true,
-    shuffleQuestions: true,
+  (question.markpoints || []).forEach(function (mp, j) {
+    const mpText = typeof mp === "string" ? mp : mp.text;
+    const mpMarks = typeof mp === "string" ? 1 : mp.marks || 1;
+    if (markpointMatches(normalized, mpText)) {
+      matched.push(j);
+      scored += mpMarks;
+    }
   });
 
-  return built.questions;
+  const max = question.marks || 1;
+  scored = Math.min(scored, max);
+
+  return { scored: scored, marks: max, matched: matched };
 }

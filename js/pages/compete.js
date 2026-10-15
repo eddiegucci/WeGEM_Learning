@@ -1,5 +1,5 @@
 // js/pages/compete.js
-// Compete page controller.
+// Compete page controller — typed-answer multiplayer.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -11,15 +11,15 @@ import {
   createRoom,
   joinRoom,
   startGame,
-  submitAnswerRtdb,
+  submitTypedAnswer,
   advanceQuestion,
   leaveRoom,
   deleteRoom,
   subscribeToRoom,
   computeRoomRankings,
+  scoreAnswer,
 } from "../features/quiz-compete.js";
-import { loadBanks, getAllSubjectsWithBankStatus } from "../compete/index.js";
-import { SUBJECTS_BY_CURRICULUM } from "../data/subjects.js";
+import { loadQuizzes, getQuizzesForUser } from "../quizzes/index.js";
 import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
@@ -30,6 +30,8 @@ const state = {
   userDoc: null,
   curriculum: "",
   level: "",
+  availableQuizzes: [],
+  selectedQuizTitle: "",
   roomCode: null,
   room: null,
   isHost: false,
@@ -38,7 +40,7 @@ const state = {
   myAnswers: {},
   timerInterval: null,
   timerEndsAt: 0,
-  timerSeconds: 20,
+  timerSeconds: 90,
   advancing: false,
 };
 
@@ -56,8 +58,7 @@ const els = {
   cancelJoinBtn: document.getElementById("cancelJoinBtn"),
 
   createForm: document.getElementById("createForm"),
-  createSubject: document.getElementById("createSubject"),
-  createCount: document.getElementById("createCount"),
+  createQuiz: document.getElementById("createQuiz"),
   createTime: document.getElementById("createTime"),
   confirmCreateBtn: document.getElementById("confirmCreateBtn"),
   cancelCreateBtn: document.getElementById("cancelCreateBtn"),
@@ -68,7 +69,7 @@ const els = {
   roomCodeDisplay: document.getElementById("roomCodeDisplay"),
   copyCodeBtn: document.getElementById("copyCodeBtn"),
   leaveRoomBtn: document.getElementById("leaveRoomBtn"),
-  waitingSubject: document.getElementById("waitingSubject"),
+  waitingQuiz: document.getElementById("waitingQuiz"),
   waitingCount: document.getElementById("waitingCount"),
   waitingTime: document.getElementById("waitingTime"),
   playerCount: document.getElementById("playerCount"),
@@ -82,8 +83,9 @@ const els = {
   liveScoreboard: document.getElementById("liveScoreboard"),
   playTopic: document.getElementById("playTopic"),
   playQuestion: document.getElementById("playQuestion"),
-  playOptions: document.getElementById("playOptions"),
-  playFeedback: document.getElementById("playFeedback"),
+  playMarks: document.getElementById("playMarks"),
+  playAnswerBox: document.getElementById("playAnswerBox"),
+  playSubmitBtn: document.getElementById("playSubmitBtn"),
   playStatus: document.getElementById("playStatus"),
 
   finalTitle: document.getElementById("finalTitle"),
@@ -115,7 +117,6 @@ async function setupUser() {
     user.displayName ||
     user.email?.split("@")[0] ||
     "Student";
-
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
 
@@ -126,12 +127,10 @@ async function setupUser() {
       if (doc) await cacheUser(doc);
     }
     state.userDoc = doc;
-
     if (doc?.name) {
       if (els.userAvatar) els.userAvatar.textContent = initials(doc.name);
       if (els.userNameTop) els.userNameTop.textContent = firstName(doc.name);
     }
-
     state.curriculum = doc?.curriculum || "";
     state.level = doc?.level || "";
   } catch (e) {
@@ -141,95 +140,60 @@ async function setupUser() {
 }
 
 /* =========================================================
-   LOAD BANKS
+   LOAD QUIZZES (shared with solo quiz)
    ========================================================= */
 
 async function loadAll() {
   try {
-    await loadBanks(state.curriculum, state.level);
+    await loadQuizzes(state.curriculum, state.level);
   } catch (e) {
-    log.warn("Could not load compete banks:", e);
+    log.warn("Could not load quizzes:", e);
   }
-}
-
-/* =========================================================
-   SUBJECT → BANK MAP
-   ========================================================= */
-
-function getSubjectBankMap() {
-  if (!state.curriculum || !state.level) return {};
-
-  const curriculumKey =
-    state.curriculum === "CBE" || state.curriculum.toLowerCase() === "cbe"
-      ? "CBE"
-      : "844";
-
-  const source = SUBJECTS_BY_CURRICULUM[curriculumKey];
-  if (!source) return {};
-
-  let subjects = source[state.level];
-
-  if (!subjects) {
-    const numMatch = String(state.level).match(/\d+/);
-    if (numMatch) {
-      const matchKey = Object.keys(source).find((k) => k.includes(numMatch[0]));
-      if (matchKey) subjects = source[matchKey];
-    }
-  }
-
-  if (!subjects || !subjects.length) return {};
-
-  const withStatus = getAllSubjectsWithBankStatus(
-    state.curriculum,
-    state.level,
-    subjects,
+  state.availableQuizzes = getQuizzesForUser(state.curriculum, state.level);
+  log.info(
+    "Compete page: " + state.availableQuizzes.length + " available quizzes",
   );
-
-  const map = {};
-  withStatus.forEach(({ subject, bank }) => {
-    map[subject] = bank;
-  });
-  return map;
 }
 
-/* =========================================================
-   POPULATE CREATE FORM
-   ========================================================= */
+function populateQuizDropdown() {
+  if (!els.createQuiz) return;
 
-function populateCreateSubjects() {
-  if (!els.createSubject) return;
-
-  const subjectMap = getSubjectBankMap();
-  const subjects = Object.keys(subjectMap);
-
-  if (!subjects.length) {
-    els.createSubject.innerHTML = `<option value="">No subjects available</option>`;
+  if (!state.availableQuizzes.length) {
+    els.createQuiz.innerHTML = '<option value="">No quizzes available</option>';
     els.confirmCreateBtn.disabled = true;
-    showLobbyError(
-      "No subjects found for your class. Check your profile settings.",
-    );
+    showLobbyError("No published quizzes for your class yet.");
     return;
   }
 
-  const sorted = [...subjects].sort((a, b) => {
-    const aHas = !!subjectMap[a];
-    const bHas = !!subjectMap[b];
-    if (aHas && !bHas) return -1;
-    if (!aHas && bHas) return 1;
-    return a.localeCompare(b);
-  });
-
-  els.createSubject.innerHTML = sorted
-    .map((s) => {
-      const hasBank = !!subjectMap[s];
-      const label = hasBank ? s : `${s} — coming soon`;
-      return `<option value="${escapeHTML(s)}">${escapeHTML(label)}</option>`;
+  els.createQuiz.innerHTML = state.availableQuizzes
+    .map(function (q) {
+      const qs = (q.questions && q.questions.length) || 0;
+      return (
+        '<option value="' +
+        escapeHTML(q.title) +
+        '">' +
+        escapeHTML(q.title) +
+        " · " +
+        qs +
+        " Qs</option>"
+      );
     })
     .join("");
 
+  state.selectedQuizTitle = state.availableQuizzes[0].title;
   els.confirmCreateBtn.disabled = false;
   clearLobbyError();
 }
+
+function getSelectedQuiz() {
+  return state.availableQuizzes.find(function (q) {
+    return q.title === state.selectedQuizTitle;
+  });
+}
+
+/* =========================================================
+   ERRORS
+   ========================================================= */
 
 function showLobbyError(msg) {
   if (!els.lobbyError) return;
@@ -238,7 +202,7 @@ function showLobbyError(msg) {
 }
 
 function clearLobbyError() {
-  els.lobbyError?.classList.add("hidden");
+  if (els.lobbyError) els.lobbyError.classList.add("hidden");
 }
 
 /* =========================================================
@@ -246,36 +210,36 @@ function clearLobbyError() {
    ========================================================= */
 
 function showLobby() {
-  els.lobbyScreen?.classList.remove("hidden");
-  els.waitingScreen?.classList.add("hidden");
-  els.playScreen?.classList.add("hidden");
-  els.finalScreen?.classList.add("hidden");
-  els.joinForm?.classList.add("hidden");
-  els.createForm?.classList.add("hidden");
+  if (els.lobbyScreen) els.lobbyScreen.classList.remove("hidden");
+  if (els.waitingScreen) els.waitingScreen.classList.add("hidden");
+  if (els.playScreen) els.playScreen.classList.add("hidden");
+  if (els.finalScreen) els.finalScreen.classList.add("hidden");
+  if (els.joinForm) els.joinForm.classList.add("hidden");
+  if (els.createForm) els.createForm.classList.add("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function showWaiting() {
-  els.lobbyScreen?.classList.add("hidden");
-  els.waitingScreen?.classList.remove("hidden");
-  els.playScreen?.classList.add("hidden");
-  els.finalScreen?.classList.add("hidden");
+  if (els.lobbyScreen) els.lobbyScreen.classList.add("hidden");
+  if (els.waitingScreen) els.waitingScreen.classList.remove("hidden");
+  if (els.playScreen) els.playScreen.classList.add("hidden");
+  if (els.finalScreen) els.finalScreen.classList.add("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function showPlaying() {
-  els.lobbyScreen?.classList.add("hidden");
-  els.waitingScreen?.classList.add("hidden");
-  els.playScreen?.classList.remove("hidden");
-  els.finalScreen?.classList.add("hidden");
+  if (els.lobbyScreen) els.lobbyScreen.classList.add("hidden");
+  if (els.waitingScreen) els.waitingScreen.classList.add("hidden");
+  if (els.playScreen) els.playScreen.classList.remove("hidden");
+  if (els.finalScreen) els.finalScreen.classList.add("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function showFinal() {
-  els.lobbyScreen?.classList.add("hidden");
-  els.waitingScreen?.classList.add("hidden");
-  els.playScreen?.classList.add("hidden");
-  els.finalScreen?.classList.remove("hidden");
+  if (els.lobbyScreen) els.lobbyScreen.classList.add("hidden");
+  if (els.waitingScreen) els.waitingScreen.classList.add("hidden");
+  if (els.playScreen) els.playScreen.classList.add("hidden");
+  if (els.finalScreen) els.finalScreen.classList.remove("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -286,57 +250,34 @@ function showFinal() {
 async function handleCreateRoom() {
   clearLobbyError();
 
-  const subject = els.createSubject?.value || "";
-  const count = parseInt(els.createCount?.value || "10", 10);
-  const seconds = parseInt(els.createTime?.value || "20", 10);
+  const quiz = getSelectedQuiz();
+  const seconds = parseInt(els.createTime?.value || "90", 10);
 
-  if (!subject) return showLobbyError("Please choose a subject.");
-
-  const subjectMap = getSubjectBankMap();
-  const bank = subjectMap[subject];
-
-  if (!bank) {
-    return showLobbyError(
-      `${subject} doesn't have a published compete bank yet. Pick another subject.`,
-    );
-  }
+  if (!quiz) return showLobbyError("Please choose a quiz.");
 
   els.confirmCreateBtn.disabled = true;
   els.confirmCreateBtn.textContent = "Creating…";
 
   try {
-    const questions = bank.questions.slice(0, count).map((q) => ({
-      question: q.q,
-      options: q.options || [],
-      correctIndex: q.answer ?? q.correctIndex ?? 0,
-      topic: q.topic || subject,
-      points: q.points ?? 100,
-      timeLimit: q.timeLimit ?? seconds,
-      explain: q.explain || "",
-    }));
+    if (!quiz.questions || !quiz.questions.length) {
+      throw new Error("This quiz has no questions.");
+    }
 
-    if (!questions.length) throw new Error("Bank has no questions.");
-
-    const { roomCode } = await createRoom({
+    const result = await createRoom({
       host: {
         uid: state.user.uid,
         name: state.userDoc?.name || state.user.displayName || "Player",
         school: state.userDoc?.school || "",
       },
-      questions,
-      settings: {
-        subject,
-        exam: bank.exam,
-        questionsPerRound: questions.length,
-        secondsPerQuestion: seconds,
-      },
+      quiz: quiz,
+      settings: { secondsPerQuestion: seconds },
     });
 
-    state.roomCode = roomCode;
+    state.roomCode = result.roomCode;
     state.isHost = true;
     state.timerSeconds = seconds;
 
-    toastOk(`Room created: ${roomCode}`);
+    toastOk("Room created: " + result.roomCode);
     subscribeToCurrentRoom();
     showWaiting();
   } catch (e) {
@@ -356,10 +297,7 @@ async function handleJoinRoom() {
   clearLobbyError();
 
   const code = (els.joinCodeInput?.value || "").trim().toUpperCase();
-
-  if (code.length !== 6) {
-    return toastErr("Please enter a 6-letter code.");
-  }
+  if (code.length !== 6) return toastErr("Please enter a 6-letter code.");
 
   els.joinRoomBtn.disabled = true;
   els.joinRoomBtn.textContent = "Joining…";
@@ -370,11 +308,9 @@ async function handleJoinRoom() {
       name: state.userDoc?.name || state.user.displayName || "Player",
       school: state.userDoc?.school || "",
     });
-
     state.roomCode = code;
     state.isHost = false;
-
-    toastOk(`Joined room ${code}`);
+    toastOk("Joined room " + code);
     subscribeToCurrentRoom();
     showWaiting();
   } catch (e) {
@@ -393,7 +329,7 @@ function subscribeToCurrentRoom() {
   if (!state.roomCode) return;
   if (state.unsub) state.unsub();
 
-  state.unsub = subscribeToRoom(state.roomCode, (room) => {
+  state.unsub = subscribeToRoom(state.roomCode, function (room) {
     if (!room) {
       toastErr("Room was closed.");
       cleanupRoom();
@@ -402,16 +338,18 @@ function subscribeToCurrentRoom() {
     }
 
     state.room = room;
-    if (room.settings?.secondsPerQuestion) {
+    if (room.settings && room.settings.secondsPerQuestion) {
       state.timerSeconds = room.settings.secondsPerQuestion;
     }
 
     const status = room.status;
     if (status === "waiting") {
-      if (els.waitingScreen?.classList.contains("hidden")) showWaiting();
+      if (els.waitingScreen && els.waitingScreen.classList.contains("hidden"))
+        showWaiting();
       renderWaitingRoom(room);
     } else if (status === "playing") {
-      if (els.playScreen?.classList.contains("hidden")) showPlaying();
+      if (els.playScreen && els.playScreen.classList.contains("hidden"))
+        showPlaying();
       renderPlayingRoom(room);
     } else if (status === "finished") {
       renderFinal();
@@ -428,33 +366,41 @@ function renderWaitingRoom(room) {
   if (els.roomCodeDisplay)
     els.roomCodeDisplay.textContent = room.code || "------";
 
-  const settings = room.settings || {};
-  if (els.waitingSubject)
-    els.waitingSubject.textContent = settings.subject || "—";
+  const s = room.settings || {};
+  if (els.waitingQuiz) els.waitingQuiz.textContent = s.title || "—";
   if (els.waitingCount)
-    els.waitingCount.textContent = settings.questionsPerRound || "—";
+    els.waitingCount.textContent = s.questionsPerRound || "—";
   if (els.waitingTime)
-    els.waitingTime.textContent = (settings.secondsPerQuestion || 20) + "s";
+    els.waitingTime.textContent = (s.secondsPerQuestion || 90) + "s";
 
   const players = Object.values(room.players || {});
   if (els.playerCount) els.playerCount.textContent = players.length;
 
   if (els.playerList) {
     els.playerList.innerHTML = players
-      .map((p) => {
+      .map(function (p) {
         const isMe = p.uid === state.user.uid;
         const classes = ["player-row", isMe ? "is-you" : ""]
           .filter(Boolean)
           .join(" ");
-        return `
-          <div class="${classes}">
-            <div class="user-avatar" style="width: 36px; height: 36px; font-size: 14px;">${initials(p.name || "P")}</div>
-            <div style="flex: 1; min-width: 0;">
-              <div class="player-name">${escapeHTML(p.name || "Player")}${isMe ? ' <span class="player-badge">You</span>' : ""}</div>
-              <div class="player-school">${escapeHTML(p.school || "—")}</div>
-            </div>
-          </div>
-        `;
+        return (
+          '<div class="' +
+          classes +
+          '">' +
+          '<div class="user-avatar" style="width:36px;height:36px;font-size:14px;">' +
+          initials(p.name || "P") +
+          "</div>" +
+          '<div style="flex:1;min-width:0;">' +
+          '<div class="player-name">' +
+          escapeHTML(p.name || "Player") +
+          (isMe ? ' <span class="player-badge">You</span>' : "") +
+          "</div>" +
+          '<div class="player-school">' +
+          escapeHTML(p.school || "—") +
+          "</div>" +
+          "</div>" +
+          "</div>"
+        );
       })
       .join("");
   }
@@ -488,11 +434,10 @@ async function handleStartGame() {
 
   const ok = await confirmDialog({
     title: "Start game?",
-    message: "All players must answer in real time.",
+    message: "All players answer in real time.",
     okLabel: "Start",
     cancelLabel: "Wait",
   });
-
   if (!ok) return;
 
   try {
@@ -521,15 +466,16 @@ function renderPlayingRoom(room) {
   }
 
   const players = Object.values(room.players || {});
-  const answeredCount = players.filter(
-    (p) => p.answers && p.answers[currentIdx] !== undefined,
-  ).length;
+  const answeredCount = players.filter(function (p) {
+    return p.answers && p.answers[currentIdx] !== undefined;
+  }).length;
 
   if (els.playStatus) {
     if (answeredCount === players.length && players.length > 0) {
       els.playStatus.textContent = "Everyone answered — moving on…";
     } else {
-      els.playStatus.textContent = `${answeredCount} / ${players.length} players answered`;
+      els.playStatus.textContent =
+        answeredCount + " / " + players.length + " players answered";
     }
   }
 
@@ -540,19 +486,15 @@ function renderPlayingRoom(room) {
     answeredCount === players.length
   ) {
     state.advancing = true;
-    setTimeout(async () => {
-      try {
-        await advanceQuestion(
-          state.roomCode,
-          currentIdx + 1,
-          room.questions.length,
-        );
-      } catch (e) {
-        log.warn("Advance failed:", e);
-      } finally {
-        state.advancing = false;
-      }
-    }, 900);
+    setTimeout(function () {
+      advanceQuestion(state.roomCode, currentIdx + 1, room.questions.length)
+        .catch(function (e) {
+          log.warn("Advance failed:", e);
+        })
+        .finally(function () {
+          state.advancing = false;
+        });
+    }, 1200);
   }
 }
 
@@ -562,77 +504,68 @@ function renderQuestion(q, index, room) {
   const settings = room.settings || {};
 
   if (els.playMeta)
-    els.playMeta.textContent = `${settings.exam || ""} · ${settings.subject || ""}`;
+    els.playMeta.textContent =
+      (settings.exam || "") + " · " + (settings.subject || "");
   if (els.playCounter)
-    els.playCounter.textContent = `Question ${index + 1} of ${room.questions.length}`;
+    els.playCounter.textContent =
+      "Question " + (index + 1) + " of " + room.questions.length;
   if (els.playProgress) {
-    els.playProgress.style.width = `${((index + 1) / room.questions.length) * 100}%`;
+    els.playProgress.style.width =
+      ((index + 1) / room.questions.length) * 100 + "%";
   }
-
   if (els.playTopic)
-    els.playTopic.textContent = (
-      q.topic ||
-      settings.subject ||
-      ""
+    els.playTopic.textContent = String(
+      q.topic || settings.subject || "",
     ).toUpperCase();
   if (els.playQuestion) els.playQuestion.textContent = q.question;
+  if (els.playMarks)
+    els.playMarks.textContent = q.marks + " mark" + (q.marks === 1 ? "" : "s");
 
-  if (els.playOptions) {
-    els.playOptions.innerHTML = q.options
-      .map(
-        (opt, i) => `
-      <button class="option" type="button" data-option-index="${i}">
-        <span class="option-letter">${"ABCD"[i]}</span>
-        <span>${escapeHTML(opt)}</span>
-      </button>
-    `,
-      )
-      .join("");
-
-    els.playOptions.querySelectorAll(".option").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = parseInt(btn.dataset.optionIndex, 10);
-        handlePlayAnswer(idx, index, q);
-      });
-    });
+  if (els.playAnswerBox) {
+    els.playAnswerBox.value = "";
+    els.playAnswerBox.disabled = false;
+    els.playAnswerBox.focus();
   }
-
-  if (els.playFeedback) {
-    els.playFeedback.classList.add("hidden");
-    els.playFeedback.className = "glass-feedback hidden";
+  if (els.playSubmitBtn) {
+    els.playSubmitBtn.disabled = false;
+    els.playSubmitBtn.textContent = "Submit Answer";
   }
 }
 
 /* =========================================================
-   ANSWER
+   SUBMIT ANSWER
    ========================================================= */
 
-async function handlePlayAnswer(selectedIndex, questionIndex, q) {
+async function handleSubmitAnswer() {
   if (!state.roomCode || !state.room) return;
-  if (state.myAnswers[questionIndex] !== undefined) return;
+  const qIndex = state.currentQuestion;
+  if (qIndex < 0) return;
+  if (state.myAnswers[qIndex] !== undefined) return;
 
-  state.myAnswers[questionIndex] = selectedIndex;
+  const text = (els.playAnswerBox?.value || "").trim();
+  if (!text) return toastErr("Please type an answer.");
 
-  const isCorrect = selectedIndex === q.correctIndex;
+  const question = state.room.questions[qIndex];
+  const result = scoreAnswer(question, text);
 
-  const options = els.playOptions?.querySelectorAll(".option") || [];
-  options.forEach((opt) => opt.classList.add("disabled"));
-  options[q.correctIndex]?.classList.add("correct");
-  if (!isCorrect) options[selectedIndex]?.classList.add("wrong");
+  state.myAnswers[qIndex] = text;
 
-  if (els.playFeedback) {
-    els.playFeedback.className = `glass-feedback ${isCorrect ? "correct" : "wrong"}`;
-    els.playFeedback.textContent = isCorrect ? "✓ Correct!" : "✗ Not quite.";
-    els.playFeedback.classList.remove("hidden");
+  if (els.playAnswerBox) els.playAnswerBox.disabled = true;
+  if (els.playSubmitBtn) {
+    els.playSubmitBtn.disabled = true;
+    els.playSubmitBtn.textContent = "Submitted ✓";
   }
 
+  toastOk("Scored " + result.scored + "/" + result.marks);
+
   try {
-    await submitAnswerRtdb(
+    await submitTypedAnswer(
       state.roomCode,
       state.user.uid,
-      questionIndex,
-      selectedIndex,
-      isCorrect,
+      qIndex,
+      text,
+      result.scored,
+      result.marks,
     );
   } catch (e) {
     log.warn("Submit failed:", e);
@@ -649,7 +582,7 @@ function renderLiveScoreboard(room) {
   const rankings = computeRoomRankings(room);
 
   els.liveScoreboard.innerHTML = rankings
-    .map((p) => {
+    .map(function (p) {
       const isMe = p.uid === state.user.uid;
       const answered =
         p.answers && p.answers[room.currentQuestionIndex] !== undefined;
@@ -661,12 +594,19 @@ function renderLiveScoreboard(room) {
         .filter(Boolean)
         .join(" ");
 
-      return `
-        <div class="${classes}">
-          <div class="cp-name">${escapeHTML(p.name || "Player")}${isMe ? " (you)" : ""}</div>
-          <div class="cp-score">${p.score || 0}</div>
-        </div>
-      `;
+      return (
+        '<div class="' +
+        classes +
+        '">' +
+        '<div class="cp-name">' +
+        escapeHTML(p.name || "Player") +
+        (isMe ? " (you)" : "") +
+        "</div>" +
+        '<div class="cp-score">' +
+        (p.score || 0) +
+        "</div>" +
+        "</div>"
+      );
     })
     .join("");
 }
@@ -678,10 +618,9 @@ function renderLiveScoreboard(room) {
 function startQuestionTimer() {
   clearQuestionTimer();
   state.timerEndsAt = Date.now() + state.timerSeconds * 1000;
-
   updateTimerValue(state.timerSeconds);
 
-  state.timerInterval = setInterval(() => {
+  state.timerInterval = setInterval(function () {
     const remaining = Math.max(
       0,
       Math.ceil((state.timerEndsAt - Date.now()) / 1000),
@@ -694,8 +633,10 @@ function startQuestionTimer() {
         state.advancing = true;
         const next = state.currentQuestion + 1;
         advanceQuestion(state.roomCode, next, state.room.questions.length)
-          .catch((e) => log.warn("Auto-advance failed:", e))
-          .finally(() => {
+          .catch(function (e) {
+            log.warn("Auto-advance failed:", e);
+          })
+          .finally(function () {
             state.advancing = false;
             state.timerEndsAt = Date.now() + state.timerSeconds * 1000;
           });
@@ -709,8 +650,8 @@ function updateTimerValue(seconds) {
     const val = els.playTimer.querySelector(".timer-value");
     if (val) val.textContent = seconds;
     els.playTimer.classList.remove("warn", "danger");
-    if (seconds <= 5) els.playTimer.classList.add("danger");
-    else if (seconds <= 10) els.playTimer.classList.add("warn");
+    if (seconds <= 10) els.playTimer.classList.add("danger");
+    else if (seconds <= 30) els.playTimer.classList.add("warn");
   }
 }
 
@@ -722,7 +663,7 @@ function clearQuestionTimer() {
 }
 
 /* =========================================================
-   FINAL SCREEN
+   FINAL
    ========================================================= */
 
 function renderFinal() {
@@ -734,21 +675,20 @@ function renderFinal() {
   if (!winner) return;
 
   const isMe = winner.uid === state.user.uid;
-  if (els.finalTitle) {
+  if (els.finalTitle)
     els.finalTitle.textContent = isMe
       ? "You Win! 🏆"
-      : `${winner.name} Wins! 🏆`;
-  }
+      : winner.name + " Wins! 🏆";
 
-  const totalQ = room.questions?.length || 1;
-  const pct = Math.round(((winner.score || 0) / totalQ) * 100);
-  if (els.finalWinnerScore) els.finalWinnerScore.textContent = `${pct}%`;
+  const totalMarks = winner.totalMarks || 1;
+  const pct = Math.round(((winner.score || 0) / totalMarks) * 100);
+  if (els.finalWinnerScore) els.finalWinnerScore.textContent = pct + "%";
   if (els.finalWinnerName)
     els.finalWinnerName.textContent = winner.name || "Champion";
 
   if (els.finalStandings) {
     els.finalStandings.innerHTML = rankings
-      .map((p) => {
+      .map(function (p) {
         const rank = p.rank;
         const cls =
           rank === 1
@@ -758,19 +698,34 @@ function renderFinal() {
               : rank === 3
                 ? "top-3"
                 : "";
-        return `
-          <div class="lb-row ${cls}">
-            <div class="lb-rank">${rank}</div>
-            <div class="lb-user">
-              <div class="user-avatar" style="width: 32px; height: 32px; font-size: 13px;">${initials(p.name || "P")}</div>
-              <div style="min-width: 0;">
-                <div class="lb-name">${escapeHTML(p.name || "Player")}${p.uid === state.user.uid ? " (you)" : ""}</div>
-                <div class="lb-school">${escapeHTML(p.school || "")}</div>
-              </div>
-            </div>
-            <div class="lb-score">${p.score || 0}</div>
-          </div>
-        `;
+        const marks = p.totalMarks || 1;
+        const scorePct = Math.round(((p.score || 0) / marks) * 100);
+        return (
+          '<div class="lb-row ' +
+          cls +
+          '">' +
+          '<div class="lb-rank">' +
+          rank +
+          "</div>" +
+          '<div class="lb-user">' +
+          '<div class="user-avatar" style="width:32px;height:32px;font-size:13px;">' +
+          initials(p.name || "P") +
+          "</div>" +
+          '<div style="min-width:0;">' +
+          '<div class="lb-name">' +
+          escapeHTML(p.name || "Player") +
+          (p.uid === state.user.uid ? " (you)" : "") +
+          "</div>" +
+          '<div class="lb-school">' +
+          escapeHTML(p.school || "") +
+          "</div>" +
+          "</div>" +
+          "</div>" +
+          '<div class="lb-score">' +
+          scorePct +
+          "%</div>" +
+          "</div>"
+        );
       })
       .join("");
   }
@@ -790,7 +745,6 @@ async function handleLeaveRoom() {
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (!ok) return;
 
   try {
@@ -826,17 +780,19 @@ function cleanupRoom() {
 async function handleUserMenu() {
   const ok = await confirmDialog({
     title: "Sign out?",
-    message: `Signed in as ${state.user?.email || "Student"}.\n\nSign out?`,
+    message:
+      "Signed in as " + (state.user?.email || "Student") + ".\n\nSign out?",
     okLabel: "Sign Out",
     cancelLabel: "Stay",
     danger: true,
   });
-
   if (ok) {
     try {
       if (state.roomCode) {
-        if (state.isHost) await deleteRoom(state.roomCode).catch(() => {});
-        else await leaveRoom(state.roomCode, state.user.uid).catch(() => {});
+        if (state.isHost)
+          await deleteRoom(state.roomCode).catch(function () {});
+        else
+          await leaveRoom(state.roomCode, state.user.uid).catch(function () {});
       }
       await signOutNow();
       window.location.replace("login.html");
@@ -856,46 +812,76 @@ async function init() {
 
   initNav();
   await loadAll();
-  populateCreateSubjects();
+  populateQuizDropdown();
 
-  els.createRoomBtn?.addEventListener("click", () => {
-    els.joinForm?.classList.add("hidden");
-    els.createForm?.classList.remove("hidden");
-    clearLobbyError();
-  });
+  if (els.createQuiz) {
+    els.createQuiz.addEventListener("change", function () {
+      state.selectedQuizTitle = els.createQuiz.value;
+    });
+  }
 
-  els.showJoinBtn?.addEventListener("click", () => {
-    els.createForm?.classList.add("hidden");
-    els.joinForm?.classList.remove("hidden");
-    setTimeout(() => els.joinCodeInput?.focus(), 150);
-  });
+  if (els.createRoomBtn) {
+    els.createRoomBtn.addEventListener("click", function () {
+      if (els.joinForm) els.joinForm.classList.add("hidden");
+      if (els.createForm) els.createForm.classList.remove("hidden");
+      clearLobbyError();
+    });
+  }
+  if (els.showJoinBtn) {
+    els.showJoinBtn.addEventListener("click", function () {
+      if (els.createForm) els.createForm.classList.add("hidden");
+      if (els.joinForm) els.joinForm.classList.remove("hidden");
+      setTimeout(function () {
+        els.joinCodeInput?.focus();
+      }, 150);
+    });
+  }
+  if (els.cancelJoinBtn)
+    els.cancelJoinBtn.addEventListener("click", function () {
+      if (els.joinForm) els.joinForm.classList.add("hidden");
+    });
+  if (els.cancelCreateBtn)
+    els.cancelCreateBtn.addEventListener("click", function () {
+      if (els.createForm) els.createForm.classList.add("hidden");
+    });
 
-  els.cancelJoinBtn?.addEventListener("click", () => {
-    els.joinForm?.classList.add("hidden");
-  });
+  if (els.confirmCreateBtn)
+    els.confirmCreateBtn.addEventListener("click", handleCreateRoom);
+  if (els.joinRoomBtn)
+    els.joinRoomBtn.addEventListener("click", handleJoinRoom);
+  if (els.copyCodeBtn)
+    els.copyCodeBtn.addEventListener("click", handleCopyCode);
+  if (els.leaveRoomBtn)
+    els.leaveRoomBtn.addEventListener("click", handleLeaveRoom);
+  if (els.startGameBtn)
+    els.startGameBtn.addEventListener("click", handleStartGame);
+  if (els.playSubmitBtn)
+    els.playSubmitBtn.addEventListener("click", handleSubmitAnswer);
+  if (els.playAgainBtn)
+    els.playAgainBtn.addEventListener("click", function () {
+      cleanupRoom();
+      showLobby();
+    });
+  if (els.userMenuBtn)
+    els.userMenuBtn.addEventListener("click", handleUserMenu);
 
-  els.cancelCreateBtn?.addEventListener("click", () => {
-    els.createForm?.classList.add("hidden");
-  });
+  if (els.joinCodeInput) {
+    els.joinCodeInput.addEventListener("input", function (e) {
+      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    });
+    els.joinCodeInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") handleJoinRoom();
+    });
+  }
 
-  els.confirmCreateBtn?.addEventListener("click", handleCreateRoom);
-  els.joinRoomBtn?.addEventListener("click", handleJoinRoom);
-  els.copyCodeBtn?.addEventListener("click", handleCopyCode);
-  els.leaveRoomBtn?.addEventListener("click", handleLeaveRoom);
-  els.startGameBtn?.addEventListener("click", handleStartGame);
-  els.playAgainBtn?.addEventListener("click", () => {
-    cleanupRoom();
-    showLobby();
-  });
-  els.userMenuBtn?.addEventListener("click", handleUserMenu);
-
-  els.joinCodeInput?.addEventListener("input", (e) => {
-    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  });
-
-  els.joinCodeInput?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleJoinRoom();
-  });
+  if (els.playAnswerBox) {
+    els.playAnswerBox.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleSubmitAnswer();
+      }
+    });
+  }
 }
 
 if (document.readyState === "loading") {

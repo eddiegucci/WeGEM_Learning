@@ -8,9 +8,8 @@
 
   <title>Compete — WeGEM Learning</title>
 
-  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
-  <link rel="icon" type="image/png" sizes="96x96" href="assets/icons/favicon-96x96.png">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 
   <link rel="stylesheet" href="css/tokens.css">
@@ -36,8 +35,6 @@
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
       <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
       <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
-      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
-      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
     </svg>
     <span>WeGEM Learning</span>
   </a>
@@ -62,12 +59,13 @@
 
 <main class="container">
 
+  <!-- LOBBY -->
   <section id="lobbyScreen" class="glass-hero">
     <div class="glass-hero-head">
       <div class="glass-badge">🏆 Compete Mode</div>
       <h1 class="glass-title">Challenge <span>classmates</span></h1>
       <p class="glass-sub">
-        Create a room, share the code, and race to answer the same question first.
+        Create a room, share the code, and answer the same questions as everyone else.
       </p>
     </div>
 
@@ -83,15 +81,7 @@
 
       <div id="joinForm" class="glass-form hidden">
         <div class="glass-label">Room Code</div>
-        <input
-          type="text"
-          id="joinCodeInput"
-          class="glass-input glass-input-code"
-          placeholder="ABC123"
-          maxlength="6"
-          autocapitalize="characters"
-          autocomplete="off"
-        />
+        <input type="text" id="joinCodeInput" class="glass-input glass-input-code" placeholder="ABC123" maxlength="6" autocapitalize="characters" autocomplete="off" />
         <div class="glass-row" style="margin-top: var(--sp-4);">
           <button class="glass-btn glass-btn-ghost" id="cancelJoinBtn" type="button">Cancel</button>
           <button class="glass-btn glass-btn-primary" id="joinRoomBtn" type="button">Join →</button>
@@ -99,30 +89,19 @@
       </div>
 
       <div id="createForm" class="glass-form hidden">
-        <div class="glass-label">Subject</div>
+        <div class="glass-label">Quiz</div>
         <div class="glass-select-wrap" style="margin-bottom: var(--sp-4);">
-          <select id="createSubject" class="glass-select"></select>
-          <span class="glass-select-arrow">▾</span>
-        </div>
-
-        <div class="glass-label">Questions per player</div>
-        <div class="glass-select-wrap" style="margin-bottom: var(--sp-4);">
-          <select id="createCount" class="glass-select">
-            <option value="5">5 questions</option>
-            <option value="10" selected>10 questions</option>
-            <option value="15">15 questions</option>
-            <option value="20">20 questions</option>
-          </select>
+          <select id="createQuiz" class="glass-select"></select>
           <span class="glass-select-arrow">▾</span>
         </div>
 
         <div class="glass-label">Seconds per question</div>
         <div class="glass-select-wrap">
           <select id="createTime" class="glass-select">
-            <option value="15">15 seconds</option>
-            <option value="20" selected>20 seconds</option>
-            <option value="30">30 seconds</option>
             <option value="60">60 seconds</option>
+            <option value="90" selected>90 seconds</option>
+            <option value="120">2 minutes</option>
+            <option value="180">3 minutes</option>
           </select>
           <span class="glass-select-arrow">▾</span>
         </div>
@@ -141,6 +120,7 @@
     </div>
   </section>
 
+  <!-- WAITING ROOM -->
   <section id="waitingScreen" class="glass-hero hidden">
     <div class="glass-hero-head">
       <div class="glass-badge">Room ready</div>
@@ -160,8 +140,8 @@
         <div class="glass-preview-item">
           <div class="gpi-icon">📘</div>
           <div>
-            <div class="gpi-label">Subject</div>
-            <div class="gpi-value" id="waitingSubject" style="font-size: var(--text-base);">—</div>
+            <div class="gpi-label">Quiz</div>
+            <div class="gpi-value" id="waitingQuiz" style="font-size: var(--text-base);">—</div>
           </div>
         </div>
         <div class="glass-preview-item">
@@ -199,14 +179,15 @@
     </div>
   </section>
 
+  <!-- PLAYING -->
   <section id="playScreen" class="hidden">
     <div class="glass-card glass-topbar">
       <div>
-        <div class="glass-meta" id="playMeta">KCSE · Mathematics</div>
+        <div class="glass-meta" id="playMeta">KCSE · Computer Studies</div>
         <div class="glass-counter" id="playCounter">Question 1 of 10</div>
       </div>
       <div class="glass-timer" id="playTimer">
-        <span class="timer-value">20</span>
+        <span class="timer-value">90</span>
         <span class="timer-label">seconds</span>
       </div>
     </div>
@@ -220,13 +201,24 @@
     <div class="glass-card glass-question">
       <div class="glass-topic" id="playTopic">TOPIC</div>
       <div class="glass-question-text" id="playQuestion">Question…</div>
-      <div class="options" id="playOptions"></div>
-      <div class="glass-feedback hidden" id="playFeedback"></div>
+      <div class="glass-marks" id="playMarks">3 marks</div>
+
+      <div class="glass-label" style="margin-bottom: var(--sp-3);">Type your answer:</div>
+      <textarea class="glass-textarea" id="playAnswerBox" placeholder="Write your answer here. Be specific and use key terms." rows="5"></textarea>
+
+      <button class="glass-btn glass-btn-primary" id="playSubmitBtn" type="button" style="margin-top: var(--sp-4);">
+        Submit Answer
+      </button>
+
+      <div class="glass-hint" style="margin-top: var(--sp-3);">
+        Tip: press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to submit quickly.
+      </div>
     </div>
 
     <p class="glass-hint" id="playStatus" style="text-align: center; font-size: var(--text-sm);"></p>
   </section>
 
+  <!-- FINAL -->
   <section id="finalScreen" class="hidden">
     <div class="glass-card glass-results">
       <div class="glass-badge">Game over</div>
