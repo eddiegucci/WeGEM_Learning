@@ -1,6 +1,6 @@
 // js/features/quiz-compete.js
 // Real-time multiplayer typed-answer quiz.
-// Shares quiz content with the solo quiz (js/quizzes/...).
+// Reads compete banks from js/compete/ (separate from solo quiz).
 
 import {
   initializeApp,
@@ -77,10 +77,6 @@ export async function createRoom({ host, quiz, settings = {} }) {
     throw new Error("Could not find a free room code. Please try again.");
   }
 
-  // Strip correct answers from what's shipped publicly.
-  // Markpoints stay in the room but players can't read them
-  // because we only write questions WITH markpoints here.
-  // (In a full production app you'd move scoring to a Cloud Function.)
   const safeQuestions = quiz.questions.map(function (q, i) {
     return {
       index: i,
@@ -202,9 +198,6 @@ export async function startGame(roomCode) {
 
 /* =========================================================
    SUBMIT TYPED ANSWER
-   Player submits their text answer + the score they
-   calculated locally. Server just records it.
-   (In production this would be server-side.)
    ========================================================= */
 
 export async function submitTypedAnswer(
@@ -227,7 +220,6 @@ export async function submitTypedAnswer(
     answeredAt: Date.now(),
   });
 
-  // Update running totals
   const playerRef = ref(rtdb, "rooms/" + roomCode + "/players/" + uid);
   const snap = await get(playerRef);
   const data = snap.val() || {};

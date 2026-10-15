@@ -1,5 +1,6 @@
 // js/pages/compete.js
 // Compete page controller — typed-answer multiplayer.
+// Reads compete banks from js/compete/index.js (separate from solo quiz).
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -19,7 +20,7 @@ import {
   computeRoomRankings,
   scoreAnswer,
 } from "../features/quiz-compete.js";
-import { loadQuizzes, getQuizzesForUser } from "../quizzes/index.js";
+import { loadBanks, getBanksForUser } from "../compete/index.js";
 import { initNav } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
@@ -30,8 +31,8 @@ const state = {
   userDoc: null,
   curriculum: "",
   level: "",
-  availableQuizzes: [],
-  selectedQuizTitle: "",
+  availableBanks: [],
+  selectedBankTitle: "",
   roomCode: null,
   room: null,
   isHost: false,
@@ -140,54 +141,55 @@ async function setupUser() {
 }
 
 /* =========================================================
-   LOAD QUIZZES (shared with solo quiz)
+   LOAD BANKS from js/compete/
    ========================================================= */
 
 async function loadAll() {
   try {
-    await loadQuizzes(state.curriculum, state.level);
+    await loadBanks(state.curriculum, state.level);
   } catch (e) {
-    log.warn("Could not load quizzes:", e);
+    log.warn("Could not load compete banks:", e);
   }
-  state.availableQuizzes = getQuizzesForUser(state.curriculum, state.level);
-  log.info(
-    "Compete page: " + state.availableQuizzes.length + " available quizzes",
-  );
+  state.availableBanks = getBanksForUser(state.curriculum, state.level);
+  log.info("Compete page: " + state.availableBanks.length + " available banks");
 }
 
-function populateQuizDropdown() {
+function populateBankDropdown() {
   if (!els.createQuiz) return;
 
-  if (!state.availableQuizzes.length) {
-    els.createQuiz.innerHTML = '<option value="">No quizzes available</option>';
+  if (!state.availableBanks.length) {
+    els.createQuiz.innerHTML =
+      '<option value="">No compete banks available</option>';
     els.confirmCreateBtn.disabled = true;
-    showLobbyError("No published quizzes for your class yet.");
+    showLobbyError("No published compete banks for your class yet.");
     return;
   }
 
-  els.createQuiz.innerHTML = state.availableQuizzes
-    .map(function (q) {
-      const qs = (q.questions && q.questions.length) || 0;
+  els.createQuiz.innerHTML = state.availableBanks
+    .map(function (b) {
+      const qs = (b.questions && b.questions.length) || 0;
+      const label = (b.subject || "Untitled") + " · " + qs + " Qs";
       return (
         '<option value="' +
-        escapeHTML(q.title) +
+        escapeHTML(b.subject + "::" + (b.title || "")) +
         '">' +
-        escapeHTML(q.title) +
-        " · " +
-        qs +
-        " Qs</option>"
+        escapeHTML(label) +
+        "</option>"
       );
     })
     .join("");
 
-  state.selectedQuizTitle = state.availableQuizzes[0].title;
+  state.selectedBankTitle =
+    (state.availableBanks[0].subject || "") +
+    "::" +
+    (state.availableBanks[0].title || "");
   els.confirmCreateBtn.disabled = false;
   clearLobbyError();
 }
 
-function getSelectedQuiz() {
-  return state.availableQuizzes.find(function (q) {
-    return q.title === state.selectedQuizTitle;
+function getSelectedBank() {
+  return state.availableBanks.find(function (b) {
+    return b.subject + "::" + (b.title || "") === state.selectedBankTitle;
   });
 }
 
@@ -206,7 +208,7 @@ function clearLobbyError() {
 }
 
 /* =========================================================
-   SCREEN SWITCHING
+   SCREENS
    ========================================================= */
 
 function showLobby() {
@@ -250,17 +252,17 @@ function showFinal() {
 async function handleCreateRoom() {
   clearLobbyError();
 
-  const quiz = getSelectedQuiz();
+  const bank = getSelectedBank();
   const seconds = parseInt(els.createTime?.value || "90", 10);
 
-  if (!quiz) return showLobbyError("Please choose a quiz.");
+  if (!bank) return showLobbyError("Please choose a quiz.");
 
   els.confirmCreateBtn.disabled = true;
   els.confirmCreateBtn.textContent = "Creating…";
 
   try {
-    if (!quiz.questions || !quiz.questions.length) {
-      throw new Error("This quiz has no questions.");
+    if (!bank.questions || !bank.questions.length) {
+      throw new Error("This bank has no questions.");
     }
 
     const result = await createRoom({
@@ -269,7 +271,7 @@ async function handleCreateRoom() {
         name: state.userDoc?.name || state.user.displayName || "Player",
         school: state.userDoc?.school || "",
       },
-      quiz: quiz,
+      quiz: bank,
       settings: { secondsPerQuestion: seconds },
     });
 
@@ -367,7 +369,8 @@ function renderWaitingRoom(room) {
     els.roomCodeDisplay.textContent = room.code || "------";
 
   const s = room.settings || {};
-  if (els.waitingQuiz) els.waitingQuiz.textContent = s.title || "—";
+  if (els.waitingQuiz)
+    els.waitingQuiz.textContent = s.title || s.subject || "—";
   if (els.waitingCount)
     els.waitingCount.textContent = s.questionsPerRound || "—";
   if (els.waitingTime)
@@ -450,7 +453,7 @@ async function handleStartGame() {
 }
 
 /* =========================================================
-   PLAYING ROOM
+   PLAYING
    ========================================================= */
 
 function renderPlayingRoom(room) {
@@ -500,7 +503,6 @@ function renderPlayingRoom(room) {
 
 function renderQuestion(q, index, room) {
   if (!q) return;
-
   const settings = room.settings || {};
 
   if (els.playMeta)
@@ -578,7 +580,6 @@ async function handleSubmitAnswer() {
 
 function renderLiveScoreboard(room) {
   if (!els.liveScoreboard) return;
-
   const rankings = computeRoomRankings(room);
 
   els.liveScoreboard.innerHTML = rankings
@@ -812,14 +813,13 @@ async function init() {
 
   initNav();
   await loadAll();
-  populateQuizDropdown();
+  populateBankDropdown();
 
   if (els.createQuiz) {
     els.createQuiz.addEventListener("change", function () {
-      state.selectedQuizTitle = els.createQuiz.value;
+      state.selectedBankTitle = els.createQuiz.value;
     });
   }
-
   if (els.createRoomBtn) {
     els.createRoomBtn.addEventListener("click", function () {
       if (els.joinForm) els.joinForm.classList.add("hidden");
@@ -844,7 +844,6 @@ async function init() {
     els.cancelCreateBtn.addEventListener("click", function () {
       if (els.createForm) els.createForm.classList.add("hidden");
     });
-
   if (els.confirmCreateBtn)
     els.confirmCreateBtn.addEventListener("click", handleCreateRoom);
   if (els.joinRoomBtn)
@@ -873,7 +872,6 @@ async function init() {
       if (e.key === "Enter") handleJoinRoom();
     });
   }
-
   if (els.playAnswerBox) {
     els.playAnswerBox.addEventListener("keydown", function (e) {
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
