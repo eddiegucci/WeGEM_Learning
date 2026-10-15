@@ -32,15 +32,6 @@ export default {
       ],
     },
     {
-      q: "What is the main cause of the Rift Valley?",
-      marks: 2,
-      topic: "Tectonic Processes",
-      markpoints: [
-        { text: "Faulting", marks: 1 },
-        { text: "Tectonic plate movement", marks: 1 },
-      ],
-    },
-    {
       q: "State two factors that influence the climate of a place.",
       marks: 2,
       topic: "Climate",
@@ -61,7 +52,7 @@ export default {
       topic: "Hydrology",
       markpoints: [
         { text: "An area drained by a river and its tributaries", marks: 1 },
-        { text: "The land from which a river collects water", marks: 1 },
+        { text: "Land from which a river collects water", marks: 1 },
       ],
     },
     {
@@ -75,21 +66,30 @@ export default {
       ],
     },
     {
-      q: "What is a census?",
-      marks: 1,
-      topic: "Population",
-      markpoints: [
-        { text: "Counting of people", marks: 1 },
-        { text: "Official counting of a population", marks: 1 },
-      ],
-    },
-    {
       q: "Name two types of trade.",
       marks: 2,
       topic: "Trade",
       markpoints: [
         { text: "Local trade", marks: 1 },
         { text: "International trade", marks: 1 },
+      ],
+    },
+    {
+      q: "What is the main cause of the Rift Valley?",
+      marks: 2,
+      topic: "Tectonic Processes",
+      markpoints: [
+        { text: "Faulting", marks: 1 },
+        { text: "Tectonic plate movement", marks: 1 },
+      ],
+    },
+    {
+      q: "State two effects of population growth.",
+      marks: 2,
+      topic: "Population",
+      markpoints: [
+        { text: "Pressure on resources", marks: 1 },
+        { text: "Unemployment", marks: 1 },
       ],
     },
   ],

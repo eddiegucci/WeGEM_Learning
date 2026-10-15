@@ -1,28 +1,86 @@
 ﻿// js/compete/844/form-4/kiswahili.js
-// Compete question bank for Kiswahili (Form 4)
-// Format: MCQ with points + time limit per question.
 
 export default {
-  exam: "KCSE",
   subject: "Kiswahili",
-  grade: "Form 4",
-  class: "form-4",
+  exam: "KCSE",
   curriculum: "844",
+  class: "form-4",
+  grade: "Form 4",
+  status: "published",
   title: "Kiswahili — Compete Bank",
-  description: "Real-time MCQ bank for compete mode.",
-  status: "draft",             // change to "published" when ready
-  updatedAt: "2026-10-12",
-  version: "0.1",
-
   questions: [
-    // {
-    //   q: "Question text?",
-    //   options: ["A", "B", "C", "D"],
-    //   answer: 0,             // 0-based index of correct option
-    //   topic: "Topic name",
-    //   points: 100,           // points awarded for correct answer
-    //   timeLimit: 20,         // seconds for this question
-    //   explain: "Why this answer is correct."
-    // }
-  ]
+    {
+      q: "Kitenzi cha 'kula' katika wakati uliopita ni kipi?",
+      marks: 1,
+      topic: "Sarufi",
+      markpoints: [{ text: "Alikula", marks: 1 }],
+    },
+    {
+      q: "Nini maana ya 'furaha'?",
+      marks: 1,
+      topic: "Msamiati",
+      markpoints: [
+        { text: "Shangwe", marks: 1 },
+        { text: "Raha", marks: 1 },
+      ],
+    },
+    {
+      q: "Andika wingi wa neno 'mtoto'.",
+      marks: 1,
+      topic: "Sarufi",
+      markpoints: [{ text: "Watoto", marks: 1 }],
+    },
+    {
+      q: "Taja aina tatu za nomino.",
+      marks: 3,
+      topic: "Sarufi",
+      markpoints: [
+        { text: "Nomino za pekee", marks: 1 },
+        { text: "Nomino za jumla", marks: 1 },
+        { text: "Nomino za dhahania", marks: 1 },
+      ],
+    },
+    {
+      q: "Nini kinyume cha neno 'kubwa'?",
+      marks: 1,
+      topic: "Msamiati",
+      markpoints: [{ text: "Ndogo", marks: 1 }],
+    },
+    {
+      q: "Kanusha sentensi: 'Yeye anakwenda shuleni.'",
+      marks: 2,
+      topic: "Sarufi",
+      markpoints: [
+        { text: "Hakwenda shuleni", marks: 1 },
+        { text: "Yeye hakwenda shuleni", marks: 1 },
+      ],
+    },
+    {
+      q: "Nini maana ya methali 'Haraka haraka haina baraka'?",
+      marks: 2,
+      topic: "Methali",
+      markpoints: [
+        { text: "Kufanya kitu kwa haraka huleta matatizo", marks: 1 },
+        { text: "Upole una faida", marks: 1 },
+      ],
+    },
+    {
+      q: "Taja viungo vitatu vya mwili vinavyotumika kuonja.",
+      marks: 1,
+      topic: "Msamiati",
+      markpoints: [{ text: "Ulimi", marks: 1 }],
+    },
+    {
+      q: "Andika sentensi hii katika wakati ujao: 'Nilikula chakula.'",
+      marks: 2,
+      topic: "Sarufi",
+      markpoints: [{ text: "Nitakula chakula", marks: 2 }],
+    },
+    {
+      q: "Nini maana ya neno 'shule'?",
+      marks: 1,
+      topic: "Msamiati",
+      markpoints: [{ text: "Mahali pa kusoma", marks: 1 }],
+    },
+  ],
 };
