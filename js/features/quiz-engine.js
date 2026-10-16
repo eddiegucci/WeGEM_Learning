@@ -1,253 +1,72 @@
-// js/features/quiz-engine.js
-// Pure quiz logic. No DOM. Used by quiz-single and quiz-compete.
-
-import { shuffle } from "../core/utils.js";
-
 /* =========================================================
-   BUILD QUIZ
+   STREAK CALCULATION
+   Correctly counts consecutive days including today OR ending yesterday.
+   Uses local-date keys (not UTC) so a quiz at 11pm counts for that day.
    ========================================================= */
 
-export function buildQuiz(questions, options = {}) {
-  const {
-    count = 10,
-    shuffleOptions = true,
-    shuffleQuestions = true,
-  } = options;
-
-  if (!Array.isArray(questions) || !questions.length) {
-    return { questions: [], total: 0 };
-  }
-
-  let pool = shuffleQuestions ? shuffle(questions) : [...questions];
-  pool = pool.slice(0, Math.min(count, pool.length));
-
-  const prepared = pool.map((q) => {
-    const originalAnswer = q.answer ?? q.correctIndex ?? 0;
-    const opts = Array.isArray(q.options) ? [...q.options] : [];
-
-    if (!shuffleOptions || !opts.length) {
-      return {
-        id: q.id || null,
-        topic: q.topic || "General",
-        question: q.q || q.question || "",
-        options: opts,
-        correctIndex: originalAnswer,
-        explain: q.explain || "",
-      };
-    }
-
-    const indices = opts.map((_, i) => i);
-    const shuffled = shuffle(indices);
-    const newOptions = shuffled.map((i) => opts[i]);
-    const newCorrectIndex = shuffled.indexOf(originalAnswer);
-
-    return {
-      id: q.id || null,
-      topic: q.topic || "General",
-      question: q.q || q.question || "",
-      options: newOptions,
-      correctIndex: newCorrectIndex,
-      explain: q.explain || "",
-    };
-  });
-
-  return { questions: prepared, total: prepared.length };
+function dayKey(dateInput) {
+  // Returns "YYYY-MM-DD" in LOCAL time (not UTC)
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + day;
 }
 
-/* =========================================================
-   QUIZ STATE
-   ========================================================= */
-
-export function createQuizState(quiz) {
-  return {
-    quiz,
-    index: 0,
-    correct: 0,
-    incorrect: 0,
-    topicResults: {},
-    answers: [],
-    startedAt: Date.now(),
-    finishedAt: null,
-  };
+function todayKey() {
+  return dayKey(new Date());
 }
 
-/* =========================================================
-   ANSWER
-   ========================================================= */
-
-export function answerQuestion(state, selectedIndex) {
-  const q = state.quiz.questions[state.index];
-  if (!q) return null;
-
-  const isCorrect = selectedIndex === q.correctIndex;
-  const topic = q.topic || "General";
-
-  if (!state.topicResults[topic]) {
-    state.topicResults[topic] = { correct: 0, total: 0 };
-  }
-  state.topicResults[topic].total += 1;
-  if (isCorrect) {
-    state.topicResults[topic].correct += 1;
-    state.correct += 1;
-  } else {
-    state.incorrect += 1;
-  }
-
-  state.answers.push({
-    index: state.index,
-    selected: selectedIndex,
-    correct: q.correctIndex,
-    isCorrect,
-    topic,
-  });
-
-  return {
-    isCorrect,
-    correctIndex: q.correctIndex,
-    explain: q.explain,
-  };
+function yesterdayKey() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return dayKey(d);
 }
 
-/* =========================================================
-   ADVANCE
-   ========================================================= */
-
-export function nextQuestion(state) {
-  state.index += 1;
-  return state.index < state.quiz.questions.length;
+function dayBeforeKey(dateKey) {
+  // Given "YYYY-MM-DD", return the previous day's key
+  const parts = String(dateKey).split("-");
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  d.setDate(d.getDate() - 1);
+  return dayKey(d);
 }
-
-export function isFinished(state) {
-  return state.index >= state.quiz.questions.length;
-}
-
-/* =========================================================
-   FINISH
-   ========================================================= */
-
-export function finishQuiz(state) {
-  state.finishedAt = Date.now();
-  const total = state.quiz.questions.length;
-  const score = total ? Math.round((state.correct / total) * 100) : 0;
-  const duration = Math.round((state.finishedAt - state.startedAt) / 1000);
-
-  return {
-    correct: state.correct,
-    incorrect: state.incorrect,
-    total,
-    score,
-    duration,
-    topicResults: state.topicResults,
-    answers: state.answers,
-  };
-}
-
-/* =========================================================
-   TOPIC ANALYSIS
-   ========================================================= */
-
-export function getWeakTopics(topicResults, threshold = 0.7) {
-  return Object.entries(topicResults || {})
-    .map(([name, s]) => ({
-      name,
-      correct: s.correct,
-      total: s.total,
-      score: s.total ? s.correct / s.total : 0,
-    }))
-    .filter((t) => t.total > 0 && t.score < threshold)
-    .sort((a, b) => a.score - b.score);
-}
-
-export function getStrongTopics(topicResults, threshold = 0.8) {
-  return Object.entries(topicResults || {})
-    .map(([name, s]) => ({
-      name,
-      correct: s.correct,
-      total: s.total,
-      score: s.total ? s.correct / s.total : 0,
-    }))
-    .filter((t) => t.total > 0 && t.score >= threshold)
-    .sort((a, b) => b.score - a.score);
-}
-
-/* =========================================================
-   AGGREGATE
-   ========================================================= */
-
-export function aggregateAttempts(attempts = []) {
-  const total = attempts.length;
-  const avgScore = total
-    ? Math.round(attempts.reduce((sum, a) => sum + (a.score || 0), 0) / total)
-    : 0;
-
-  const totalCorrect = attempts.reduce((sum, a) => sum + (a.correct || 0), 0);
-  const totalQuestions = attempts.reduce((sum, a) => sum + (a.total || 0), 0);
-
-  const topics = {};
-  attempts.forEach((a) => {
-    if (!a.topicResults) return;
-    Object.entries(a.topicResults).forEach(([topic, s]) => {
-      if (!topics[topic]) topics[topic] = { correct: 0, total: 0 };
-      topics[topic].correct += s.correct || 0;
-      topics[topic].total += s.total || 0;
-    });
-  });
-
-  return {
-    totalAttempts: total,
-    averageScore: avgScore,
-    totalCorrect,
-    totalQuestions,
-    accuracy: totalQuestions
-      ? Math.round((totalCorrect / totalQuestions) * 100)
-      : 0,
-    topics,
-  };
-}
-
-/* =========================================================
-   STREAK
-   ========================================================= */
 
 export function computeStreak(attempts = []) {
-  if (!attempts.length) return 0;
+  if (!Array.isArray(attempts) || !attempts.length) return 0;
 
-  const days = new Set(
-    attempts
-      .map((a) => {
-        const d = a.createdAt ? new Date(a.createdAt) : new Date(a.date);
-        if (Number.isNaN(d.getTime())) return null;
-        return d.toDateString();
-      })
-      .filter(Boolean),
-  );
+  // Build a set of unique local-date keys when the user was active
+  const activeDays = new Set();
+  attempts.forEach(function (a) {
+    const when = a.createdAt || a.date;
+    if (!when) return;
+    const key = dayKey(when);
+    if (key) activeDays.add(key);
+  });
 
-  let streak = 0;
-  const cursor = new Date();
+  if (!activeDays.size) return 0;
 
-  if (!days.has(cursor.toDateString())) {
-    cursor.setDate(cursor.getDate() - 1);
+  const today = todayKey();
+  const yesterday = yesterdayKey();
+
+  // Streak must start today OR yesterday.
+  let cursor;
+  if (activeDays.has(today)) {
+    cursor = today;
+  } else if (activeDays.has(yesterday)) {
+    cursor = yesterday;
+  } else {
+    // No activity today or yesterday → streak is broken
+    return 0;
   }
 
-  while (days.has(cursor.toDateString())) {
+  // Walk backwards counting consecutive days
+  let streak = 0;
+  while (activeDays.has(cursor)) {
     streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
+    cursor = dayBeforeKey(cursor);
+    if (streak > 3650) break; // safety valve (10 years)
   }
 
   return streak;
-}
-
-/* =========================================================
-   SCORE BADGE
-   ========================================================= */
-
-export function scoreLabel(score) {
-  if (score >= 90)
-    return { label: "Outstanding", emoji: "🏆", color: "#fbbf24" };
-  if (score >= 80) return { label: "Excellent", emoji: "🎉", color: "#10b981" };
-  if (score >= 70) return { label: "Great", emoji: "✨", color: "#3b82f6" };
-  if (score >= 60) return { label: "Good", emoji: "👍", color: "#a855f7" };
-  if (score >= 40)
-    return { label: "Keep practicing", emoji: "💪", color: "#f59e0b" };
-  return { label: "Review needed", emoji: "📚", color: "#ef4444" };
 }
