@@ -976,3 +976,211 @@ select option {
     font-size: var(--text-sm);
   }
 }
+
+/* =========================================================
+   CREATIVE RESULTS — confetti, animated reveal, slide-in rows
+   ========================================================= */
+
+@keyframes countUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes podiumSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rowSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ringFill {
+  from {
+    stroke-dashoffset: 283;
+  }
+}
+
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -10vh;
+  width: 10px;
+  height: 14px;
+  background: var(--gold);
+  opacity: 0.9;
+  animation: confettiFall 3s linear forwards;
+}
+
+.confetti-piece:nth-child(3n) {
+  background: #3b82f6;
+}
+.confetti-piece:nth-child(3n + 1) {
+  background: #10b981;
+}
+.confetti-piece:nth-child(5n) {
+  background: #ec4899;
+}
+
+.creative-results .glass-score-big {
+  animation: countUpFade 0.8s var(--ease) both;
+}
+
+.creative-rings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--sp-4);
+  margin: var(--sp-5) 0;
+}
+
+.creative-ring-card {
+  padding: var(--sp-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-align: center;
+  animation: podiumSlideIn 0.6s var(--ease) both;
+}
+
+.creative-ring {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto var(--sp-3);
+}
+
+.creative-ring svg {
+  width: 90px;
+  height: 90px;
+  transform: rotate(-90deg);
+}
+
+.creative-ring circle {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.creative-ring .ring-bg {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.creative-ring .ring-fill {
+  stroke: var(--gold);
+  stroke-dasharray: 283;
+  stroke-dashoffset: 283;
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.creative-ring-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-lg);
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.03em;
+}
+
+.creative-ring-label {
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+}
+
+.creative-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0;
+}
+
+.creative-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-pill);
+  background: var(--gold-soft);
+  border: 1px solid var(--border-gold);
+  color: var(--gold);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  animation: podiumSlideIn 0.5s var(--ease) both;
+}
+
+.creative-badge.success {
+  background: var(--success-soft);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: var(--success-2);
+}
+
+.creative-badge.info {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #60a5fa;
+}
+
+.creative-standing {
+  animation: rowSlideIn 0.5s var(--ease) both;
+}
+
+.creative-standing:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.creative-standing:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.creative-standing:nth-child(3) {
+  animation-delay: 0.25s;
+}
+.creative-standing:nth-child(4) {
+  animation-delay: 0.35s;
+}
+.creative-standing:nth-child(5) {
+  animation-delay: 0.45s;
+}

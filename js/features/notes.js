@@ -1,5 +1,6 @@
 // js/features/notes.js
 // Notes feature. Cache-first reads, real Firestore writes.
+// Supports attachments (PDF, DOCX, XLS, images).
 
 import { getNotesForLevel, saveNote as saveNoteToCloud } from "../core/db.js";
 import {
@@ -71,7 +72,7 @@ export function filterNotes(notes, { subject = "all", query = "" } = {}) {
 }
 
 /* =========================================================
-   CREATE — real Firestore write
+   CREATE — real Firestore write, supports attachments
    ========================================================= */
 
 export async function createNote(note) {
@@ -87,6 +88,7 @@ export async function createNote(note) {
     createdBy: note.createdBy || "",
     createdByName: note.createdByName || "",
     source: "user",
+    attachment: note.attachment || null,
   };
 
   // Always save locally first — instant UX.

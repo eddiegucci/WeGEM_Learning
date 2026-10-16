@@ -1,5 +1,5 @@
 // js/pages/quiz.js
-// Quiz page controller.
+// Quiz page controller. Typed-answer engine with real Firestore sync.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc, saveAttempt, updateLeaderboardEntry } from "../core/db.js";
@@ -87,6 +87,10 @@ const els = {
   userMenuBtn: document.getElementById("userMenuBtn"),
 };
 
+/* =========================================================
+   USER
+   ========================================================= */
+
 async function setupUser() {
   const user = await waitForAuth();
   if (!user) {
@@ -122,6 +126,10 @@ async function setupUser() {
   }
   return true;
 }
+
+/* =========================================================
+   LOAD QUIZZES
+   ========================================================= */
 
 async function loadAll() {
   try {
@@ -258,6 +266,10 @@ function getMatchingQuiz() {
   });
 }
 
+/* =========================================================
+   START
+   ========================================================= */
+
 function handleStart() {
   const quiz = getMatchingQuiz();
   if (!quiz || !quiz.questions || !quiz.questions.length) return;
@@ -304,26 +316,20 @@ function renderQuestion() {
   if (!quiz) return;
   const q = quiz.questions[currentIndex];
 
-  if (els.quizMeta) {
+  if (els.quizMeta)
     els.quizMeta.textContent = (quiz.exam || "") + " · " + (quiz.subject || "");
-  }
-  if (els.quizCounter) {
+  if (els.quizCounter)
     els.quizCounter.textContent =
       "Question " + (currentIndex + 1) + " of " + quiz.questions.length;
-  }
-  if (els.quizProgress) {
-    const pct = ((currentIndex + 1) / quiz.questions.length) * 100;
-    els.quizProgress.style.width = pct + "%";
-  }
+  if (els.quizProgress)
+    els.quizProgress.style.width =
+      ((currentIndex + 1) / quiz.questions.length) * 100 + "%";
 
-  if (els.questionTopic) {
+  if (els.questionTopic)
     els.questionTopic.textContent = String(
       q.topic || quiz.subject || "",
     ).toUpperCase();
-  }
-  if (els.questionText) {
-    els.questionText.textContent = q.q || q.question || "";
-  }
+  if (els.questionText) els.questionText.textContent = q.q || q.question || "";
   if (els.questionMarks) {
     const marks = q.marks || 1;
     els.questionMarks.textContent = marks + " mark" + (marks === 1 ? "" : "s");
@@ -376,7 +382,6 @@ async function handleNext() {
 function startTimer() {
   clearTimer();
   updateTimerDisplay();
-
   state.timerId = setInterval(function () {
     state.remaining -= 1;
     updateTimerDisplay();
@@ -399,14 +404,17 @@ function updateTimerDisplay() {
   const m = Math.floor(Math.max(0, state.remaining) / 60);
   const s = Math.max(0, state.remaining) % 60;
   const valueEl = els.quizTimer.querySelector(".timer-value");
-  if (valueEl) {
+  if (valueEl)
     valueEl.textContent =
       String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
-  }
   els.quizTimer.classList.remove("warn", "danger");
   if (state.remaining <= 60) els.quizTimer.classList.add("danger");
   else if (state.remaining <= 180) els.quizTimer.classList.add("warn");
 }
+
+/* =========================================================
+   SUBMIT
+   ========================================================= */
 
 async function submitQuiz(timeUp) {
   if (state.submitted) return;
@@ -594,6 +602,38 @@ function markpointMatches(normalizedAnswer, markpointText, stopWords) {
   return hits >= threshold;
 }
 
+/* =========================================================
+   CREATIVE RESULTS — confetti on good scores
+   ========================================================= */
+
+function fireConfetti(durationMs) {
+  const layer = document.createElement("div");
+  layer.className = "confetti-layer";
+  document.body.appendChild(layer);
+
+  const colors = [
+    "#fbbf24",
+    "#f59e0b",
+    "#3b82f6",
+    "#10b981",
+    "#ec4899",
+    "#a855f7",
+  ];
+  for (let i = 0; i < 70; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.style.left = Math.random() * 100 + "vw";
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDelay = (Math.random() * 0.5).toFixed(2) + "s";
+    piece.style.animationDuration =
+      (2.4 + Math.random() * 1.2).toFixed(2) + "s";
+    layer.appendChild(piece);
+  }
+  setTimeout(function () {
+    layer.remove();
+  }, durationMs || 4000);
+}
+
 function renderResults(result, timeUp, savedToCloud) {
   const pct = result.percentage;
 
@@ -606,16 +646,13 @@ function renderResults(result, timeUp, savedToCloud) {
   }
 
   if (els.finalScore) els.finalScore.textContent = pct + "%";
-  if (els.finalDetail) {
+  if (els.finalDetail)
     els.finalDetail.textContent =
       result.scored + " / " + result.totalMarks + " marks";
-  }
-  if (els.statMarks) {
+  if (els.statMarks)
     els.statMarks.textContent = result.scored + "/" + result.totalMarks;
-  }
-  if (els.statQuestions) {
+  if (els.statQuestions)
     els.statQuestions.textContent = state.quiz.questions.length;
-  }
   if (els.statTime) {
     const used = state.totalTime - Math.max(0, state.remaining);
     els.statTime.textContent = formatDuration(used);
@@ -626,7 +663,13 @@ function renderResults(result, timeUp, savedToCloud) {
       ? '<span class="sync-ok">✓ Saved to your account</span>'
       : '<span class="sync-warn">Saved locally — will sync when online</span>';
   }
+
+  if (pct >= 70) fireConfetti(3800);
 }
+
+/* =========================================================
+   REVIEW
+   ========================================================= */
 
 function renderReview() {
   const result = state.result;
@@ -746,6 +789,10 @@ async function handleUserMenu() {
     }
   }
 }
+
+/* =========================================================
+   INIT
+   ========================================================= */
 
 async function init() {
   try {

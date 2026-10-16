@@ -1,5 +1,5 @@
 // js/pages/notes.js
-// Notes page controller.
+// Notes page controller. Supports file uploads and attachments.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -14,6 +14,7 @@ import {
   deleteNote,
   extractSubjects,
 } from "../features/notes.js";
+import { parseFile, buildNoteDraftFromParsed } from "../features/uploads.js";
 import {
   getSubjects,
   getSubjectIcon,
@@ -48,6 +49,7 @@ const els = {
   subjectFilterBar: document.getElementById("subjectFilterBar"),
   searchInput: document.getElementById("notesSearch"),
   openAddBtn: document.getElementById("openAddBtn"),
+
   tray: document.getElementById("noteTray"),
   trayBackdrop: document.getElementById("noteTrayBackdrop"),
   trayCloseBtn: document.getElementById("noteTrayCloseBtn"),
@@ -58,7 +60,22 @@ const els = {
   noteSummary: document.getElementById("noteSummary"),
   noteKeyPoints: document.getElementById("noteKeyPoints"),
   trayError: document.getElementById("noteTrayError"),
+
+  noteUploadBtn: document.getElementById("noteUploadBtn"),
+  noteFileInput: document.getElementById("noteFileInput"),
+  noteChooseFileBtn: document.getElementById("noteChooseFileBtn"),
+  noteUploadPreview: document.getElementById("noteUploadPreview"),
 };
+
+/* =========================================================
+   UPLOAD STATE
+   ========================================================= */
+
+let pendingUpload = null;
+
+/* =========================================================
+   USER
+   ========================================================= */
 
 async function setupUser() {
   const user = await waitForAuth();
@@ -94,6 +111,10 @@ async function setupUser() {
   return true;
 }
 
+/* =========================================================
+   LOAD NOTES
+   ========================================================= */
+
 async function loadNotes() {
   const curriculum = state.userDoc?.curriculum === "CBE" ? "CBE" : "844";
   const level =
@@ -115,6 +136,10 @@ function applyFilters() {
   });
   renderNotes();
 }
+
+/* =========================================================
+   SUBJECT FILTER BAR
+   ========================================================= */
 
 function renderFilterBar() {
   if (!els.subjectFilterBar) return;
@@ -152,6 +177,10 @@ function renderFilterBar() {
   });
 }
 
+/* =========================================================
+   RENDER NOTES
+   ========================================================= */
+
 function renderNotes() {
   if (!els.notesList) return;
 
@@ -161,7 +190,7 @@ function renderNotes() {
       <div class="empty-state" style="grid-column: 1 / -1;">
         <div class="empty-icon">📖</div>
         <div class="empty-title">${hasAny ? "No notes match your filter" : "No notes yet"}</div>
-        <div class="empty-sub">${hasAny ? "Try clearing the search or choosing a different subject." : 'Tap "Add Note" to create your first study note.'}</div>
+        <div class="empty-sub">${hasAny ? "Try clearing the search or choosing a different subject." : 'Tap "Add Note" to create your first study note, or press Ctrl+Shift+Alt+N to upload a file.'}</div>
       </div>
     `;
     return;
@@ -176,6 +205,14 @@ function renderNotes() {
       e.preventDefault();
       e.stopPropagation();
       handleDeleteNote(btn.dataset.noteDelete);
+    });
+  });
+
+  els.notesList.querySelectorAll("[data-attachment-open]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openAttachmentViewer(btn.dataset.attachmentOpen);
     });
   });
 }
@@ -193,6 +230,15 @@ function renderNoteCard(note) {
           .join("")}</ul>`
       : "";
 
+  const attachmentHtml =
+    note.attachment && note.attachment.kind
+      ? `
+      <button class="note-v2-link" type="button" data-attachment-open="${note.id}" style="margin-top:var(--sp-2);background:none;border:none;cursor:pointer;color:var(--gold);font-weight:700;font-size:var(--text-sm);display:inline-flex;align-items:center;gap:var(--sp-2);">
+        📎 ${escapeHTML(note.attachment.name || "Attachment")}
+      </button>
+    `
+      : "";
+
   const quizUrl = `quiz.html?subject=${encodeURIComponent(note.subject || "")}`;
 
   return `
@@ -207,6 +253,7 @@ function renderNoteCard(note) {
       </header>
       ${note.summary ? `<p class="note-v2-summary">${escapeHTML(note.summary)}</p>` : ""}
       ${keyPointsHtml}
+      ${attachmentHtml}
       <div class="note-v2-actions">
         <a class="note-v2-link" href="${quizUrl}">
           Test yourself
@@ -217,8 +264,84 @@ function renderNoteCard(note) {
   `;
 }
 
+/* =========================================================
+   ATTACHMENT VIEWER
+   ========================================================= */
+
+function openAttachmentViewer(noteId) {
+  const note = state.notes.find((n) => n.id === noteId);
+  if (!note || !note.attachment) return;
+
+  const a = note.attachment;
+  const overlay = document.createElement("div");
+  overlay.className = "modal-backdrop";
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:5000;display:flex;align-items:center;justify-content:center;padding:var(--sp-5);overflow-y:auto;";
+
+  let bodyHtml = "";
+
+  if (a.kind === "image" && a.dataUrl) {
+    bodyHtml = `<img src="${a.dataUrl}" alt="${escapeHTML(a.name)}" style="max-width:100%;max-height:80vh;border-radius:var(--radius);">`;
+  } else if ((a.kind === "pdf" || a.kind === "docx") && a.text) {
+    bodyHtml = `
+      <div style="background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:var(--radius);padding:var(--sp-4);max-height:75vh;overflow-y:auto;width:100%;max-width:800px;">
+        <pre style="white-space:pre-wrap;font-family:var(--font-mono);font-size:var(--text-sm);color:var(--text-dim);line-height:1.6;margin:0;">${escapeHTML(a.text)}</pre>
+      </div>
+    `;
+  } else if (a.kind === "xls" && a.sheets) {
+    const first = a.sheets[0] || { name: "", rows: [] };
+    const rows = first.rows || [];
+    bodyHtml = `
+      <div style="background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:var(--radius);padding:var(--sp-4);max-height:75vh;overflow:auto;width:100%;max-width:900px;">
+        <div style="font-size:var(--text-xs);color:var(--text-mute);margin-bottom:var(--sp-3);">${a.sheets.length} sheet(s) · showing "${escapeHTML(first.name)}"</div>
+        <table style="border-collapse:collapse;font-size:var(--text-xs);color:var(--text-dim);width:100%;">
+          <tbody>
+            ${rows.map((r) => `<tr>${(r || []).map((c) => `<td style="border:1px solid var(--border);padding:6px 10px;">${escapeHTML(String(c == null ? "" : c))}</td>`).join("")}</tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    bodyHtml = `<div class="alert alert-warn">This attachment type cannot be previewed.</div>`;
+  }
+
+  overlay.innerHTML = `
+    <div style="width:100%;max-width:900px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-3);">
+        <div style="color:#fff;font-weight:800;font-size:var(--text-lg);">📎 ${escapeHTML(a.name || "Attachment")}</div>
+        <button type="button" id="attachCloseBtn" class="modal-close" style="width:36px;height:36px;">×</button>
+      </div>
+      ${bodyHtml}
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.body.style.overflow = "hidden";
+
+  const close = () => {
+    overlay.remove();
+    document.body.style.overflow = "";
+  };
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) close();
+  });
+  document.getElementById("attachCloseBtn")?.addEventListener("click", close);
+  document.addEventListener("keydown", function onEsc(e) {
+    if (e.key === "Escape") {
+      close();
+      document.removeEventListener("keydown", onEsc);
+    }
+  });
+}
+
+/* =========================================================
+   DELETE NOTE
+   ========================================================= */
+
 async function handleDeleteNote(id) {
   if (!id) return;
+
   const ok = await confirmDialog({
     title: "Delete note?",
     message: "This note will be removed from your device.",
@@ -244,16 +367,30 @@ async function handleDeleteNote(id) {
   }
 }
 
+/* =========================================================
+   TRAY
+   ========================================================= */
+
 function openTray() {
   if (!els.tray || !els.trayBackdrop) return;
+
   populateSubjectDropdown();
+
   els.trayBackdrop.classList.add("open");
   els.tray.classList.add("open");
   els.tray.setAttribute("aria-hidden", "false");
+
   if (els.noteTopic) els.noteTopic.value = "";
   if (els.noteSummary) els.noteSummary.value = "";
   if (els.noteKeyPoints) els.noteKeyPoints.value = "";
   clearTrayError();
+
+  pendingUpload = null;
+  if (els.noteUploadPreview) {
+    els.noteUploadPreview.classList.add("hidden");
+    els.noteUploadPreview.innerHTML = "";
+  }
+
   setTimeout(() => els.noteTopic?.focus(), 300);
 }
 
@@ -266,9 +403,11 @@ function closeTray() {
 
 function populateSubjectDropdown() {
   if (!els.noteSubject) return;
+
   const curriculum = state.userDoc?.curriculum === "CBE" ? "CBE" : "844";
   const level =
     state.userDoc?.level || (curriculum === "CBE" ? "Grade 9" : "Form 4");
+
   let subjects = state.userDoc?.subjects || [];
   if (!subjects.length) subjects = getSubjects(curriculum, level);
 
@@ -278,6 +417,10 @@ function populateSubjectDropdown() {
       .map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`)
       .join("");
 }
+
+/* =========================================================
+   TRAY ERROR
+   ========================================================= */
 
 function showTrayError(msg) {
   if (!els.trayError) return;
@@ -290,6 +433,144 @@ function clearTrayError() {
   els.trayError.classList.add("hidden");
   els.trayError.textContent = "";
 }
+
+/* =========================================================
+   FILE UPLOAD
+   ========================================================= */
+
+function openFilePicker() {
+  if (els.noteFileInput) els.noteFileInput.click();
+}
+
+async function handleFileChosen(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  clearTrayError();
+
+  if (els.noteUploadPreview) {
+    els.noteUploadPreview.classList.remove("hidden");
+    els.noteUploadPreview.innerHTML =
+      '<div class="loading-wrap"><div class="spinner"></div><p>Reading ' +
+      escapeHTML(file.name) +
+      "…</p></div>";
+  }
+
+  try {
+    const parsed = await parseFile(file);
+    pendingUpload = parsed;
+    renderUploadPreview(parsed);
+
+    const draft = buildNoteDraftFromParsed(parsed);
+    if (els.noteTopic && !els.noteTopic.value)
+      els.noteTopic.value = draft.topic || "";
+    if (els.noteSummary && !els.noteSummary.value)
+      els.noteSummary.value = draft.summary || "";
+    if (els.noteKeyPoints && !els.noteKeyPoints.value) {
+      els.noteKeyPoints.value = (draft.keyPoints || []).join("\n");
+    }
+  } catch (err) {
+    log.warn("Upload parse failed:", err);
+    if (els.noteUploadPreview) {
+      els.noteUploadPreview.classList.add("hidden");
+      els.noteUploadPreview.innerHTML = "";
+    }
+    showTrayError(err.message || "Could not read that file.");
+    pendingUpload = null;
+  } finally {
+    if (els.noteFileInput) els.noteFileInput.value = "";
+  }
+}
+
+function renderUploadPreview(parsed) {
+  const container = els.noteUploadPreview;
+  if (!container) return;
+  container.classList.remove("hidden");
+
+  const head =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-3);">' +
+    '<strong style="color:var(--gold);font-size:var(--text-sm);">📎 ' +
+    escapeHTML(parsed.name) +
+    "</strong>" +
+    '<button type="button" id="noteUploadRemove" style="background:none;border:none;color:var(--danger-2);cursor:pointer;font-weight:700;font-size:var(--text-sm);">Remove</button>' +
+    "</div>";
+
+  let body = "";
+
+  if (parsed.kind === "image") {
+    body =
+      '<img src="' +
+      parsed.dataUrl +
+      '" alt="' +
+      escapeHTML(parsed.name) +
+      '" style="max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--border);">';
+  } else if (parsed.kind === "pdf") {
+    body =
+      '<div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--sp-3);max-height:240px;overflow-y:auto;">' +
+      '<div style="font-size:var(--text-xs);color:var(--text-mute);margin-bottom:var(--sp-2);">' +
+      (parsed.pageCount || 0) +
+      " pages</div>" +
+      '<pre style="white-space:pre-wrap;font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-dim);line-height:1.5;margin:0;">' +
+      escapeHTML((parsed.text || "").slice(0, 1500)) +
+      "</pre>" +
+      "</div>";
+  } else if (parsed.kind === "docx") {
+    body =
+      '<div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--sp-3);max-height:240px;overflow-y:auto;">' +
+      '<pre style="white-space:pre-wrap;font-family:var(--font-sans);font-size:var(--text-sm);color:var(--text-dim);line-height:1.5;margin:0;">' +
+      escapeHTML((parsed.text || "").slice(0, 1500)) +
+      "</pre>" +
+      "</div>";
+  } else if (parsed.kind === "xls") {
+    const sheets = parsed.sheets || [];
+    const first = sheets[0] || { name: "", rows: [] };
+    const rows = (first.rows || []).slice(0, 12);
+    body =
+      '<div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--sp-3);max-height:240px;overflow:auto;">' +
+      '<div style="font-size:var(--text-xs);color:var(--text-mute);margin-bottom:var(--sp-2);">' +
+      sheets.length +
+      ' sheet(s) — first 12 rows of "' +
+      escapeHTML(first.name) +
+      '"</div>' +
+      '<table style="border-collapse:collapse;font-size:var(--text-xs);color:var(--text-dim);"><tbody>' +
+      rows
+        .map(function (r) {
+          return (
+            "<tr>" +
+            (r || [])
+              .map(function (c) {
+                return (
+                  '<td style="border:1px solid var(--border);padding:4px 8px;">' +
+                  escapeHTML(String(c == null ? "" : c)) +
+                  "</td>"
+                );
+              })
+              .join("") +
+            "</tr>"
+          );
+        })
+        .join("") +
+      "</tbody></table>" +
+      "</div>";
+  } else {
+    body = '<div class="alert alert-warn">Unsupported file type.</div>';
+  }
+
+  container.innerHTML = head + body;
+
+  const removeBtn = document.getElementById("noteUploadRemove");
+  if (removeBtn) {
+    removeBtn.addEventListener("click", function () {
+      pendingUpload = null;
+      container.classList.add("hidden");
+      container.innerHTML = "";
+    });
+  }
+}
+
+/* =========================================================
+   SAVE NOTE
+   ========================================================= */
 
 async function saveNote() {
   clearTrayError();
@@ -320,6 +601,17 @@ async function saveNote() {
       level: state.userDoc?.level || "",
       createdBy: state.user?.uid || "",
       createdByName: state.userDoc?.name || "",
+      attachment: pendingUpload
+        ? {
+            kind: pendingUpload.kind,
+            name: pendingUpload.name,
+            size: pendingUpload.size,
+            text: pendingUpload.text || null,
+            dataUrl: pendingUpload.dataUrl || null,
+            sheets: pendingUpload.sheets || null,
+            pageCount: pendingUpload.pageCount || null,
+          }
+        : null,
     });
 
     state.notes.unshift({ ...note, source: "user" });
@@ -337,6 +629,10 @@ async function saveNote() {
     }
   }
 }
+
+/* =========================================================
+   USER MENU
+   ========================================================= */
 
 async function handleUserMenu() {
   const ok = await confirmDialog({
@@ -357,10 +653,18 @@ async function handleUserMenu() {
   }
 }
 
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
 const debouncedSearch = debounce((value) => {
   state.query = value;
   applyFilters();
 }, 200);
+
+/* =========================================================
+   INIT
+   ========================================================= */
 
 async function init() {
   try {
@@ -379,19 +683,31 @@ async function init() {
     els.trayBackdrop?.addEventListener("click", closeTray);
     els.traySaveBtn?.addEventListener("click", saveNote);
 
-    bindShortcut("ctrl+shift+alt+n", () => {
-      if (els.tray.classList.contains("open")) closeTray();
-      else openTray();
+    if (els.noteUploadBtn)
+      els.noteUploadBtn.addEventListener("click", openFilePicker);
+    if (els.noteChooseFileBtn)
+      els.noteChooseFileBtn.addEventListener("click", openFilePicker);
+    if (els.noteFileInput)
+      els.noteFileInput.addEventListener("change", handleFileChosen);
+
+    // Ctrl+Shift+Alt+N — opens tray and file picker
+    bindShortcut("ctrl+shift+alt+n", function () {
+      if (els.tray && els.tray.classList.contains("open")) {
+        openFilePicker();
+      } else {
+        openTray();
+        setTimeout(openFilePicker, 400);
+      }
     });
 
     installTapShortcuts({
       6: () => {
-        if (!els.tray.classList.contains("open")) openTray();
+        if (els.tray && !els.tray.classList.contains("open")) openTray();
       },
     });
 
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && els.tray.classList.contains("open"))
+      if (e.key === "Escape" && els.tray && els.tray.classList.contains("open"))
         closeTray();
     });
 
@@ -399,6 +715,8 @@ async function init() {
 
     await loadNotes();
     renderFilterBar();
+
+    log.info(`Notes ready: ${state.notes.length} notes`);
   } catch (e) {
     log.error("Notes init failed:", e);
     toastErr("Could not load notes. Please refresh.");

@@ -50,23 +50,19 @@ const els = {
   waitingScreen: document.getElementById("waitingScreen"),
   playScreen: document.getElementById("playScreen"),
   finalScreen: document.getElementById("finalScreen"),
-
   createRoomBtn: document.getElementById("createRoomBtn"),
   showJoinBtn: document.getElementById("showJoinBtn"),
   joinForm: document.getElementById("joinForm"),
   joinCodeInput: document.getElementById("joinCodeInput"),
   joinRoomBtn: document.getElementById("joinRoomBtn"),
   cancelJoinBtn: document.getElementById("cancelJoinBtn"),
-
   createForm: document.getElementById("createForm"),
   createQuiz: document.getElementById("createQuiz"),
   createTime: document.getElementById("createTime"),
   confirmCreateBtn: document.getElementById("confirmCreateBtn"),
   cancelCreateBtn: document.getElementById("cancelCreateBtn"),
-
   lobbyError: document.getElementById("lobbyError"),
   lobbyErrorText: document.getElementById("lobbyErrorText"),
-
   roomCodeDisplay: document.getElementById("roomCodeDisplay"),
   copyCodeBtn: document.getElementById("copyCodeBtn"),
   leaveRoomBtn: document.getElementById("leaveRoomBtn"),
@@ -76,7 +72,6 @@ const els = {
   playerCount: document.getElementById("playerCount"),
   playerList: document.getElementById("playerList"),
   startGameBtn: document.getElementById("startGameBtn"),
-
   playMeta: document.getElementById("playMeta"),
   playCounter: document.getElementById("playCounter"),
   playTimer: document.getElementById("playTimer"),
@@ -88,7 +83,6 @@ const els = {
   playAnswerBox: document.getElementById("playAnswerBox"),
   playSubmitBtn: document.getElementById("playSubmitBtn"),
   playStatus: document.getElementById("playStatus"),
-
   finalTitle: document.getElementById("finalTitle"),
   finalWinnerScore: document.getElementById("finalWinnerScore"),
   finalWinnerName: document.getElementById("finalWinnerName"),
@@ -97,7 +91,6 @@ const els = {
   reviewAnswersBtn: document.getElementById("reviewAnswersBtn"),
   finalReviewSection: document.getElementById("finalReviewSection"),
   finalReviewList: document.getElementById("finalReviewList"),
-
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
   userMenuBtn: document.getElementById("userMenuBtn"),
@@ -667,8 +660,99 @@ function clearQuestionTimer() {
 }
 
 /* =========================================================
-   FINAL
+   FINAL — creative results
    ========================================================= */
+
+function fireConfetti(durationMs) {
+  const layer = document.createElement("div");
+  layer.className = "confetti-layer";
+  document.body.appendChild(layer);
+
+  const colors = [
+    "#fbbf24",
+    "#f59e0b",
+    "#3b82f6",
+    "#10b981",
+    "#ec4899",
+    "#a855f7",
+  ];
+  const count = 80;
+
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.style.left = Math.random() * 100 + "vw";
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDelay = (Math.random() * 0.6).toFixed(2) + "s";
+    piece.style.animationDuration =
+      (2.4 + Math.random() * 1.2).toFixed(2) + "s";
+    piece.style.transform = "rotate(" + Math.random() * 360 + "deg)";
+    layer.appendChild(piece);
+  }
+
+  setTimeout(function () {
+    layer.remove();
+  }, durationMs || 4000);
+}
+
+function ringSvg(percent) {
+  const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+  const offset = 283 - (clamped / 100) * 283;
+  return (
+    '<div class="creative-ring">' +
+    '<svg viewBox="0 0 100 100">' +
+    '<circle class="ring-bg" cx="50" cy="50" r="45"></circle>' +
+    '<circle class="ring-fill" cx="50" cy="50" r="45" data-offset="' +
+    offset +
+    '"></circle>' +
+    "</svg>" +
+    '<div class="creative-ring-value">' +
+    clamped +
+    "%</div>" +
+    "</div>"
+  );
+}
+
+function buildBadges(room, winner, me) {
+  const badges = [];
+  const players = Object.values(room.players || {});
+  const totalQ = (room.questions || []).length;
+
+  if (winner) {
+    if (winner.score >= totalQ * 0.8)
+      badges.push({ icon: "🏆", label: "Top Scorer", cls: "" });
+    if (winner.score >= totalQ * 0.9)
+      badges.push({ icon: "⭐", label: "Sharp", cls: "success" });
+  }
+  if (players.length >= 3)
+    badges.push({
+      icon: "👥",
+      label: players.length + " Players",
+      cls: "info",
+    });
+  if (me && winner && me.uid === winner.uid)
+    badges.push({ icon: "🥇", label: "Champion", cls: "" });
+
+  if (!badges.length) return "";
+
+  return (
+    '<div class="creative-badges">' +
+    badges
+      .map(function (b) {
+        return (
+          '<span class="creative-badge ' +
+          (b.cls || "") +
+          '">' +
+          b.icon +
+          " " +
+          b.label +
+          "</span>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
 
 function renderFinal() {
   const room = state.room;
@@ -678,17 +762,67 @@ function renderFinal() {
   const winner = rankings[0];
   if (!winner) return;
 
-  const isMe = winner.uid === state.user.uid;
+  const me =
+    rankings.find(function (p) {
+      return p.uid === state.user.uid;
+    }) || null;
+  const isWinner = winner.uid === state.user.uid;
+  const winnerPct = Math.round(
+    ((winner.score || 0) / (winner.totalMarks || 1)) * 100,
+  );
+
   if (els.finalTitle)
-    els.finalTitle.textContent = isMe
+    els.finalTitle.textContent = isWinner
       ? "You Win! 🏆"
       : winner.name + " Wins! 🏆";
 
-  const totalMarks = winner.totalMarks || 1;
-  const pct = Math.round(((winner.score || 0) / totalMarks) * 100);
-  if (els.finalWinnerScore) els.finalWinnerScore.textContent = pct + "%";
+  if (els.finalWinnerScore) els.finalWinnerScore.textContent = winnerPct + "%";
   if (els.finalWinnerName)
     els.finalWinnerName.textContent = winner.name || "Champion";
+
+  fireConfetti(4200);
+
+  const scoreContainer = els.finalWinnerScore
+    ? els.finalWinnerScore.parentElement
+    : null;
+  if (scoreContainer && scoreContainer.parentElement) {
+    const existing =
+      scoreContainer.parentElement.querySelector(".creative-rings");
+    if (existing) existing.remove();
+    const existingBadges =
+      scoreContainer.parentElement.querySelector(".creative-badges");
+    if (existingBadges) existingBadges.remove();
+
+    const top3 = rankings.slice(0, 3);
+    const ringsHtml =
+      '<div class="creative-rings">' +
+      top3
+        .map(function (p) {
+          const pct = Math.round(((p.score || 0) / (p.totalMarks || 1)) * 100);
+          return (
+            '<div class="creative-ring-card">' +
+            ringSvg(pct) +
+            '<div class="creative-ring-label">' +
+            escapeHTML((p.name || "Player").slice(0, 16)) +
+            "</div>" +
+            "</div>"
+          );
+        })
+        .join("") +
+      "</div>";
+
+    const badgesHtml = buildBadges(room, winner, me);
+    scoreContainer.insertAdjacentHTML("afterend", ringsHtml + badgesHtml);
+  }
+
+  setTimeout(function () {
+    document
+      .querySelectorAll(".creative-ring .ring-fill")
+      .forEach(function (c) {
+        const offset = c.getAttribute("data-offset");
+        if (offset !== null) c.style.strokeDashoffset = offset;
+      });
+  }, 120);
 
   if (els.finalStandings) {
     els.finalStandings.innerHTML = rankings
@@ -707,7 +841,7 @@ function renderFinal() {
         return (
           '<div class="lb-row ' +
           cls +
-          '">' +
+          ' creative-standing">' +
           '<div class="lb-rank">' +
           rank +
           "</div>" +
@@ -736,7 +870,7 @@ function renderFinal() {
 }
 
 /* =========================================================
-   FINAL REVIEW — correct answers + each player's answers
+   FINAL REVIEW
    ========================================================= */
 
 function renderFinalReview() {
@@ -775,7 +909,6 @@ function renderFinalReview() {
           const scored = answer ? answer.scored || 0 : 0;
           const marks = answer ? answer.marks || q.marks || 1 : q.marks || 1;
           const isMe = p.uid === state.user.uid;
-
           const hasAnswer = answerText !== null && answerText !== "";
           const answerClass = hasAnswer
             ? scored > 0
@@ -881,6 +1014,14 @@ function cleanupRoom() {
   if (els.roomCodeDisplay) els.roomCodeDisplay.textContent = "------";
   if (els.finalReviewSection) els.finalReviewSection.classList.add("hidden");
   if (els.reviewAnswersBtn) els.reviewAnswersBtn.classList.remove("hidden");
+
+  // Clean up injected creative blocks
+  document.querySelectorAll(".creative-rings").forEach(function (n) {
+    n.remove();
+  });
+  document.querySelectorAll(".creative-badges").forEach(function (n) {
+    n.remove();
+  });
 }
 
 /* =========================================================
