@@ -57,6 +57,11 @@ service cloud.firestore {
                             || (isSignedIn() && resource.data.createdBy == request.auth.uid);
     }
 
+    match /files/{fileId} {
+     allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    } 
+    
     // ===================== EXAM LINKS =====================
     match /examLinks/{docId} {
       allow read: if isSignedIn();

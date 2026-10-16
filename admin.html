@@ -9,10 +9,9 @@
 
   <title>Admin — WeGEM Learning</title>
 
-  <link rel="icon" href="/favicon.ico" sizes="32x32">
-<link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
-<link rel="icon" type="image/png" sizes="96x96" href="assets/icons/favicon-96x96.png">
-<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
@@ -37,8 +36,6 @@
     <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" class="brand-mark-mini">
       <path d="M6 10 L18 8 L20 12 L22 8 L34 10 L34 30 L22 32 L20 28 L18 32 L6 30 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.2" stroke-linejoin="round"/>
       <path d="M20 12 L20 28" stroke="#f59e0b" stroke-width="1.2"/>
-      <path d="M9 14 L18 12.5 M9 18 L18 16.5 M9 22 L18 20.5 M9 26 L18 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
-      <path d="M31 14 L22 12.5 M31 18 L22 16.5 M31 22 L22 20.5 M31 26 L22 24.5" stroke="#92400e" stroke-width="0.8" opacity="0.6"/>
     </svg>
     <span>WeGEM Admin</span>
   </a>
@@ -59,7 +56,7 @@
   <section class="page-head">
     <div class="section-label">Administration</div>
     <h1 class="page-title">Admin Panel</h1>
-    <p class="page-sub">Manage content, users, and the app.</p>
+    <p class="page-sub">Manage questions, users, notes, exam links, and files.</p>
   </section>
 
   <section id="statsOverview" class="stats-grid-4" style="margin-bottom: var(--sp-5);">
@@ -82,7 +79,7 @@
       <div class="st-sub">Registered</div>
     </div>
     <div class="stat-tile st-clock">
-      <div class="st-icon">📄</div>
+      <div class="st-icon">🔗</div>
       <div class="st-value" id="statLinks">—</div>
       <div class="st-label">Exam Links</div>
       <div class="st-sub">Saved</div>
@@ -92,10 +89,14 @@
   <div class="admin-tabs">
     <button class="lb-tab active" data-tab="content" type="button">📚 Content</button>
     <button class="lb-tab" data-tab="users" type="button">👥 Users</button>
+    <button class="lb-tab" data-tab="notes" type="button">📖 Notes</button>
+    <button class="lb-tab" data-tab="examLinks" type="button">🔗 Exam Links</button>
+    <button class="lb-tab" data-tab="files" type="button">📁 Files</button>
     <button class="lb-tab" data-tab="bulk" type="button">📦 Bulk Add</button>
     <button class="lb-tab" data-tab="seed" type="button">🌱 Seed</button>
   </div>
 
+  <!-- ============ CONTENT TAB ============ -->
   <section id="tabContent" class="admin-tab-panel">
     <div class="panel" style="margin-bottom: var(--sp-5);">
       <div class="panel-head-inline">
@@ -158,6 +159,7 @@
     </div>
   </section>
 
+  <!-- ============ USERS TAB ============ -->
   <section id="tabUsers" class="admin-tab-panel hidden">
     <div class="panel">
       <div class="panel-head-inline">
@@ -170,6 +172,178 @@
     </div>
   </section>
 
+  <!-- ============ NOTES TAB ============ -->
+  <section id="tabNotes" class="admin-tab-panel hidden">
+    <div class="panel" style="margin-bottom: var(--sp-5);">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">➕ Add Note</div>
+      </div>
+
+      <div id="noteForm">
+        <div class="field-row">
+          <label class="field">
+            <span>Subject</span>
+            <select id="noteSubjectSelect"></select>
+          </label>
+          <label class="field">
+            <span>Level</span>
+            <input type="text" id="noteLevel" placeholder="e.g. Form 4, Grade 8" autocomplete="off">
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Topic</span>
+          <input type="text" id="noteTopicInput" placeholder="e.g. Integration" autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Summary</span>
+          <input type="text" id="noteSummaryInput" placeholder="One-line summary" autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Key points (one per line)</span>
+          <textarea id="noteKeyPointsInput" rows="5" placeholder="Point 1&#10;Point 2&#10;Point 3"></textarea>
+        </label>
+
+        <div id="noteFormError" class="alert alert-error hidden"></div>
+
+        <button class="btn btn-primary" id="addNoteBtn" type="button" style="width: 100%;">
+          Add Note →
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">📖 Recent Notes</div>
+        <button class="link-sm" id="refreshNotes" type="button">Refresh</button>
+      </div>
+      <div id="notesList" class="loading-wrap" style="padding: var(--sp-5);">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EXAM LINKS TAB ============ -->
+  <section id="tabExamLinks" class="admin-tab-panel hidden">
+    <div class="panel" style="margin-bottom: var(--sp-5);">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">➕ Add Exam Link</div>
+      </div>
+
+      <div id="examForm">
+        <label class="field">
+          <span>Title</span>
+          <input type="text" id="examTitleInput" placeholder="e.g. KCSE 2023 Mathematics Paper 1" autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>URL</span>
+          <input type="url" id="examUrlInput" placeholder="https://example.com/paper.pdf" autocomplete="off">
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Subject</span>
+            <select id="examSubjectSelect"></select>
+          </label>
+          <label class="field">
+            <span>Type</span>
+            <select id="examTypeSelect">
+              <option value="papers">📝 Past Paper</option>
+              <option value="notes">📚 Notes</option>
+              <option value="revision">📖 Revision</option>
+              <option value="video">🎥 Video</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Level</span>
+          <input type="text" id="examLevelInput" placeholder="e.g. Form 4" autocomplete="off">
+        </label>
+
+        <div id="examFormError" class="alert alert-error hidden"></div>
+
+        <button class="btn btn-primary" id="addExamBtn" type="button" style="width: 100%;">
+          Add Exam Link →
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">🔗 Recent Exam Links</div>
+        <button class="link-sm" id="refreshExamLinks" type="button">Refresh</button>
+      </div>
+      <div id="examLinksList" class="loading-wrap" style="padding: var(--sp-5);">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FILES TAB ============ -->
+  <section id="tabFiles" class="admin-tab-panel hidden">
+    <div class="panel" style="margin-bottom: var(--sp-5);">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">➕ Add File (Google Drive Link)</div>
+      </div>
+
+      <div class="alert alert-info" style="margin-bottom: var(--sp-4);">
+        <strong>How:</strong>
+        1. Upload the file to Google Drive.<br>
+        2. Right-click → <strong>Share</strong> → <strong>Anyone with the link</strong> → <strong>Viewer</strong>.<br>
+        3. Copy the link and paste it below.
+      </div>
+
+      <div id="fileForm">
+        <label class="field">
+          <span>Title</span>
+          <input type="text" id="fileTitleInput" placeholder="e.g. KCSE 2023 Mathematics Paper 1" autocomplete="off">
+        </label>
+
+        <label class="field">
+          <span>Google Drive Link</span>
+          <input type="url" id="fileUrlInput" placeholder="https://drive.google.com/file/d/ABC123/view" autocomplete="off">
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Subject</span>
+            <select id="fileSubjectSelect"></select>
+          </label>
+          <label class="field">
+            <span>Type</span>
+            <select id="fileTypeSelect"></select>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Level</span>
+          <input type="text" id="fileLevelInput" placeholder="e.g. Form 4" autocomplete="off">
+        </label>
+
+        <div id="fileFormError" class="alert alert-error hidden"></div>
+
+        <button class="btn btn-primary" id="addFileBtn" type="button" style="width: 100%;">
+          Add File Button →
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head-inline">
+        <div class="panel-title-lg">📁 Recent Files</div>
+        <button class="link-sm" id="refreshFiles" type="button">Refresh</button>
+      </div>
+      <div id="filesList" class="loading-wrap" style="padding: var(--sp-5);">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BULK ADD TAB ============ -->
   <section id="tabBulk" class="admin-tab-panel hidden">
     <div class="panel">
       <div class="panel-head-inline">
@@ -240,6 +414,7 @@ Rules:
     </div>
   </section>
 
+  <!-- ============ SEED TAB ============ -->
   <section id="tabSeed" class="admin-tab-panel hidden">
     <div class="panel">
       <div class="panel-head-inline">
