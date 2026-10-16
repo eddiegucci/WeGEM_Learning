@@ -1,6 +1,6 @@
 // js/pages/compete.js
 // Compete page controller — typed-answer multiplayer.
-// Reads compete banks from js/compete/index.js (separate from solo quiz).
+// Reads compete banks from js/compete/index.js.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc } from "../core/db.js";
@@ -41,7 +41,7 @@ const state = {
   myAnswers: {},
   timerInterval: null,
   timerEndsAt: 0,
-  timerSeconds: 90,
+  timerSeconds: 60,
   advancing: false,
 };
 
@@ -94,6 +94,9 @@ const els = {
   finalWinnerName: document.getElementById("finalWinnerName"),
   finalStandings: document.getElementById("finalStandings"),
   playAgainBtn: document.getElementById("playAgainBtn"),
+  reviewAnswersBtn: document.getElementById("reviewAnswersBtn"),
+  finalReviewSection: document.getElementById("finalReviewSection"),
+  finalReviewList: document.getElementById("finalReviewList"),
 
   userAvatar: document.getElementById("userAvatar"),
   userNameTop: document.getElementById("userNameTop"),
@@ -141,7 +144,7 @@ async function setupUser() {
 }
 
 /* =========================================================
-   LOAD BANKS from js/compete/
+   LOAD BANKS
    ========================================================= */
 
 async function loadAll() {
@@ -253,7 +256,7 @@ async function handleCreateRoom() {
   clearLobbyError();
 
   const bank = getSelectedBank();
-  const seconds = parseInt(els.createTime?.value || "90", 10);
+  const seconds = parseInt(els.createTime?.value || "60", 10);
 
   if (!bank) return showLobbyError("Please choose a quiz.");
 
@@ -374,7 +377,7 @@ function renderWaitingRoom(room) {
   if (els.waitingCount)
     els.waitingCount.textContent = s.questionsPerRound || "—";
   if (els.waitingTime)
-    els.waitingTime.textContent = (s.secondsPerQuestion || 90) + "s";
+    els.waitingTime.textContent = (s.secondsPerQuestion || 60) + "s";
 
   const players = Object.values(room.players || {});
   if (els.playerCount) els.playerCount.textContent = players.length;
@@ -651,8 +654,8 @@ function updateTimerValue(seconds) {
     const val = els.playTimer.querySelector(".timer-value");
     if (val) val.textContent = seconds;
     els.playTimer.classList.remove("warn", "danger");
-    if (seconds <= 10) els.playTimer.classList.add("danger");
-    else if (seconds <= 30) els.playTimer.classList.add("warn");
+    if (seconds <= 5) els.playTimer.classList.add("danger");
+    else if (seconds <= 15) els.playTimer.classList.add("warn");
   }
 }
 
@@ -733,6 +736,110 @@ function renderFinal() {
 }
 
 /* =========================================================
+   FINAL REVIEW — correct answers + each player's answers
+   ========================================================= */
+
+function renderFinalReview() {
+  const room = state.room;
+  if (!room || !els.finalReviewList) return;
+
+  const players = Object.values(room.players || {});
+  const questions = room.questions || [];
+
+  els.finalReviewList.innerHTML = questions
+    .map(function (q, i) {
+      const markpointsHtml = (q.markpoints || [])
+        .map(function (mp) {
+          const text = typeof mp === "string" ? mp : mp.text;
+          const marks = typeof mp === "string" ? 1 : mp.marks || 1;
+          return (
+            '<div class="review-point hit">' +
+            '<span class="review-icon">✓</span>' +
+            '<span class="review-text">' +
+            escapeHTML(text) +
+            "</span>" +
+            '<span class="review-marks">' +
+            marks +
+            " mark" +
+            (marks === 1 ? "" : "s") +
+            "</span>" +
+            "</div>"
+          );
+        })
+        .join("");
+
+      const playersHtml = players
+        .map(function (p) {
+          const answer = (p.answers && p.answers[i]) || null;
+          const answerText = answer && answer.text ? answer.text : null;
+          const scored = answer ? answer.scored || 0 : 0;
+          const marks = answer ? answer.marks || q.marks || 1 : q.marks || 1;
+          const isMe = p.uid === state.user.uid;
+
+          const hasAnswer = answerText !== null && answerText !== "";
+          const answerClass = hasAnswer
+            ? scored > 0
+              ? "hit"
+              : "missed"
+            : "missed";
+
+          return (
+            '<div class="review-point ' +
+            answerClass +
+            '">' +
+            '<span class="review-icon">' +
+            (hasAnswer ? "•" : "✗") +
+            "</span>" +
+            '<span class="review-text">' +
+            "<strong>" +
+            escapeHTML(p.name || "Player") +
+            (isMe ? " (you)" : "") +
+            ":</strong> " +
+            (hasAnswer ? escapeHTML(answerText) : "<em>No answer</em>") +
+            "</span>" +
+            '<span class="review-marks">' +
+            scored +
+            "/" +
+            marks +
+            "</span>" +
+            "</div>"
+          );
+        })
+        .join("");
+
+      return (
+        '<div class="review-item">' +
+        '<div class="review-item-head">' +
+        '<span class="review-num">Q' +
+        (i + 1) +
+        "</span>" +
+        '<span class="review-score">' +
+        (q.marks || 1) +
+        " mark" +
+        (q.marks === 1 ? "" : "s") +
+        "</span>" +
+        "</div>" +
+        '<div class="review-question">' +
+        escapeHTML(q.question) +
+        "</div>" +
+        '<div class="review-scheme">' +
+        '<div class="scheme-title">Correct answers:</div>' +
+        markpointsHtml +
+        "</div>" +
+        '<div class="review-scheme" style="margin-top: var(--sp-4);">' +
+        '<div class="scheme-title">Player answers:</div>' +
+        playersHtml +
+        "</div>" +
+        "</div>"
+      );
+    })
+    .join("");
+
+  if (els.finalReviewSection) els.finalReviewSection.classList.remove("hidden");
+  if (els.reviewAnswersBtn) els.reviewAnswersBtn.classList.add("hidden");
+}
+
+/* =========================================================
    LEAVE / CLEANUP
    ========================================================= */
 
@@ -772,6 +879,8 @@ function cleanupRoom() {
   state.isHost = false;
   state.advancing = false;
   if (els.roomCodeDisplay) els.roomCodeDisplay.textContent = "------";
+  if (els.finalReviewSection) els.finalReviewSection.classList.add("hidden");
+  if (els.reviewAnswersBtn) els.reviewAnswersBtn.classList.remove("hidden");
 }
 
 /* =========================================================
@@ -856,6 +965,8 @@ async function init() {
     els.startGameBtn.addEventListener("click", handleStartGame);
   if (els.playSubmitBtn)
     els.playSubmitBtn.addEventListener("click", handleSubmitAnswer);
+  if (els.reviewAnswersBtn)
+    els.reviewAnswersBtn.addEventListener("click", renderFinalReview);
   if (els.playAgainBtn)
     els.playAgainBtn.addEventListener("click", function () {
       cleanupRoom();
