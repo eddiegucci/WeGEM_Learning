@@ -17,6 +17,7 @@ import {
 } from "../core/cache.js";
 import { getDefaultWallpaper } from "../data/wallpapers.js";
 import { initNav } from "../ui/nav.js";
+import { refreshDisplayNameCache, clearDisplayNameCache } from "../ui/nav.js";
 import { toastOk, toastErr } from "../ui/toast.js";
 import { confirmDialog, promptDialog } from "../ui/modal.js";
 import { firstName, initials, log, lsGet, lsRemove } from "../core/utils.js";
@@ -112,7 +113,7 @@ function renderProfile() {
   if (els.infoStream) els.infoStream.textContent = doc?.stream || "—";
   if (els.infoSubjects) {
     const count = (doc?.subjects || []).length;
-    els.infoSubjects.textContent = count ? `${count} selected` : "—";
+    els.infoSubjects.textContent = count ? count + " selected" : "—";
   }
 }
 
@@ -142,7 +143,7 @@ async function handleResetWallpaper() {
   } catch {}
   document.documentElement.style.setProperty(
     "--wallpaper",
-    `url('${def.url}')`,
+    "url('" + def.url + "')",
   );
   renderWallpaperLabel();
   toastOk("Wallpaper reset");
@@ -204,6 +205,10 @@ async function saveProfile() {
     try {
       await cacheUser(state.userDoc);
     } catch {}
+
+    // Update the navigation cache instantly
+    refreshDisplayNameCache(name);
+
     renderProfile();
     closeEditModal();
     toastOk("Profile updated");
@@ -227,7 +232,7 @@ async function handleChangePassword() {
 
   const ok = await confirmDialog({
     title: "Send reset email?",
-    message: `We'll send a password reset link to:\n\n${email}`,
+    message: "We'll send a password reset link to:\n\n" + email,
     okLabel: "Send",
     cancelLabel: "Cancel",
   });
@@ -281,6 +286,7 @@ async function handleSignOut() {
   if (!ok) return;
 
   try {
+    clearDisplayNameCache(); // Prevent old name flashing for the next person
     await signOutNow();
     window.location.replace("login.html");
   } catch (e) {
@@ -324,11 +330,12 @@ async function handleDeleteAccount() {
     await clearAllCache().catch(() => {});
     lsRemove(WALLPAPER_KEY);
 
-    // Delete Firestore data BEFORE removing the auth user,
-    // since after deleteAccount we lose the ability to write.
+    // Delete Firestore data BEFORE removing the auth user
     await deleteUserData(state.user.uid).catch(() => {});
 
     await deleteAccount(password);
+
+    clearDisplayNameCache();
 
     toastOk("Account deleted. Goodbye 👋");
     setTimeout(() => window.location.replace("signup.html"), 800);
@@ -348,13 +355,16 @@ async function handleDeleteAccount() {
 }
 
 /* =========================================================
-   USER MENU
+   USER MENU (top nav)
    ========================================================= */
 
 async function handleUserMenu() {
   const ok = await confirmDialog({
     title: "Sign out?",
-    message: `Signed in as ${state.user?.email || "Student"}.\n\nDo you want to sign out?`,
+    message:
+      "Signed in as " +
+      (state.user?.email || "Student") +
+      ".\n\nDo you want to sign out?",
     okLabel: "Sign Out",
     cancelLabel: "Stay",
     danger: true,
@@ -362,6 +372,7 @@ async function handleUserMenu() {
 
   if (ok) {
     try {
+      clearDisplayNameCache();
       await signOutNow();
       window.location.replace("login.html");
     } catch (e) {
