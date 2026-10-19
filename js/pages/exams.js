@@ -1,5 +1,5 @@
 // js/pages/exams.js
-// Exams page controller.
+// Controller for exams.html. Read-only view for students.
 
 import { waitForAuth, signOutNow, getCachedUser } from "../core/auth.js";
 import { getUserDoc, getQuestionsForSubject } from "../core/db.js";
@@ -12,8 +12,6 @@ import {
 import {
   fetchExamLinks,
   filterExamLinks,
-  createExamLink,
-  removeExamLink,
   getLinkMeta,
 } from "../features/exams.js";
 import {
@@ -22,14 +20,12 @@ import {
   EXAM_BY_LEVEL,
 } from "../data/subjects.js";
 import { initNav } from "../ui/nav.js";
-import { toastOk, toastErr } from "../ui/toast.js";
+import { toastErr } from "../ui/toast.js";
 import { confirmDialog } from "../ui/modal.js";
-import { bindShortcut, installTapShortcuts } from "../ui/shortcuts.js";
 import {
   escapeHTML,
   firstName,
   initials,
-  isValidURL,
   log,
   debounce,
   isOnline,
@@ -53,17 +49,6 @@ const els = {
   examLinksGrid: document.getElementById("examLinksGrid"),
   subjectPapersGrid: document.getElementById("subjectPapersGrid"),
   paperCount: document.getElementById("paperCount"),
-  tray: document.getElementById("linkTray"),
-  trayBackdrop: document.getElementById("linkTrayBackdrop"),
-  trayBadge: document.getElementById("trayBadge"),
-  trayCloseBtn: document.getElementById("trayCloseBtn"),
-  trayCancelBtn: document.getElementById("trayCancelBtn"),
-  traySaveBtn: document.getElementById("traySaveBtn"),
-  trayTitle: document.getElementById("trayTitle"),
-  trayUrl: document.getElementById("trayUrl"),
-  traySubject: document.getElementById("traySubject"),
-  trayType: document.getElementById("trayType"),
-  trayError: document.getElementById("trayError"),
 };
 
 async function setupUser() {
@@ -80,6 +65,7 @@ async function setupUser() {
     user.displayName ||
     user.email?.split("@")[0] ||
     "Student";
+
   if (els.userAvatar) els.userAvatar.textContent = initials(displayName);
   if (els.userNameTop) els.userNameTop.textContent = firstName(displayName);
 
@@ -90,6 +76,7 @@ async function setupUser() {
       if (doc) await cacheUser(doc);
     }
     state.userDoc = doc;
+
     if (doc?.name) {
       if (els.userAvatar) els.userAvatar.textContent = initials(doc.name);
       if (els.userNameTop) els.userNameTop.textContent = firstName(doc.name);
@@ -98,12 +85,6 @@ async function setupUser() {
     log.warn("Could not load user doc:", e);
   }
   return true;
-}
-
-function updateTrayBadge() {
-  if (!els.trayBadge) return;
-  const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-  els.trayBadge.textContent = isTouch ? "Tap 5× to open" : "Ctrl+Shift+Alt+V";
 }
 
 async function loadLinks() {
@@ -130,12 +111,10 @@ function renderLinks() {
   if (!state.filtered.length) {
     const hasLinks = state.links.length > 0;
     els.examLinksGrid.innerHTML = `
-      <div class="empty-state" style="grid-column: 1 / -1;">
+      <div class="empty-state" style="grid-column: 1 / -1; background: rgba(20,25,45,0.4); backdrop-filter: blur(10px); border-radius: var(--radius-lg); border: 1px dashed var(--border-hi);">
         <div class="empty-icon">📄</div>
-        <div class="empty-title">${hasLinks ? "No links match your filter" : "No exam resources yet"}</div>
-        <div class="empty-sub">
-          ${hasLinks ? "Try clearing the search or choosing a different type." : `On desktop press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd> · On mobile tap this page 5 times`}
-        </div>
+        <div class="empty-title">${hasLinks ? "No resources match your filter" : "No exam resources yet"}</div>
+        <div class="empty-sub">${hasLinks ? "Try clearing the search or choosing a different type." : "Check back later for new papers and revision materials."}</div>
       </div>
     `;
     return;
@@ -144,61 +123,27 @@ function renderLinks() {
   els.examLinksGrid.innerHTML = state.filtered
     .map((link) => renderLinkButton(link))
     .join("");
-
-  els.examLinksGrid.querySelectorAll("[data-link-delete]").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      handleDeleteLink(btn.dataset.linkDelete);
-    });
-  });
 }
 
 function renderLinkButton(link) {
   const meta = getLinkMeta(link.type);
+
   return `
-    <a class="exam-link-btn" href="${escapeHTML(link.url || "#")}" target="_blank" rel="noopener noreferrer" style="--accent: ${meta.color};" data-link-id="${link.id || ""}">
-      <div class="elb-top">
-        <div class="elb-icon">${meta.icon}</div>
-        <button class="elb-remove" type="button" data-link-delete="${link.id}" title="Remove">×</button>
+    <a class="premium-exam-card" href="${escapeHTML(link.url || "#")}" target="_blank" rel="noopener noreferrer" style="--accent: ${meta.color};">
+      <div class="pec-top">
+        <div class="pec-icon">${meta.icon}</div>
+        <div class="pec-type">${meta.label}</div>
       </div>
-      <div class="elb-title">${escapeHTML(link.title || "Untitled")}</div>
-      <div class="elb-meta">
-        <span class="elb-type">${meta.label}</span>
-        <span class="elb-subject">${escapeHTML(link.subject || "")}</span>
-      </div>
-      <div class="elb-open">
-        Open
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17 L17 7 M9 7 H17 V15"/></svg>
+      <div class="pec-title">${escapeHTML(link.title || "Untitled Resource")}</div>
+      <div class="pec-subject">${escapeHTML(link.subject || "")}</div>
+      <div class="pec-action">
+        Open Resource
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 17 L17 7 M9 7 H17 V15"/>
+        </svg>
       </div>
     </a>
   `;
-}
-
-async function handleDeleteLink(id) {
-  if (!id) return;
-  const ok = await confirmDialog({
-    title: "Delete resource?",
-    message: "This link will be removed for everyone.",
-    okLabel: "Delete",
-    cancelLabel: "Cancel",
-    danger: true,
-  });
-  if (!ok) return;
-
-  try {
-    const success = await removeExamLink(id);
-    if (success) {
-      toastOk("Resource removed");
-      state.links = state.links.filter((l) => l.id !== id);
-      applyFilters();
-    } else {
-      toastErr("Could not remove resource");
-    }
-  } catch (e) {
-    log.warn("Delete failed:", e);
-    toastErr("Could not remove resource");
-  }
 }
 
 async function loadSubjectQuestionCounts() {
@@ -249,7 +194,7 @@ function renderSubjectPapers(examKey, subjects) {
 
   if (!subjects.length) {
     els.subjectPapersGrid.innerHTML = `
-      <div class="empty-state" style="grid-column: 1 / -1;">
+      <div class="empty-state" style="grid-column: 1 / -1; background: rgba(20,25,45,0.4); backdrop-filter: blur(10px); border-radius: var(--radius-lg); border: 1px dashed var(--border-hi);">
         <div class="empty-icon">📚</div>
         <div class="empty-title">No subjects selected</div>
         <div class="empty-sub">Update your subjects in Settings to see practice options.</div>
@@ -264,17 +209,20 @@ function renderSubjectPapers(examKey, subjects) {
       const count = state.subjectQuestionCounts[subjName] || 0;
       const icon = getSubjectIcon(subjName);
       const hasQuestions = count > 0;
+
       return `
-      <a class="paper-card${hasQuestions ? "" : " is-empty"}" href="quiz.html?exam=${encodeURIComponent(examKey)}&subject=${encodeURIComponent(subjName)}">
-        <div class="paper-icon">${icon}</div>
-        <div class="paper-body">
-          <div class="paper-name">${escapeHTML(subjName)}</div>
-          <div class="paper-meta">
+      <a class="premium-subject-card${hasQuestions ? "" : " is-empty"}" href="quiz.html?exam=${encodeURIComponent(examKey)}&subject=${encodeURIComponent(subjName)}">
+        <div class="psc-icon">${icon}</div>
+        <div class="psc-body">
+          <div class="psc-name">${escapeHTML(subjName)}</div>
+          <div class="psc-meta">
             ${hasQuestions ? `${count} ${count === 1 ? "question" : "questions"} available` : "Coming soon"}
           </div>
         </div>
-        <div class="paper-arrow">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6 L15 12 L9 18"/></svg>
+        <div class="psc-arrow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M9 6 L15 12 L9 18"/>
+          </svg>
         </div>
       </a>
     `;
@@ -287,103 +235,6 @@ function renderSubjectPapers(examKey, subjects) {
   );
   if (els.paperCount) {
     els.paperCount.textContent = `${totalQ} ${totalQ === 1 ? "question" : "questions"}`;
-  }
-}
-
-function populateSubjectDropdown() {
-  if (!els.traySubject) return;
-  const curriculum = state.userDoc?.curriculum === "CBE" ? "CBE" : "844";
-  const level =
-    state.userDoc?.level || (curriculum === "CBE" ? "Grade 9" : "Form 4");
-  let subjects = state.userDoc?.subjects || [];
-  if (!subjects.length) subjects = getSubjects(curriculum, level);
-
-  els.traySubject.innerHTML =
-    `<option value="">Select subject</option>` +
-    subjects
-      .map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`)
-      .join("");
-}
-
-function openTray() {
-  if (!els.tray || !els.trayBackdrop) return;
-  populateSubjectDropdown();
-  els.trayBackdrop.classList.add("open");
-  els.tray.classList.add("open");
-  els.tray.setAttribute("aria-hidden", "false");
-  if (els.trayTitle) els.trayTitle.value = "";
-  if (els.trayUrl) els.trayUrl.value = "";
-  if (els.traySubject) els.traySubject.value = "";
-  if (els.trayType) els.trayType.value = "papers";
-  clearTrayError();
-  setTimeout(() => els.trayTitle?.focus(), 300);
-}
-
-function closeTray() {
-  if (!els.tray || !els.trayBackdrop) return;
-  els.tray.classList.remove("open");
-  els.trayBackdrop.classList.remove("open");
-  els.tray.setAttribute("aria-hidden", "true");
-}
-
-function showTrayError(msg) {
-  if (!els.trayError) return;
-  els.trayError.textContent = msg;
-  els.trayError.classList.remove("hidden");
-}
-
-function clearTrayError() {
-  if (!els.trayError) return;
-  els.trayError.classList.add("hidden");
-  els.trayError.textContent = "";
-}
-
-async function saveLink() {
-  clearTrayError();
-
-  const title = (els.trayTitle?.value || "").trim();
-  const url = (els.trayUrl?.value || "").trim();
-  const subject = els.traySubject?.value || "";
-  const type = els.trayType?.value || "papers";
-
-  if (!title) return showTrayError("Please enter a title.");
-  if (title.length < 2) return showTrayError("Title is too short.");
-  if (!url) return showTrayError("Please paste a link.");
-  if (!isValidURL(url))
-    return showTrayError(
-      "Please paste a valid URL starting with http:// or https://",
-    );
-  if (!subject) return showTrayError("Please choose a subject.");
-
-  if (els.traySaveBtn) {
-    els.traySaveBtn.disabled = true;
-    els.traySaveBtn.textContent = "Saving…";
-  }
-
-  try {
-    const link = await createExamLink({
-      title,
-      url,
-      subject,
-      type,
-      curriculum: state.userDoc?.curriculum || "844",
-      level: state.userDoc?.level || "",
-      createdBy: state.user?.uid || "",
-      createdByName: state.userDoc?.name || "",
-    });
-
-    state.links.unshift(link);
-    toastOk("✓ Resource added");
-    closeTray();
-    applyFilters();
-  } catch (e) {
-    log.error("Save link failed:", e);
-    showTrayError(e.message || "Could not save. Try again.");
-  } finally {
-    if (els.traySaveBtn) {
-      els.traySaveBtn.disabled = false;
-      els.traySaveBtn.textContent = "Save & Add Button →";
-    }
   }
 }
 
@@ -412,10 +263,10 @@ const debouncedSearch = debounce((value) => {
 }, 200);
 
 function wireFilterChips() {
-  document.querySelectorAll(".filter-bar .chip").forEach((chip) => {
+  document.querySelectorAll(".exams-filters .chip").forEach((chip) => {
     chip.addEventListener("click", () => {
       document
-        .querySelectorAll(".filter-bar .chip")
+        .querySelectorAll(".exams-filters .chip")
         .forEach((c) => c.classList.remove("active"));
       chip.classList.add("active");
       state.activeFilter = chip.dataset.filter;
@@ -430,32 +281,10 @@ async function init() {
     if (!ready) return;
 
     initNav();
-    updateTrayBadge();
     wireFilterChips();
 
     els.searchInput?.addEventListener("input", (e) => {
       debouncedSearch(e.target.value.trim());
-    });
-
-    els.trayCloseBtn?.addEventListener("click", closeTray);
-    els.trayCancelBtn?.addEventListener("click", closeTray);
-    els.trayBackdrop?.addEventListener("click", closeTray);
-    els.traySaveBtn?.addEventListener("click", saveLink);
-
-    bindShortcut("ctrl+shift+alt+v", () => {
-      if (els.tray.classList.contains("open")) closeTray();
-      else openTray();
-    });
-
-    installTapShortcuts({
-      5: () => {
-        if (!els.tray.classList.contains("open")) openTray();
-      },
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && els.tray.classList.contains("open"))
-        closeTray();
     });
 
     els.userMenuBtn?.addEventListener("click", handleUserMenu);
